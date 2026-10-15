@@ -1,0 +1,12 @@
+.gradle/
+build/
+out/
+.idea/
+*.iml
+.vscode/
+.tools/
+node_modules/
+dashboard/dist/
+*.log
+.DS_Store
+.kube/

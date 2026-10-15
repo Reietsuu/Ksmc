@@ -1,0 +1,48 @@
+schema: spec-driven
+
+context: |
+  Language: fr
+  All artifacts must be written in fr.
+  Keep OpenSpec structural headings and SHALL/MUST keywords in English.
+
+  Projet : Ksmc (Kubernetes Server Minecraft Cloud) — un équivalent de CloudNet
+  construit nativement sur Kubernetes. Le cluster Kubernetes est la source de vérité :
+  tout l'état déclaratif vit dans des Custom Resources (groupe API `ksmc.io`).
+  L'API REST, la CLI et le dashboard web sont des façades sur ces ressources, donc
+  une modification faite par kubectl, REST, CLI ou dashboard est visible partout.
+
+  Stack imposée :
+  - Java 21 pour le controller (opérateur + API REST + hôte de modules), Gradle (Kotlin DSL), multi-projets.
+  - Code exécuté dans les serveurs Minecraft (wrapper, bridges, plugin-api) : bytecode Java 8 (--release 8)
+    pour supporter les versions legacy (1.8+).
+  - Logiciels supportés : Paper, Spigot/Bukkit, Velocity, BungeeCord/Waterfall, Fabric, Forge/NeoForge.
+  - Messagerie : NATS (+ JetStream KV), derrière une abstraction remplaçable.
+  - Dashboard : React + TypeScript + Vite, servi par le controller.
+  - Déploiement : chart Helm `deploy/helm/ksmc` ; images sur ghcr.io/reietsuu.
+  - Dépôt GitHub public Reietsuu/Ksmc ; CI GitHub Actions avec cluster kind pour l'e2e.
+
+  Principes :
+  - Extensibilité d'abord : chaque point de variation (logiciel, source de template, stratégie
+    de scaling, transport de messagerie, personnalisation des pods) passe par une SPI que les modules peuvent implémenter.
+  - Exposer les fonctionnalités Kubernetes plutôt que les cacher (podTemplate, ressources, affinités, PVC, etc.).
+  - Les APIs publiques (CRDs, REST, messages, SPI) sont versionnées ; v1alpha1 / /api/v1 au départ.
+  - Le développement est fait par un agent autonome sous quota Claude Pro (fenêtres de 5 h et 7 jours) :
+    le travail doit être découpable et reprenable à tout moment.
+
+rules:
+  proposal:
+    - Toujours préciser ce qui est hors périmètre et ce qui est volontairement laissé ouvert pour plus tard.
+  tasks:
+    - Chaque tâche doit être réalisable en moins de ~30 minutes de travail agent et laisser le dépôt compilable.
+    - Chaque tâche indique sa commande de vérification.
+    - Terminer chaque groupe de tâches par un commit + push (Conventional Commits).
+
+operations:
+  apply:
+    guidance:
+      - Suivre le protocole de session de CLAUDE.md (reprise, commits fréquents, économie de tokens).
+      - Cocher la tâche dans tasks.md dans le même commit que son implémentation.
+      - Si une tâche ne peut pas être vérifiée localement, pousser et vérifier via GitHub Actions.
+  archive:
+    guidance:
+      - Archiver un change seulement quand sa CI est verte sur main.
