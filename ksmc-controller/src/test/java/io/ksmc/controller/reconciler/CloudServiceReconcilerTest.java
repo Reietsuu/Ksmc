@@ -116,7 +116,7 @@ class CloudServiceReconcilerTest {
         var server = pod.getSpec().getContainers().stream().filter(c -> c.getName().equals("server")).findFirst().orElseThrow();
         assertThat(server.getImage()).isEqualTo("ghcr.io/reietsuu/ksmc-runtime:0.1.0-java21");
         assertThat(server.getReadinessProbe().getHttpGet().getPath()).isEqualTo("/ready");
-        assertThat(server.getResources().getLimits().get("memory").toString()).isEqualTo("1280Mi");
+        assertThat(server.getResources().getLimits().get("memory").toString()).isEqualTo("1536Mi");
         assertThat(server.getEnv()).anyMatch(e -> e.getName().equals("TZ") && e.getValue().equals("Europe/Paris"));
         assertThat(pod.getSpec().getInitContainers()).extracting("name").containsExactly("prepare");
         assertThat(pod.getSpec().getContainers()).extracting("name").containsExactly("server", "sidecar");

@@ -24,5 +24,5 @@
 - [x] 4.1 Reconciler `CloudService` : Pod (initContainer prepare, conteneur run, sondes, ServiceAccount `ksmc-service`, jeton projeté), PVC si statique, Secret de forwarding ; tests mock server
 - [x] 4.2 Fusion `podTemplate` (défauts → groupes → task) et choix d'image runtime ; tests unitaires de fusion
 - [x] 4.3 Calcul des phases/conditions depuis le Pod et la santé, `desiredState`, `restartPolicy`, événements K8s, `deployOnStop` ; tests unitaires de la machine à états
-- [ ] 4.4 Scénarios e2e : `CloudService` Paper `latest` atteint `Running` ; Velocity atteint `Running` ; service statique conserve un fichier après recréation ; version inexistante → `Failed` ; vérifier en CI
-- [ ] 4.5 Documenter logiciels, templates et services dans `docs/USAGE.md` (exemples YAML) ; vérifier que les exemples sont appliqués par l'e2e
+- [x] 4.4 Scénarios e2e : `CloudService` Paper `latest` atteint `Running` ; Velocity atteint `Running` ; service statique conserve un fichier après recréation ; version inexistante → `Failed` ; vérifier en CI
+- [x] 4.5 Documenter logiciels, templates et services dans `docs/USAGE.md` (exemples YAML) ; vérifier que les exemples sont appliqués par l'e2e

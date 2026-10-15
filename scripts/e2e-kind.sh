@@ -63,8 +63,8 @@ if [[ "$SKIP_BUILD" == false ]]; then
   ./gradlew -q :ksmc-controller:installDist :ksmc-wrapper:jar
   docker build -q -f docker/controller.Dockerfile -t "ghcr.io/reietsuu/ksmc-controller:$TAG" . >/dev/null
   kind load docker-image --name "$CLUSTER" "ghcr.io/reietsuu/ksmc-controller:$TAG"
-  # Variantes Java des images runtime utilisées par les scénarios (KSMC_E2E_JAVA, défaut : 21).
-  for java in ${KSMC_E2E_JAVA:-21}; do
+  # Variantes Java des images runtime utilisées par les scénarios (KSMC_E2E_JAVA, défaut : "21 25").
+  for java in ${KSMC_E2E_JAVA:-21 25}; do
     docker build -q -f docker/runtime.Dockerfile --build-arg JAVA_VERSION="$java" \
       -t "ghcr.io/reietsuu/ksmc-runtime:$TAG-java$java" . >/dev/null
     kind load docker-image --name "$CLUSTER" "ghcr.io/reietsuu/ksmc-runtime:$TAG-java$java"
@@ -78,6 +78,9 @@ helm upgrade --install ksmc deploy/helm/ksmc -n "$NAMESPACE" --create-namespace 
   --set controller.image.tag="$TAG" --set controller.image.pullPolicy=Never \
   --set runtime.image.tag="$TAG" --set minecraft.acceptEula=true \
   --wait --timeout 5m
+# Même tag d'image entre deux exécutions : forcer le redémarrage pour prendre la nouvelle image.
+kubectl -n "$NAMESPACE" rollout restart deployment/ksmc-controller >/dev/null
+kubectl -n "$NAMESPACE" rollout status deployment/ksmc-controller --timeout=180s >/dev/null
 
 step "Scénarios e2e"
 KSMC_NAMESPACE="$NAMESPACE" ./gradlew -q :ksmc-e2e:test -Pe2e --rerun-tasks

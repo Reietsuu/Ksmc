@@ -48,9 +48,9 @@ public final class PodFactory {
         return svc.getMetadata().getName() + "-data";
     }
 
-    /** Mémoire du conteneur : heap + marge hors heap (25 %, au moins 256 Mio). */
+    /** Mémoire du conteneur : heap + marge hors heap (metaspace, threads, buffers : 30 %, au moins 512 Mio). */
     static long containerMemoryMb(int heapMb) {
-        return heapMb + Math.max(256, heapMb / 4);
+        return heapMb + Math.max(512, heapMb * 3 / 10);
     }
 
     public Pod build(CloudService svc, ServiceSoftware.Setup setup, List<ImageTemplate> imageTemplates, String configHash) {
