@@ -6,6 +6,7 @@ plugins {
 dependencies {
     implementation(project(":ksmc-api"))
     implementation(project(":ksmc-wire"))
+    implementation(project(":ksmc-messaging-nats"))
     implementation(libs.josdk)
     implementation(libs.javalin)
     implementation(libs.jnats)

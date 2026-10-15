@@ -23,6 +23,7 @@ import org.junit.jupiter.api.Test;
 @EnableKubernetesMockClient(crud = true)
 class ServiceTaskReconcilerTest {
     KubernetesClient client;
+    final java.util.List<io.ksmc.wire.messaging.CloudEvent> published = new java.util.concurrent.CopyOnWriteArrayList<>();
     MutableClock clock;
     ServiceTaskReconciler reconciler;
 
@@ -45,7 +46,7 @@ class ServiceTaskReconcilerTest {
     @BeforeEach
     void setUp() {
         clock = new MutableClock();
-        reconciler = new ServiceTaskReconciler(client, new ScalingStrategies(), new EventRecorder(client), clock);
+        reconciler = new ServiceTaskReconciler(client, new ScalingStrategies(), new EventRecorder(client), published::add, clock);
     }
 
     ServiceTask task(String name, String spec) {
@@ -147,6 +148,7 @@ class ServiceTaskReconcilerTest {
             t = run(t);
         }
         assertThat(Conditions.isTrue(t.getStatus(), ServiceTaskReconciler.DEGRADED)).isTrue();
+        assertThat(published).extracting(e -> e.type).contains("service.deleted", "task.degraded");
         assertThat(t.getStatus().failureWindow.failures).isEqualTo(5);
         assertThat(services()).isEmpty();
 

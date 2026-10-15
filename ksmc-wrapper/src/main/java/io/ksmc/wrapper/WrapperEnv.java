@@ -12,9 +12,20 @@ public final class WrapperEnv {
     public final File serverDir;
     public final int healthPort;
     public final String buildSpec;
+    public final String task;
+    public final String environment;
+    public final String natsUrl;
+    public final String natsUser;
+    public final String natsPassword;
 
     public WrapperEnv(String controllerUrl, File tokenFile, String namespace, String service, File serverDir,
             int healthPort, String buildSpec) {
+        this(controllerUrl, tokenFile, namespace, service, serverDir, healthPort, buildSpec, null, null, null, null, null);
+    }
+
+    public WrapperEnv(String controllerUrl, File tokenFile, String namespace, String service, File serverDir,
+            int healthPort, String buildSpec, String task, String environment, String natsUrl, String natsUser,
+            String natsPassword) {
         this.controllerUrl = controllerUrl;
         this.tokenFile = tokenFile;
         this.namespace = namespace;
@@ -22,6 +33,11 @@ public final class WrapperEnv {
         this.serverDir = serverDir;
         this.healthPort = healthPort;
         this.buildSpec = buildSpec;
+        this.task = task;
+        this.environment = environment;
+        this.natsUrl = natsUrl;
+        this.natsUser = natsUser;
+        this.natsPassword = natsPassword;
     }
 
     public static WrapperEnv fromSystem() {
@@ -36,7 +52,12 @@ public final class WrapperEnv {
                 get(env, "KSMC_SERVICE", "unknown"),
                 new File(get(env, "KSMC_SERVER_DIR", "/server")),
                 Integer.parseInt(get(env, "KSMC_HEALTH_PORT", "8090")),
-                env.get("KSMC_BUILD"));
+                env.get("KSMC_BUILD"),
+                env.get("KSMC_TASK"),
+                env.get("KSMC_ENVIRONMENT"),
+                env.get("KSMC_NATS_URL"),
+                env.get("KSMC_NATS_USER"),
+                env.get("KSMC_NATS_PASSWORD"));
     }
 
     private static String get(Map<String, String> env, String key, String def) {

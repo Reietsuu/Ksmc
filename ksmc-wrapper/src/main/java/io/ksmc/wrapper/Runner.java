@@ -46,6 +46,12 @@ final class Runner {
         }, manifest.network.port);
         health.start();
         startStdinRelay();
+        final CloudLink link = new CloudLink(env, new CloudLink.CommandSink() {
+            public void send(String command) throws IOException {
+                sendCommand(command);
+            }
+        });
+        link.startAsync();
         Runtime.getRuntime().addShutdownHook(new Thread(new Runnable() {
             public void run() {
                 stopGracefully();
@@ -55,6 +61,7 @@ final class Runner {
         int code = process.waitFor();
         Log.info("le serveur s'est arrêté (code " + code + ")");
         deployOnStop();
+        link.close();
         health.stop();
         return code;
     }

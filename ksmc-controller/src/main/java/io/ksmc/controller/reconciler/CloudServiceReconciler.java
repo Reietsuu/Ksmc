@@ -24,7 +24,10 @@ import io.ksmc.api.model.CloudServiceStatus.Phase;
 import io.ksmc.api.model.Ksmc;
 import io.ksmc.api.model.ServiceTemplate;
 import io.ksmc.api.model.TemplateRef;
+import io.ksmc.controller.messaging.CloudEvents;
+import io.ksmc.controller.messaging.Snapshots;
 import io.ksmc.controller.service.PhaseCalculator;
+import io.ksmc.wire.messaging.CloudEvent;
 import io.ksmc.controller.service.PodFactory;
 import io.ksmc.controller.service.ServiceFailureException;
 import io.ksmc.controller.service.ServiceSoftware;
@@ -53,15 +56,17 @@ public final class CloudServiceReconciler implements Reconciler<CloudService> {
     private final ServiceSoftware software;
     private final PodFactory pods;
     private final EventRecorder events;
+    private final CloudEvents cloudEvents;
     private final Clock clock;
     private final Set<String> secretsEnsured = ConcurrentHashMap.newKeySet();
 
     public CloudServiceReconciler(KubernetesClient client, ServiceSoftware software, PodFactory pods,
-            EventRecorder events, Clock clock) {
+            EventRecorder events, CloudEvents cloudEvents, Clock clock) {
         this.client = client;
         this.software = software;
         this.pods = pods;
         this.events = events;
+        this.cloudEvents = cloudEvents;
         this.clock = clock;
     }
 
@@ -273,6 +278,23 @@ public final class CloudServiceReconciler implements Reconciler<CloudService> {
         secretsEnsured.add(ns);
     }
 
+    /** Événements cloud d'un changement de phase (le statut est déjà à jour dans {@code svc}). */
+    private void publishPhaseEvents(CloudService svc, CloudServiceStatus status, Phase before) {
+        svc.setStatus(status);
+        if (before == null) {
+            cloudEvents.publish(Snapshots.service("service.created", svc));
+        }
+        CloudEvent changed = Snapshots.service("service.phase-changed", svc);
+        changed.data.getAsJsonObject().addProperty("from", before == null ? null : before.name());
+        changed.data.getAsJsonObject().addProperty("to", status.phase.name());
+        cloudEvents.publish(changed);
+        if (status.phase == Phase.Running) {
+            cloudEvents.publish(Snapshots.service("service.ready", svc));
+        } else if (status.phase == Phase.Stopped || status.phase == Phase.Failed) {
+            cloudEvents.publish(Snapshots.service("service.stopped", svc));
+        }
+    }
+
     private static void set(CloudServiceStatus status, Phase phase, String reason, String message) {
         status.phase = phase;
         status.reason = reason;
@@ -300,6 +322,7 @@ public final class CloudServiceReconciler implements Reconciler<CloudService> {
                 events.normal(svc, "Phase" + status.phase, msg);
             }
             LOG.info("Service {} : {}", svc.getMetadata().getName(), msg);
+            publishPhaseEvents(svc, status, before);
         }
     }
 }

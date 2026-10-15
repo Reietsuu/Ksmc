@@ -33,6 +33,7 @@ import org.junit.jupiter.api.io.TempDir;
 @EnableKubernetesMockClient(crud = true)
 class CloudServiceReconcilerTest {
     KubernetesClient client;
+    final java.util.List<io.ksmc.wire.messaging.CloudEvent> published = new java.util.concurrent.CopyOnWriteArrayList<>();
 
     @TempDir
     Path tmp;
@@ -56,7 +57,7 @@ class CloudServiceReconcilerTest {
         ServiceSoftware software = new ServiceSoftware(client, new SoftwareCatalog(new JdkResolverContext(), Clock.systemUTC()),
                 new ArtifactCache(storage, HttpClient.newHttpClient()), new BuildJobRunner(client, storage, config), config);
         reconciler = new CloudServiceReconciler(client, software, new PodFactory(config), new EventRecorder(client),
-                Clock.systemUTC());
+                published::add, Clock.systemUTC());
 
         client.resource(Serialization.unmarshal("""
                 apiVersion: ksmc.io/v1alpha1
@@ -143,6 +144,11 @@ class CloudServiceReconcilerTest {
 
         svc = reconciler.reconcile(svc, pod).getResource().orElseThrow();
         assertThat(svc.getStatus().phase).isEqualTo(Phase.Running);
+        assertThat(published).extracting(e -> e.type).contains("service.created", "service.phase-changed", "service.ready");
+        var ready = published.stream().filter(e -> e.type.equals("service.ready")).findFirst().orElseThrow();
+        assertThat(ready.subject).isEqualTo("lobby-1");
+        assertThat(ready.environment).isEqualTo("server");
+        assertThat(ready.data.getAsJsonObject().getAsJsonObject("status").get("address").getAsString()).isEqualTo("10.0.0.7:25565");
         assertThat(svc.getStatus().address).isEqualTo("10.0.0.7:25565");
         assertThat(Conditions.isTrue(svc.getStatus(), Conditions.READY)).isTrue();
 
