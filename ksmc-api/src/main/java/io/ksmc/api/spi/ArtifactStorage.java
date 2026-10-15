@@ -25,6 +25,9 @@ public interface ArtifactStorage {
     /** Taille en octets, ou -1 si la clé n'existe pas. */
     long size(String key) throws IOException;
 
+    /** Date de dernière modification (ms epoch), ou -1 si la clé n'existe pas. */
+    long lastModified(String key) throws IOException;
+
     /** Supprime une clé ou tout un préfixe ({@code a/b/} supprime tout ce qui est sous {@code a/b}). */
     void delete(String keyOrPrefix) throws IOException;
 

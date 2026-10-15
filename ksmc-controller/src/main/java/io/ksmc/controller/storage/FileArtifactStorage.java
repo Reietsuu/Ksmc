@@ -71,6 +71,12 @@ public final class FileArtifactStorage implements ArtifactStorage {
     }
 
     @Override
+    public long lastModified(String key) throws IOException {
+        Path p = resolve(key);
+        return Files.isRegularFile(p) ? Files.getLastModifiedTime(p).toMillis() : -1;
+    }
+
+    @Override
     public void delete(String keyOrPrefix) throws IOException {
         Path p = resolve(keyOrPrefix);
         if (Files.isDirectory(p)) {
