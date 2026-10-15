@@ -194,6 +194,7 @@ public final class ServiceManifestBuilder implements ManifestProvider {
                 net.proxyProtocol = task.getSpec().expose.proxyProtocol;
                 net.maxPlayers = task.getSpec().expose.maxPlayers;
             }
+            net.motd = svc.getSpec().properties.get("ksmc.motd");
         } else {
             net.forwarding = override != null ? override : namespaceForwarding(svc.getMetadata().getNamespace(), m.family);
         }

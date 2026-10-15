@@ -19,6 +19,6 @@
 
 ## 4. Exposition et validation
 
-- [ ] 4.1 Service K8s par task proxy (type, annotations, policies, PROXY protocol), NetworkPolicy optionnelle dans le chart ; tests mock server
+- [x] 4.1 Service K8s par task proxy (type, annotations, policies, PROXY protocol), NetworkPolicy optionnelle dans le chart ; tests mock server
 - [ ] 4.2 Scénarios e2e : proxy Velocity + 2 lobbies ; client de test (bot protocole minimal) se connecte via NodePort et atterrit sur le lobby le moins rempli ; nouveau serveur visible en < 5 s ; registre joueur ; même chose avec BungeeCord ; vérifier en CI
 - [ ] 4.3 Documenter réseau, fallback, bridges et compatibilité versions dans `docs/USAGE.md` ; vérifier exemples via e2e

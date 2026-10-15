@@ -41,6 +41,11 @@ minecraft:
 softwareDefinitions:
   install: true
 
+# NetworkPolicy : seuls les proxies peuvent joindre le port Minecraft des serveurs de jeu
+# (nécessite un CNI qui applique les NetworkPolicy : Calico, Cilium...).
+networkPolicy:
+  enabled: false
+
 service:
   type: ClusterIP
   port: 8080

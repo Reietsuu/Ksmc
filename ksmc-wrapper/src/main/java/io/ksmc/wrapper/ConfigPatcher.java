@@ -90,7 +90,7 @@ final class ConfigPatcher {
         String mode = "legacy".equals(m.network.forwarding) ? "legacy"
                 : "none".equals(m.network.forwarding) ? "none" : "modern";
         toml.setTop("bind", "\"0.0.0.0:" + m.network.port + "\"")
-                .setTop("online-mode", "true")
+                .setTop("online-mode", String.valueOf(onlineMode(m)))
                 .setTop("player-info-forwarding-mode", "\"" + mode + "\"")
                 .setTop("forwarding-secret-file", "\"forwarding.secret\"");
         if (m.network.maxPlayers != null) {
@@ -125,7 +125,7 @@ final class ConfigPatcher {
                     + "  tab_list: GLOBAL_PING\n"
                     + "  ping_passthrough: false\n"
                     + "ip_forward: true\n"
-                    + "online_mode: true\n"
+                    + "online_mode: " + onlineMode(m) + "\n"
                     + "servers: {}\n");
             return;
         }
@@ -136,7 +136,7 @@ final class ConfigPatcher {
             if (t.startsWith("ip_forward:")) {
                 line = indent + "ip_forward: true";
             } else if (t.startsWith("online_mode:")) {
-                line = indent + "online_mode: true";
+                line = indent + "online_mode: " + onlineMode(m);
             } else if (t.startsWith("- host:") || t.startsWith("host:")) {
                 line = indent + (t.startsWith("-") ? "- " : "") + "host: 0.0.0.0:" + m.network.port;
             } else if (t.startsWith("proxy_protocol:")) {
@@ -150,6 +150,11 @@ final class ConfigPatcher {
     }
 
     // ---- Utilitaires -----------------------------------------------------------------------------
+
+    /** Authentification Mojang des joueurs sur le proxy (désactivable par {@code ksmc.online-mode: "false"}). */
+    static boolean onlineMode(ServiceManifest m) {
+        return m.properties == null || !"false".equals(m.properties.get("ksmc.online-mode"));
+    }
 
     static void patchProperties(File file, Map<String, String> values) throws IOException {
         Map<String, String> remaining = new LinkedHashMap<String, String>(values);
