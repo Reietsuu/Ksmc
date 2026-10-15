@@ -12,7 +12,10 @@ import io.ksmc.controller.internal.PodAuthenticator;
 import io.ksmc.controller.messaging.NatsConnector;
 import io.ksmc.controller.reconciler.CloudServiceReconciler;
 import io.ksmc.controller.reconciler.EventRecorder;
+import io.ksmc.controller.reconciler.ServiceGroupReconciler;
+import io.ksmc.controller.reconciler.ServiceTaskReconciler;
 import io.ksmc.controller.reconciler.SoftwareDefinitionReconciler;
+import io.ksmc.controller.task.ScalingStrategies;
 import io.ksmc.controller.service.ArtifactCache;
 import io.ksmc.controller.service.PodFactory;
 import io.ksmc.controller.service.ServiceManifestBuilder;
@@ -63,6 +66,8 @@ public final class KsmcController {
         Operator operator = new Operator(o -> o.withKubernetesClient(client).withUseSSAToPatchPrimaryResource(false));
         register(operator, config, new SoftwareDefinitionReconciler(catalog));
         register(operator, config, new CloudServiceReconciler(client, software, new PodFactory(config), events, clock));
+        register(operator, config, new ServiceTaskReconciler(client, new ScalingStrategies(), events, clock));
+        register(operator, config, new ServiceGroupReconciler());
         operator.start();
 
         InternalApi internal = new InternalApi(new PodAuthenticator(client, clock), client, storage, manifests);
