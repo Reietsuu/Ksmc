@@ -16,6 +16,7 @@ dependencies {
     implementation(libs.jgit)
     implementation(libs.commons.compress)
     testImplementation(libs.fabric8.server.mock)
+    testImplementation(libs.testcontainers)
 }
 
 application {

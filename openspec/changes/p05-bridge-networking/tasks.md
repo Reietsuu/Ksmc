@@ -15,7 +15,7 @@
 
 - [x] 3.1 `ksmc-bridge-bukkit` (API 1.8.8, testé sur Paper récent et Spigot 1.8.8 en e2e) : état, propriétés, actions
 - [x] 3.2 `ksmc-bridge-fabric` (dernière MC stable) et `ksmc-bridge-forge` (NeoForge, dernière MC stable) : état + actions ; vérifier build
-- [ ] 3.3 Registre joueurs côté controller (lecture KV), actions envoyer/expulser/message/titre via RPC ; tests
+- [x] 3.3 Registre joueurs côté controller (lecture KV), actions envoyer/expulser/message/titre via RPC ; tests
 
 ## 4. Exposition et validation
 
