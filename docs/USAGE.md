@@ -6,6 +6,88 @@ Les exemples complets sont dans [`examples/`](../examples).
 > ⚖️ **EULA Minecraft** : les serveurs ne démarrent que si l'opérateur accepte l'EULA
 > (https://aka.ms/MinecraftEULA) à l'installation : `helm install … --set minecraft.acceptEula=true`.
 
+## Tasks (`ServiceTask`, `mctask`)
+
+Une task décrit une famille de services gérés ensemble, comme dans CloudNet. Ksmc maintient le bon nombre
+de `CloudService`, nommés `<task>-<n>` (le plus petit numéro libre est réutilisé).
+
+```yaml
+apiVersion: ksmc.io/v1alpha1
+kind: ServiceTask
+metadata: {name: lobby}
+spec:
+  environment: server            # server | proxy
+  software: {name: paper, version: latest}
+  memoryMb: 1024
+  minServiceCount: 2             # toujours au moins 2 services
+  maxServiceCount: 5             # -1 = illimité
+  groups: [plugins]              # groupes appliqués (en plus des groupes d'environnement)
+  templates: [{name: lobby-default}]
+  updateStrategy: {type: RollingUpdate, maxUnavailable: 1}
+```
+
+```bash
+kubectl get mctask                          # ENV, SOFTWARE, VERSION, MIN, READY (prêts/total), PLAYERS
+kubectl scale mctask lobby --replicas=3     # change minServiceCount
+kubectl annotate mctask game ksmc.io/start-requests=2   # démarrer 2 services en plus (dans la limite de max)
+kubectl patch mctask lobby --type merge -p '{"spec":{"maintenance":true}}'
+kubectl patch mctask lobby --type merge -p '{"spec":{"enabled":false}}'   # arrête tous les services
+kubectl describe mctask lobby               # événements : ServiceCreated, ServiceUpdated, Degraded...
+```
+
+Comportements :
+
+- **Réduction** : les services arrêtés en premier sont ceux qui ne sont pas encore `Running`, puis ceux qui ont
+  le moins de joueurs, puis le numéro le plus élevé.
+- **Échecs** : un service dynamique `Failed` est supprimé puis remplacé. Après 5 échecs en moins de 10 minutes,
+  la task passe en condition `Degraded=True` (avec la dernière raison) et les créations sont espacées
+  (backoff jusqu'à 5 minutes). Un service qui atteint `Running` remet le compteur à zéro.
+- **Arrêter un service précis** : `desiredState: Stopped` sur le `CloudService` ; un service dynamique est
+  ensuite remplacé si le minimum l'exige.
+- **Démarrages manuels** : `spec.extraServices` (ou l'annotation `ksmc.io/start-requests`) ajoute des services
+  au-delà du minimum ; une demande qui dépasserait `maxServiceCount` est plafonnée (événement
+  `MaxServiceCountReached`). Pour les retirer, diminuer `extraServices`.
+
+### Services statiques
+
+Avec `static: true`, chaque service garde son nom et un volume persistant `<service>-data` (taille
+`storage.size`, défaut 2Gi). Un service statique qui s'arrête est redémarré sous le même nom ; réduire
+le minimum l'**arrête** sans supprimer ni le service ni son volume, et l'augmenter le redémarre avec ses données.
+
+### Mises à jour de configuration
+
+Chaque service porte l'empreinte de la configuration effective (`ksmc.io/config-hash`). Quand la task ou
+un de ses groupes change :
+
+| `updateStrategy.type` | Effet |
+|---|---|
+| `RollingUpdate` (défaut) | remplace les services un par un (au plus `maxUnavailable` indisponibles) |
+| `Recreate` | remplace tous les services obsolètes immédiatement |
+| `OnRestart` | ne touche pas aux services existants ; les nouveaux utilisent la nouvelle configuration |
+
+Si la mise à jour n'est pas terminée après `progressDeadlineSeconds` (défaut 600), la condition
+`Progressing` passe à `False` (`ProgressDeadlineExceeded`).
+
+## Groupes (`ServiceGroup`, `mcgroup`)
+
+Un groupe partage une configuration (templates, options JVM, variables, propriétés, `podTemplate`) entre tasks.
+
+```yaml
+apiVersion: ksmc.io/v1alpha1
+kind: ServiceGroup
+metadata: {name: all-servers}
+spec:
+  targetEnvironments: [server]   # appliqué automatiquement à toutes les tasks "server"
+  templates: [{name: global-plugins}]
+  jvmOptions: ["-XX:+UseG1GC"]
+  env: {TZ: Europe/Paris}
+```
+
+Ordre de fusion : groupes d'environnement (par nom) → groupes de `spec.groups` (dans l'ordre) → task.
+Listes (templates, options JVM, arguments) concaténées ; maps (env, propriétés) : la valeur la plus spécifique
+gagne ; `podTemplate` fusionné. La configuration retenue est visible dans `status.effective` de la task.
+Une task qui référence un groupe inexistant ne crée aucun service (condition `Ready=False`, `GroupNotFound`).
+
 ## Logiciels (`SoftwareDefinition`, `mcsw`)
 
 Le chart installe neuf définitions : `paper`, `folia`, `spigot`, `fabric`, `forge`, `neoforge`
