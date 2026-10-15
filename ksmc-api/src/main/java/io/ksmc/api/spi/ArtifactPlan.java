@@ -1,6 +1,7 @@
 package io.ksmc.api.spi;
 
 import java.util.List;
+import java.util.Map;
 
 /** Comment obtenir l'artefact d'un logiciel. */
 public sealed interface ArtifactPlan {
@@ -17,10 +18,12 @@ public sealed interface ArtifactPlan {
     }
 
     /**
-     * Construction par un Job Kubernetes (BuildTools, installeurs). Le Job produit une archive ZIP
-     * qu'il téléverse sur l'API interne ({@code PUT /internal/v1/artifacts/<cacheKey>}) ; elle est extraite
-     * à la racine du service.
+     * Construction par un Job Kubernetes (BuildTools, installeurs). Le wrapper du Job télécharge {@code downloads}
+     * (URL → nom de fichier) dans un dossier de travail, y exécute {@code java <javaArgs>}, puis téléverse le contenu
+     * de {@code outputDir} en ZIP sur l'API interne ({@code PUT /internal/v1/artifacts/<cacheKey>}).
+     * Ce ZIP est ensuite extrait à la racine de chaque service.
      */
-    record BuildJob(int javaVersion, List<String> script, String cacheKey) implements ArtifactPlan {
+    record BuildJob(int javaVersion, Map<String, String> downloads, List<String> javaArgs, String outputDir,
+            String cacheKey) implements ArtifactPlan {
     }
 }

@@ -9,7 +9,7 @@
 ## 2. Catalogue de logiciels
 
 - [x] 2.1 SPI `SoftwareResolver` + `ArtifactPlan` dans `ksmc-api` ; résolveurs `url` et `papermc` (paper, folia, velocity, waterfall) ; tests sur fixtures JSON
-- [ ] 2.2 Résolveurs `jenkins` (BungeeCord), `fabric-meta`, `forge-installer`, `neoforge-installer`, `buildtools` (Jobs K8s + verrou) ; tests unitaires
+- [x] 2.2 Résolveurs `jenkins` (BungeeCord), `fabric-meta`, `forge-installer`, `neoforge-installer`, `buildtools` (Jobs K8s + verrou) ; tests unitaires
 - [ ] 2.3 Reconciler `SoftwareDefinition` (versions connues dans `status`), table Java par version MC, définitions par défaut dans le chart ; vérifier `helm template` + test unitaire de sélection Java
 
 ## 3. Wrapper et images
