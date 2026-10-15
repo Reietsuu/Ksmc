@@ -10,6 +10,8 @@ import io.javalin.http.UnauthorizedResponse;
 import io.ksmc.api.model.Ksmc;
 import io.ksmc.api.spi.ArtifactStorage;
 import io.ksmc.controller.http.HttpRoutes;
+import io.ksmc.controller.service.RetryLaterException;
+import io.ksmc.controller.service.ServiceFailureException;
 import io.ksmc.controller.template.StorageTemplateSource;
 import io.ksmc.controller.template.ZipArchives;
 import java.io.InputStream;
@@ -72,7 +74,14 @@ public final class InternalApi implements HttpRoutes {
         String ns = ctx.pathParam("ns");
         String name = ctx.pathParam("name");
         requireServicePod(ctx, ns, name);
-        ctx.json(manifests.manifest(ns, name).orElseThrow(NotFoundResponse::new));
+        try {
+            ctx.json(manifests.manifest(ns, name).orElseThrow(NotFoundResponse::new));
+        } catch (RetryLaterException e) {
+            // Logiciel en cours de téléchargement/construction : le wrapper réessaie.
+            ctx.status(503).header("Retry-After", String.valueOf(e.seconds())).result(e.getMessage());
+        } catch (ServiceFailureException e) {
+            ctx.status(409).result(e.reason() + ": " + e.getMessage());
+        }
     }
 
     private void download(Context ctx) throws Exception {

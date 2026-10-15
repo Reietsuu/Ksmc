@@ -31,6 +31,11 @@ runtime:
     # Par défaut : appVersion du chart.
     tag: ""
 
+minecraft:
+  # Acceptation de l'EULA Minecraft (https://aka.ms/MinecraftEULA) pour tous les serveurs gérés.
+  # Doit être mis à true explicitement par l'opérateur : sans cela, les serveurs refusent de démarrer.
+  acceptEula: false
+
 # Définitions de logiciels installées par défaut (paper, folia, spigot, velocity, bungeecord, waterfall,
 # fabric, forge, neoforge). Mettre à false pour gérer soi-même les SoftwareDefinition.
 softwareDefinitions:

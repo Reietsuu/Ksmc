@@ -10,14 +10,26 @@ import io.ksmc.controller.http.HttpServer;
 import io.ksmc.controller.internal.InternalApi;
 import io.ksmc.controller.internal.PodAuthenticator;
 import io.ksmc.controller.messaging.NatsConnector;
+import io.ksmc.controller.reconciler.CloudServiceReconciler;
+import io.ksmc.controller.reconciler.EventRecorder;
 import io.ksmc.controller.reconciler.SoftwareDefinitionReconciler;
+import io.ksmc.controller.service.ArtifactCache;
+import io.ksmc.controller.service.PodFactory;
+import io.ksmc.controller.service.ServiceManifestBuilder;
+import io.ksmc.controller.service.ServiceSoftware;
+import io.ksmc.controller.software.BuildJobRunner;
 import io.ksmc.controller.software.JdkResolverContext;
 import io.ksmc.controller.software.SoftwareCatalog;
 import io.ksmc.controller.storage.FileArtifactStorage;
+import io.ksmc.controller.template.ConfigMapTemplateSource;
+import io.ksmc.controller.template.GitTemplateSource;
+import io.ksmc.controller.template.HttpTemplateSource;
+import io.ksmc.controller.template.StorageTemplateSource;
+import io.ksmc.controller.template.TemplateResolver;
+import java.net.http.HttpClient;
 import java.nio.file.Path;
 import java.time.Clock;
 import java.util.List;
-import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -39,14 +51,21 @@ public final class KsmcController {
         nats.connectAsync();
 
         FileArtifactStorage storage = new FileArtifactStorage(Path.of(System.getenv().getOrDefault("KSMC_DATA_DIR", "/data")));
+        HttpClient httpClient = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.NORMAL).build();
         SoftwareCatalog catalog = new SoftwareCatalog(new JdkResolverContext(), clock);
+        TemplateResolver templates = new TemplateResolver(List.of(new StorageTemplateSource(), new GitTemplateSource(),
+                new HttpTemplateSource(httpClient), new ConfigMapTemplateSource()));
+        ServiceSoftware software = new ServiceSoftware(client, catalog, new ArtifactCache(storage, httpClient),
+                new BuildJobRunner(client, storage, config), config);
+        ServiceManifestBuilder manifests = new ServiceManifestBuilder(client, software, templates, storage, config);
+        EventRecorder events = new EventRecorder(client);
 
         Operator operator = new Operator(o -> o.withKubernetesClient(client).withUseSSAToPatchPrimaryResource(false));
         register(operator, config, new SoftwareDefinitionReconciler(catalog));
+        register(operator, config, new CloudServiceReconciler(client, software, new PodFactory(config), events, clock));
         operator.start();
 
-        InternalApi internal = new InternalApi(new PodAuthenticator(client, clock), client, storage,
-                (ns, name) -> Optional.empty());
+        InternalApi internal = new InternalApi(new PodAuthenticator(client, clock), client, storage, manifests);
         HttpServer http = new HttpServer(health, List.of(internal)).start(config.httpPort());
         LOG.info("HTTP prêt sur le port {}", http.port());
 

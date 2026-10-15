@@ -25,10 +25,12 @@ class InternalClient {
 
     static final class HttpException extends IOException {
         final int status;
+        final String body;
 
-        HttpException(int status, String message) {
+        HttpException(int status, String message, String body) {
             super(message);
             this.status = status;
+            this.body = body;
         }
     }
 
@@ -70,7 +72,7 @@ class InternalClient {
         }
         if (status / 100 != 2) {
             String body = errorBody(c);
-            throw new HttpException(status, "HTTP " + status + " for " + url + (body.isEmpty() ? "" : ": " + body));
+            throw new HttpException(status, "HTTP " + status + " for " + url + (body.isEmpty() ? "" : ": " + body), body);
         }
     }
 

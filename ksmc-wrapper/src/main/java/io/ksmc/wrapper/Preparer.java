@@ -63,6 +63,11 @@ final class Preparer {
                 Log.info("en attente du controller : " + e.getMessage());
                 Thread.sleep(e.seconds * 1000L);
             } catch (InternalClient.HttpException e) {
+                // 409 : le controller indique une erreur de configuration "<Raison>: <détail>".
+                int colon = e.body.indexOf(": ");
+                if (e.status == 409 && colon > 0 && e.body.substring(0, colon).matches("[A-Z][A-Za-z]+")) {
+                    throw new PrepareException(e.body.substring(0, colon), e.body.substring(colon + 2));
+                }
                 throw new PrepareException("ManifestUnavailable", e.getMessage());
             } catch (IOException e) {
                 if (System.currentTimeMillis() > deadline) {

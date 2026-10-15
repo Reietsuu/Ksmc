@@ -44,6 +44,8 @@ spec:
               value: {{ .Values.runtime.image.tag | default .Chart.AppVersion | quote }}
             - name: KSMC_INTERNAL_URL
               value: "http://{{ include "ksmc.fullname" . }}-controller.{{ .Release.Namespace }}.svc:{{ .Values.service.port }}"
+            - name: KSMC_ACCEPT_EULA
+              value: {{ .Values.minecraft.acceptEula | quote }}
             - name: KSMC_LOG_LEVEL
               value: {{ .Values.controller.logLevel | quote }}
             {{- with .Values.controller.extraEnv }}
