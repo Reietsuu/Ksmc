@@ -1,0 +1,7 @@
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane
+    extraPortMappings:
+      # NodePort 30565 = proxy des exemples ; activé seulement si KSMC_HOST_PORT est défini (scripts/e2e-kind.sh)
+      - {containerPort: 30565, hostPort: 25565, protocol: TCP}
