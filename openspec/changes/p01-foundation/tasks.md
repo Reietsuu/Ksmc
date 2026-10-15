@@ -2,10 +2,10 @@
 
 ## 1. Dépôt et build
 
-- [ ] 1.1 Créer `.gitignore`, `LICENSE` (Apache-2.0), `README.md` (présentation + liens docs) ; créer le dépôt public `Reietsuu/Ksmc` avec `gh repo create` et pousser ; vérifier avec `gh repo view`
-- [ ] 1.2 Générer le wrapper Gradle 9 (via image docker `gradle`), `settings.gradle.kts`, `build-logic` avec conventions `ksmc.java21` / `ksmc.java8`, catalogue `gradle/libs.versions.toml` ; vérifier `./gradlew projects`
-- [ ] 1.3 Créer les projets vides `ksmc-api`, `ksmc-wire`, `ksmc-controller`, `ksmc-e2e` ; vérifier `./gradlew build -q`
-- [ ] 1.4 Ajouter `scripts/tools.sh` qui installe kind, kubectl et helm dans `.tools/` (versions épinglées) ; vérifier `.tools/kind version`
+- [x] 1.1 Créer `.gitignore`, `LICENSE` (Apache-2.0), `README.md` (présentation + liens docs) ; créer le dépôt public `Reietsuu/Ksmc` avec `gh repo create` et pousser ; vérifier avec `gh repo view`
+- [x] 1.2 Générer le wrapper Gradle 9 (via image docker `gradle`), `settings.gradle.kts`, `build-logic` avec conventions `ksmc.java21` / `ksmc.java8`, catalogue `gradle/libs.versions.toml` ; vérifier `./gradlew projects`
+- [x] 1.3 Créer les projets vides `ksmc-api`, `ksmc-wire`, `ksmc-controller`, `ksmc-e2e` ; vérifier `./gradlew build -q`
+- [x] 1.4 Ajouter `scripts/tools.sh` qui installe kind, kubectl et helm dans `.tools/` (versions épinglées) ; vérifier `.tools/kind version`
 
 ## 2. Modèle de ressources
 

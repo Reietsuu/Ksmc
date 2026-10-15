@@ -11,7 +11,8 @@ Le quota peut couper une session à tout moment. Le dépôt doit donc toujours �
    lire seulement son `tasks.md` + les sections utiles de `design.md`/specs. Ne pas relire tout le dépôt.
    Lire `docs/HANDOFF.md` s'il existe (état en cours, pièges rencontrés).
 2. **Travail** : une tâche à la fois. Cocher la case dans `tasks.md` dans le même commit que le code.
-3. **Commits** : Conventional Commits, push sur `main` à la fin de chaque groupe de tâches
+3. **Commits** : auteur = Reietsuu (config git locale du dépôt, e-mail noreply GitHub ; vérifier
+   `git config user.name` avant le premier commit d'une session, jamais `root`). Conventional Commits, push sur `main` à la fin de chaque groupe de tâches
    (ou plus tôt si le travail est gros). Jamais de travail non commité en fin de session.
 4. **Économie de tokens** :
    - lire les fichiers par plages (`sed -n`, `grep -n`) plutôt qu'en entier ;
