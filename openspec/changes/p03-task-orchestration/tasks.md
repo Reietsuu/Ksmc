@@ -15,5 +15,5 @@
 
 ## 3. Validation
 
-- [ ] 3.1 Scénarios e2e : task min 2 → 2 Running ; `kubectl scale` 2→1 ; réutilisation de `lobby-1` ; task statique conserve le monde ; rolling update de version ; groupe manquant ; vérifier en CI
-- [ ] 3.2 Compléter `docs/USAGE.md` (tasks, groupes, statiques, mises à jour) ; vérifier que les exemples sont appliqués par l'e2e
+- [x] 3.1 Scénarios e2e : task min 2 → 2 Running ; `kubectl scale` 2→1 ; réutilisation de `lobby-1` ; task statique conserve le monde ; rolling update de version ; groupe manquant ; vérifier en CI
+- [x] 3.2 Compléter `docs/USAGE.md` (tasks, groupes, statiques, mises à jour) ; vérifier que les exemples sont appliqués par l'e2e
