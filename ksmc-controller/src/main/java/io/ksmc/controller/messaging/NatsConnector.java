@@ -22,6 +22,8 @@ public final class NatsConnector implements HealthCheck, CloudEvents, AutoClosea
     private final String namespace;
     private volatile Connection connection;
     private volatile NatsMessaging messaging;
+    private final java.util.List<java.util.function.Consumer<NatsMessaging>> onReady =
+            new java.util.concurrent.CopyOnWriteArrayList<>();
     private volatile boolean closed;
 
     public NatsConnector(ControllerConfig config) {
@@ -49,6 +51,9 @@ public final class NatsConnector implements HealthCheck, CloudEvents, AutoClosea
                 Connection c = Nats.connect(options);
                 NatsMessaging m = NatsMessaging.wrap(Identity.controller(namespace), c);
                 m.ensureInfrastructure(BUCKETS);
+                for (var listener : onReady) {
+                    listener.accept(m);
+                }
                 messaging = m;
                 connection = c;
                 LOG.info("Messagerie NATS prête (stream d'événements et buckets KV vérifiés)");
@@ -66,6 +71,11 @@ public final class NatsConnector implements HealthCheck, CloudEvents, AutoClosea
 
     public Connection connection() {
         return connection;
+    }
+
+    /** Action exécutée une fois la messagerie prête (avant que le controller ne soit déclaré prêt). */
+    public void onReady(java.util.function.Consumer<NatsMessaging> listener) {
+        onReady.add(listener);
     }
 
     /** Messagerie du controller, ou {@code null} tant que NATS n'est pas joignable. */

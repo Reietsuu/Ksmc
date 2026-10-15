@@ -4,6 +4,7 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 import io.javaoperatorsdk.operator.Operator;
 import io.javaoperatorsdk.operator.api.reconciler.Reconciler;
+import io.ksmc.controller.bridge.BridgeHub;
 import io.ksmc.controller.health.HealthRegistry;
 import io.ksmc.controller.health.KubernetesHealthCheck;
 import io.ksmc.controller.http.HttpServer;
@@ -62,11 +63,19 @@ public final class KsmcController {
                 new BuildJobRunner(client, storage, config), config);
         ServiceManifestBuilder manifests = new ServiceManifestBuilder(client, software, templates, storage, config);
         EventRecorder events = new EventRecorder(client);
+        BridgeHub bridges = new BridgeHub(client, config.namespace(), nats, clock);
+        nats.onReady(m -> {
+            try {
+                bridges.attach(m);
+            } catch (Exception e) {
+                throw new IllegalStateException("bridge hub: " + e.getMessage(), e);
+            }
+        });
 
         Operator operator = new Operator(o -> o.withKubernetesClient(client).withUseSSAToPatchPrimaryResource(false));
         register(operator, config, new SoftwareDefinitionReconciler(catalog));
-        register(operator, config, new CloudServiceReconciler(client, software, new PodFactory(config), events, nats, clock));
-        register(operator, config, new ServiceTaskReconciler(client, new ScalingStrategies(), events, nats, clock));
+        register(operator, config, new CloudServiceReconciler(client, software, new PodFactory(config), events, nats, bridges, clock));
+        register(operator, config, new ServiceTaskReconciler(client, new ScalingStrategies(), events, nats, bridges, clock));
         register(operator, config, new ServiceGroupReconciler());
         operator.start();
 

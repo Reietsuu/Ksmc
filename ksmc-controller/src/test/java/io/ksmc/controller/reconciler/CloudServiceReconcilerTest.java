@@ -57,7 +57,8 @@ class CloudServiceReconcilerTest {
         ServiceSoftware software = new ServiceSoftware(client, new SoftwareCatalog(new JdkResolverContext(), Clock.systemUTC()),
                 new ArtifactCache(storage, HttpClient.newHttpClient()), new BuildJobRunner(client, storage, config), config);
         reconciler = new CloudServiceReconciler(client, software, new PodFactory(config), new EventRecorder(client),
-                published::add, Clock.systemUTC());
+                published::add,
+                new io.ksmc.controller.bridge.BridgeHub(client, "test", published::add, Clock.systemUTC()), Clock.systemUTC());
 
         client.resource(Serialization.unmarshal("""
                 apiVersion: ksmc.io/v1alpha1
