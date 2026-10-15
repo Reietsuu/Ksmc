@@ -4,7 +4,7 @@
 
 - [x] 1.1 Interface `ArtifactStorage` + implémentation fichier (`/data`) avec écriture atomique ; tests unitaires ; vérifier `./gradlew :ksmc-controller:test`
 - [x] 1.2 Sources de templates `storage`, `http`, `configMap`, `git` (JGit) converties en tar.gz cachées par empreinte, SPI `TemplateSourceProvider` ; tests avec dépôt git local et serveur HTTP de test
-- [ ] 1.3 Endpoints internes : manifest, téléchargement d'artefacts/templates, upload d'artefacts et de déploiements ; authentification TokenReview (audience `ksmc`) ; tests avec mock server
+- [x] 1.3 Endpoints internes : manifest, téléchargement d'artefacts/templates, upload d'artefacts et de déploiements ; authentification TokenReview (audience `ksmc`) ; tests avec mock server
 
 ## 2. Catalogue de logiciels
 
