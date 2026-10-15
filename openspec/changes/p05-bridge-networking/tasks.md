@@ -8,8 +8,8 @@
 
 ## 2. Proxies
 
-- [ ] 2.1 `ksmc-bridge-velocity` : enregistrement dynamique, fallback, forced hosts, maintenance, ping global, registre joueurs KV, actions joueurs ; tests unitaires adaptateur
-- [ ] 2.2 `ksmc-bridge-bungee` (BungeeCord/Waterfall) : mêmes fonctions ; tests unitaires
+- [x] 2.1 `ksmc-bridge-velocity` : enregistrement dynamique, fallback, forced hosts, maintenance, ping global, registre joueurs KV, actions joueurs ; tests unitaires adaptateur
+- [x] 2.2 `ksmc-bridge-bungee` (BungeeCord/Waterfall) : mêmes fonctions ; tests unitaires
 
 ## 3. Serveurs
 

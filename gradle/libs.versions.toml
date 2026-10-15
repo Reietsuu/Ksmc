@@ -12,6 +12,9 @@ picocli = "4.7.7"
 jgit = "7.8.0.202609011348-r"
 commons-compress = "1.28.0"
 bouncycastle = "1.85"
+velocity = "4.2.0"
+bungeecord = "1.21-R0.4"
+spigot = "1.8.8-R0.1-SNAPSHOT"
 
 [libraries]
 fabric8-client = { module = "io.fabric8:kubernetes-client", version.ref = "fabric8" }
@@ -32,3 +35,6 @@ picocli = { module = "info.picocli:picocli", version.ref = "picocli" }
 jgit = { module = "org.eclipse.jgit:org.eclipse.jgit", version.ref = "jgit" }
 commons-compress = { module = "org.apache.commons:commons-compress", version.ref = "commons-compress" }
 bcprov = { module = "org.bouncycastle:bcprov-jdk18on", version.ref = "bouncycastle" }
+velocity-api = { module = "com.velocitypowered:velocity-api", version.ref = "velocity" }
+bungeecord-api = { module = "net.md-5:bungeecord-api", version.ref = "bungeecord" }
+spigot-api = { module = "org.spigotmc:spigot-api", version.ref = "spigot" }

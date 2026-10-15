@@ -27,6 +27,11 @@ val bridges by configurations.creating {
     isCanBeConsumed = false
     isTransitive = false
 }
+dependencies {
+    for (bridge in listOf("velocity", "bungee")) {
+        bridges(project(mapOf("path" to ":ksmc-bridge-$bridge", "configuration" to "shadowRuntimeElements")))
+    }
+}
 distributions {
     main {
         contents {
