@@ -28,7 +28,7 @@ class ServiceInfosTest {
         CloudService svc = new CloudService();
         svc.getMetadata().setName("lobby-1");
         svc.setSpec(EffectiveConfig.resolve(task, Map.of()).serviceSpec());
-        svc.setStatus(Serialization.unmarshal("{phase: Running, address: '10.0.0.5:25565', onlinePlayers: 1}",
+        svc.setStatus(Serialization.unmarshal("phase: Running\naddress: '10.0.0.5:25565'\nonlinePlayers: 1\n",
                 io.ksmc.api.model.CloudServiceStatus.class));
 
         ServiceInfo info = ServiceInfos.of(svc, null);
