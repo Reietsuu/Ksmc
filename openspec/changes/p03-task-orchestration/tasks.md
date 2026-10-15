@@ -2,7 +2,7 @@
 
 ## 1. Groupes et configuration effective
 
-- [ ] 1.1 Résolution des groupes (environnement + référencés) et fusion (listes, maps, podTemplate) en `EffectiveConfig` + hash ; tests unitaires couvrant chaque règle
+- [x] 1.1 Résolution des groupes (environnement + référencés) et fusion (listes, maps, podTemplate) en `EffectiveConfig` + hash ; tests unitaires couvrant chaque règle
 - [ ] 1.2 Reconciler `ServiceGroup` qui redéclenche les tasks concernées ; `status.effective` et condition `GroupNotFound` ; tests mock server
 
 ## 2. Reconciler ServiceTask
