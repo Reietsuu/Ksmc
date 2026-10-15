@@ -23,9 +23,11 @@ import io.ksmc.api.model.ServiceTask;
 import io.ksmc.api.model.ServiceTaskSpec;
 import io.ksmc.api.model.ServiceTaskStatus;
 import io.ksmc.api.spi.ScalingStrategy;
+import io.ksmc.controller.bridge.BridgeHub;
 import io.ksmc.controller.messaging.CloudEvents;
 import io.ksmc.controller.messaging.Snapshots;
 import io.ksmc.controller.task.EffectiveConfig;
+import io.ksmc.controller.task.ProxyExposure;
 import io.ksmc.controller.task.ScalingStrategies;
 import io.ksmc.controller.task.ServiceSelection;
 import java.time.Clock;
@@ -54,14 +56,16 @@ public final class ServiceTaskReconciler implements Reconciler<ServiceTask> {
     private final ScalingStrategies strategies;
     private final EventRecorder events;
     private final CloudEvents cloudEvents;
+    private final BridgeHub bridges;
     private final Clock clock;
 
     public ServiceTaskReconciler(KubernetesClient client, ScalingStrategies strategies, EventRecorder events,
-            CloudEvents cloudEvents, Clock clock) {
+            CloudEvents cloudEvents, BridgeHub bridges, Clock clock) {
         this.client = client;
         this.strategies = strategies;
         this.events = events;
         this.cloudEvents = cloudEvents;
+        this.bridges = bridges;
         this.clock = clock;
     }
 
@@ -113,6 +117,10 @@ public final class ServiceTaskReconciler implements Reconciler<ServiceTask> {
         status.effective.groups = effective.groups();
         status.effective.templates = effective.templateNames();
         status.effective.configHash = effective.hash();
+
+        if (ProxyExposure.applies(task)) {
+            exposeProxy(task);
+        }
 
         // Classement des services existants.
         List<CloudService> active = new ArrayList<>();
@@ -184,6 +192,18 @@ public final class ServiceTaskReconciler implements Reconciler<ServiceTask> {
         aggregate(task, status, active, created, generation);
         task.setStatus(status);
         return UpdateControl.patchStatus(task).rescheduleAfter(reschedule);
+    }
+
+    /** Crée ou met à jour le Service Kubernetes d'une task proxy (server-side apply, possédé par la task). */
+    private void exposeProxy(ServiceTask task) {
+        var service = ProxyExposure.build(task);
+        service.getMetadata().setOwnerReferences(List.of(CloudServiceReconciler.ownerReference(task)));
+        try {
+            client.services().inNamespace(task.getMetadata().getNamespace()).resource(service)
+                    .fieldManager("ksmc-controller").forceConflicts().serverSideApply();
+        } catch (KubernetesClientException e) {
+            events.warning(task, "ExposeFailed", e.getMessage());
+        }
     }
 
     // ---- Demandes manuelles ----------------------------------------------------------------------
@@ -281,6 +301,7 @@ public final class ServiceTaskReconciler implements Reconciler<ServiceTask> {
     private void delete(CloudService svc) {
         client.resources(CloudService.class).inNamespace(svc.getMetadata().getNamespace())
                 .withName(svc.getMetadata().getName()).delete();
+        bridges.remove(svc.getMetadata().getName());
         cloudEvents.publish(Snapshots.service("service.deleted", svc));
     }
 

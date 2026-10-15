@@ -1,0 +1,8 @@
+name: KsmcBridge
+main: io.ksmc.bridge.bukkit.KsmcBukkitBridge
+version: 0.1.0
+author: Ksmc
+description: Intégration des serveurs Spigot/Paper au cloud Ksmc
+# Ignoré par les versions sans api-version (1.8-1.12) ; évite le mode "legacy" sur les versions récentes.
+api-version: '1.13'
+load: STARTUP

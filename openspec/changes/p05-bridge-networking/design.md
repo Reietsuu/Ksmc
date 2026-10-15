@@ -29,3 +29,27 @@ Messagerie (p04) disponible. Les bridges utilisent `ksmc-plugin-api` minimal (co
 
 - [Fabric/NeoForge cassent souvent entre versions MC] → une ligne supportée, CI qui construit ; versions supplémentaires = travail futur.
 - [Charge d'écriture sur l'API K8s due aux états] → limitation de débit + regroupement des patches de status.
+
+## Décisions prises pendant l'implémentation
+
+7. **Registre des services en KV plutôt que RPC + événements** : le controller écrit dans le bucket `services`
+   (une entrée `ServiceInfo` par service démarré, TTL 60 s rafraîchie toutes les 15 s, supprimée à l'arrêt).
+   Les proxies **surveillent** ce bucket (valeurs actuelles puis changements) : chargement initial et mises à jour
+   en un seul mécanisme, latence < 1 s. Les rapports des bridges serveur (`ksmc.<ns>.report.<service>`) sont
+   appliqués par le controller au KV immédiatement et au statut Kubernetes au plus toutes les 5 s.
+8. **Joueurs** : les proxies publient `ksmc.<ns>.pev.<login|switch|disconnect>` ; le controller tient le bucket
+   `players` (TTL 30 s, rafraîchi par les proxies) et relaie en événements `player.*`. Actions joueurs par requête
+   `ksmc.<ns>.rpc.player.<proxy>`.
+9. **Velocity 4.x** : l'API 4.2 est compilée pour Java 25 ; le bridge Velocity est donc compilé en Java 25 (la CI
+   passe au JDK 25). Les proxies Velocity 3.x ne sont pas supportés par le bridge (laissé ouvert : variante 3.x).
+10. **Limite assumée** : les identifiants NATS `service` peuvent écrire dans les buckets KV (nécessaire au bucket
+   `shared`) ; une entrée `services` falsifiée par un plugin malveillant est écrasée par le controller au
+   rafraîchissement suivant. Durcissement prévu : comptes NATS par rôle (proxy/serveur).
+11. **Validation e2e sans client bot** : un client Minecraft complet (phases login + configuration du protocole 26.x)
+    serait fragile d'une version à l'autre. L'e2e vérifie donc : l'enregistrement dynamique dans Velocity et
+    BungeeCord (journaux du proxy, < 5 s après `service.ready`), le ping « liste des serveurs » à travers le Service
+    Kubernetes du proxy (joueurs max du réseau), les rapports des bridges (registre + statut) et le relais des
+    événements joueurs. Le choix du lobby le moins rempli est couvert par les tests d'intégration du bridge (NATS
+    réel) ; la connexion d'un vrai client est un ordre de test manuel de `docs/TESTING.md`.
+12. **Mode de forwarding des serveurs** : déterminé à la préparation à partir des tasks et services proxy du
+    namespace ; ajouter un proxy d'un autre type plus tard nécessite de redémarrer les serveurs (mise à jour de task).

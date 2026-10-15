@@ -1,0 +1,5 @@
+name: KsmcBridge
+main: io.ksmc.bridge.bungee.KsmcBungeeBridge
+version: 0.1.0
+author: Ksmc
+description: Intégration de BungeeCord/Waterfall au cloud Ksmc

@@ -70,9 +70,19 @@ public record EffectiveConfig(List<String> groups, CloudServiceSpec serviceSpec,
         out.bridge = spec.bridge;
         // Statique : redémarré sous le même nom par le service lui-même. Dynamique : remplacé par la task.
         out.restartPolicy = spec.staticServices ? CloudServiceSpec.RestartPolicy.Always : CloudServiceSpec.RestartPolicy.Never;
+        // Réglages lus par les bridges (propriétés du service).
         if (spec.maintenance) {
             out.properties.put("ksmc.maintenance", "true");
         }
+        if (spec.fallback != null && spec.fallback.enabled) {
+            out.properties.put("ksmc.fallback", "true");
+            out.properties.put("ksmc.fallback.priority", String.valueOf(spec.fallback.priority));
+            if (spec.fallback.permission != null) {
+                out.properties.put("ksmc.fallback.permission", spec.fallback.permission);
+            }
+        }
+        spec.forcedHosts.forEach((host, target) ->
+                out.properties.put("ksmc.forced-host." + host.toLowerCase(java.util.Locale.ROOT), target));
         String hash = Digests.sha256(JSON.valueToTree(out).toString()).substring(0, 16);
         return new EffectiveConfig(new ArrayList<>(order), out, hash);
     }

@@ -110,6 +110,11 @@ class ConfigPatcherTest {
                 "haproxy-protocol = true");
         assertThat(toml.indexOf("bind")).isLessThan(toml.indexOf("[servers]"));
         assertThat(read(s, "forwarding.secret")).isEqualTo("s3cr3t");
+        assertThat(toml).contains("online-mode = true");
+
+        m.properties.put("ksmc.online-mode", "false");
+        new ConfigPatcher().apply(m, s.toFile());
+        assertThat(read(s, "velocity.toml")).contains("online-mode = false");
     }
 
     @Test

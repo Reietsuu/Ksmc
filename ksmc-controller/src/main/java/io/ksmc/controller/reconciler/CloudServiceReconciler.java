@@ -24,6 +24,7 @@ import io.ksmc.api.model.CloudServiceStatus.Phase;
 import io.ksmc.api.model.Ksmc;
 import io.ksmc.api.model.ServiceTemplate;
 import io.ksmc.api.model.TemplateRef;
+import io.ksmc.controller.bridge.BridgeHub;
 import io.ksmc.controller.messaging.CloudEvents;
 import io.ksmc.controller.messaging.Snapshots;
 import io.ksmc.controller.service.PhaseCalculator;
@@ -51,22 +52,25 @@ public final class CloudServiceReconciler implements Reconciler<CloudService> {
     private static final Logger LOG = LoggerFactory.getLogger(CloudServiceReconciler.class);
     static final Duration WAIT = Duration.ofSeconds(10);
     static final Duration MAX_BACKOFF = Duration.ofMinutes(5);
+    static final Duration REFRESH = Duration.ofSeconds(15);
 
     private final KubernetesClient client;
     private final ServiceSoftware software;
     private final PodFactory pods;
     private final EventRecorder events;
     private final CloudEvents cloudEvents;
+    private final BridgeHub bridges;
     private final Clock clock;
     private final Set<String> secretsEnsured = ConcurrentHashMap.newKeySet();
 
     public CloudServiceReconciler(KubernetesClient client, ServiceSoftware software, PodFactory pods,
-            EventRecorder events, CloudEvents cloudEvents, Clock clock) {
+            EventRecorder events, CloudEvents cloudEvents, BridgeHub bridges, Clock clock) {
         this.client = client;
         this.software = software;
         this.pods = pods;
         this.events = events;
         this.cloudEvents = cloudEvents;
+        this.bridges = bridges;
         this.clock = clock;
     }
 
@@ -103,8 +107,14 @@ public final class CloudServiceReconciler implements Reconciler<CloudService> {
             }
             reschedule = Duration.ofSeconds(30);
         }
+        bridges.overlay(svc.getMetadata().getName(), status);
         finish(svc, status, before);
         svc.setStatus(status);
+        bridges.sync(svc);
+        if (reschedule == null && status.phase == Phase.Running) {
+            // Rafraîchit l'entrée du registre des bridges (TTL) et le statut.
+            reschedule = REFRESH;
+        }
         UpdateControl<CloudService> control = UpdateControl.patchStatus(svc);
         return reschedule == null ? control : control.rescheduleAfter(reschedule);
     }

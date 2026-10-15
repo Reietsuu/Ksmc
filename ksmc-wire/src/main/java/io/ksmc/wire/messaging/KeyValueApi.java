@@ -35,6 +35,9 @@ public interface KeyValueApi {
 
     void delete(String key);
 
-    /** Surveille les clés correspondant au motif ({@code >} = toutes). */
+    /** Surveille les changements des clés correspondant au motif ({@code >} = toutes). */
     Subscription watch(String keyPattern, Watcher watcher);
+
+    /** Comme {@link #watch} mais reçoit d'abord les valeurs actuelles, puis les changements. */
+    Subscription watchWithCurrent(String keyPattern, Watcher watcher);
 }

@@ -34,6 +34,8 @@ public final class ServiceManifestBuilder implements ManifestProvider {
     private final TemplateResolver templates;
     private final ArtifactStorage storage;
     private final ControllerConfig config;
+    private final BridgeArtifacts bridges;
+    private ModrinthMods mods;
 
     public ServiceManifestBuilder(KubernetesClient client, ServiceSoftware software, TemplateResolver templates,
             ArtifactStorage storage, ControllerConfig config) {
@@ -42,6 +44,13 @@ public final class ServiceManifestBuilder implements ManifestProvider {
         this.templates = templates;
         this.storage = storage;
         this.config = config;
+        this.bridges = new BridgeArtifacts(config.bridgesDir());
+    }
+
+    /** Active l'ajout automatique des mods de forwarding (Modrinth). */
+    public ServiceManifestBuilder withMods(ModrinthMods mods) {
+        this.mods = mods;
+        return this;
     }
 
     @Override
@@ -82,9 +91,16 @@ public final class ServiceManifestBuilder implements ManifestProvider {
             a.extract = true;
         }
         m.artifacts.add(a);
+        boolean bridged = false;
+        if (spec.bridge == null || spec.bridge.enabled) {
+            var bridge = bridges.forFamily(m.family, m.softwareVersion);
+            bridge.ifPresent(m.artifacts::add);
+            bridged = bridge.isPresent();
+        }
 
         addTemplates(svc, m);
         network(svc, setup, m);
+        addRequiredMods(m, bridged);
         launch(svc, setup, m);
 
         if (spec.deployOnStop != null) {
@@ -129,6 +145,43 @@ public final class ServiceManifestBuilder implements ManifestProvider {
         }
     }
 
+    /**
+     * Mods requis sur Fabric : Fabric API (bridge Ksmc et FabricProxy-Lite) et FabricProxy-Lite pour le forwarding
+     * moderne (Velocity).
+     */
+    private void addRequiredMods(ServiceManifest m, boolean bridged)
+            throws RetryLaterException, ServiceFailureException, IOException {
+        if (mods == null || !"fabric".equals(m.family)) {
+            return;
+        }
+        List<String> projects = new java.util.ArrayList<>();
+        if ("modern".equals(m.network.forwarding)) {
+            projects.add("fabricproxy-lite");
+        }
+        if (bridged || !projects.isEmpty()) {
+            projects.add("fabric-api");
+        }
+        for (String project : projects) {
+            var plan = mods.latest(project, "fabric", m.softwareVersion);
+            if (plan.isEmpty()) {
+                throw new ServiceFailureException("ForwardingModUnavailable",
+                        project + " is not available for Minecraft " + m.softwareVersion
+                                + " (set bridge.forwarding: none or legacy)");
+            }
+            ServiceSoftware.ArtifactStatus st = software.ensureDownload(plan.get());
+            if (st.availability() == ServiceSoftware.Availability.WAITING) {
+                throw new RetryLaterException(st.message(), 5);
+            }
+            if (st.availability() == ServiceSoftware.Availability.FAILED) {
+                throw new ServiceFailureException("SoftwareDownloadFailed", st.message());
+            }
+            ServiceManifest.Artifact a = new ServiceManifest.Artifact();
+            a.url = "/internal/v1/files/" + ArtifactCache.storageKey(plan.get());
+            a.target = plan.get().target();
+            m.artifacts.add(a);
+        }
+    }
+
     private void network(CloudService svc, ServiceSoftware.Setup setup, ServiceManifest m) {
         ServiceManifest.NetworkConfig net = m.network;
         net.forwardingSecretFile = FORWARDING_SECRET_FILE;
@@ -141,6 +194,7 @@ public final class ServiceManifestBuilder implements ManifestProvider {
                 net.proxyProtocol = task.getSpec().expose.proxyProtocol;
                 net.maxPlayers = task.getSpec().expose.maxPlayers;
             }
+            net.motd = svc.getSpec().properties.get("ksmc.motd");
         } else {
             net.forwarding = override != null ? override : namespaceForwarding(svc.getMetadata().getNamespace(), m.family);
         }
@@ -156,13 +210,22 @@ public final class ServiceManifestBuilder implements ManifestProvider {
             return "none";
         }
         String mode = "none";
+        // Les tasks proxy existent avant leurs services : elles comptent même si aucun proxy ne tourne encore.
+        List<String[]> proxies = new java.util.ArrayList<>();
+        for (ServiceTask t : client.resources(ServiceTask.class).inNamespace(ns).list().getItems()) {
+            if (t.getSpec().environment == Environment.PROXY && t.getSpec().enabled) {
+                proxies.add(new String[] {t.getSpec().software.name, t.getSpec().bridge == null ? null : t.getSpec().bridge.forwarding});
+            }
+        }
         for (CloudService proxy : client.resources(CloudService.class).inNamespace(ns)
                 .withLabel(Ksmc.LABEL_ENVIRONMENT, "proxy").list().getItems()) {
-            String forced = proxy.getSpec().bridge == null ? null : proxy.getSpec().bridge.forwarding;
-            SoftwareDefinition def = client.resources(SoftwareDefinition.class).inNamespace(ns)
-                    .withName(proxy.getSpec().software.name).get();
+            proxies.add(new String[] {proxy.getSpec().software.name,
+                    proxy.getSpec().bridge == null ? null : proxy.getSpec().bridge.forwarding});
+        }
+        for (String[] proxy : proxies) {
+            SoftwareDefinition def = client.resources(SoftwareDefinition.class).inNamespace(ns).withName(proxy[0]).get();
             boolean velocity = def != null && def.getSpec().family.name().equals("VELOCITY");
-            String proxyMode = forced != null ? forced : velocity ? "modern" : "legacy";
+            String proxyMode = proxy[1] != null ? proxy[1] : velocity ? "modern" : "legacy";
             if ("modern".equals(proxyMode)) {
                 return "modern";
             }

@@ -194,6 +194,23 @@ class NatsMessagingTest {
     }
 
     @Test
+    void watchWithCurrentDeliversExistingValuesThenChanges() throws Exception {
+        NatsMessaging ctl = controller("prod");
+        ctl.ensureInfrastructure("svc");
+        KeyValueApi kv = ctl.keyValue("svc");
+        kv.put("lobby-1", bytes("a"));
+        kv.put("lobby-2", bytes("b"));
+        List<String> seen = new CopyOnWriteArrayList<>();
+
+        kv.watchWithCurrent(">", e -> seen.add(e.key + "=" + e.valueAsString()));
+        await(() -> seen.size() == 2);
+        kv.delete("lobby-1");
+        await(() -> seen.size() == 3);
+
+        assertThat(seen).containsExactly("lobby-1=a", "lobby-2=b", "lobby-1=null");
+    }
+
+    @Test
     void bucketWithTtlExpiresEntries() throws Exception {
         NatsMessaging ctl = controller("prod");
         ctl.ensureBucket("players", Duration.ofSeconds(1));
