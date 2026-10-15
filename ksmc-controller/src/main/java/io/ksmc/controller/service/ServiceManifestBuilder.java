@@ -34,6 +34,8 @@ public final class ServiceManifestBuilder implements ManifestProvider {
     private final TemplateResolver templates;
     private final ArtifactStorage storage;
     private final ControllerConfig config;
+    private final BridgeArtifacts bridges;
+    private ModrinthMods mods;
 
     public ServiceManifestBuilder(KubernetesClient client, ServiceSoftware software, TemplateResolver templates,
             ArtifactStorage storage, ControllerConfig config) {
@@ -42,6 +44,13 @@ public final class ServiceManifestBuilder implements ManifestProvider {
         this.templates = templates;
         this.storage = storage;
         this.config = config;
+        this.bridges = new BridgeArtifacts(config.bridgesDir());
+    }
+
+    /** Active l'ajout automatique des mods de forwarding (Modrinth). */
+    public ServiceManifestBuilder withMods(ModrinthMods mods) {
+        this.mods = mods;
+        return this;
     }
 
     @Override
@@ -82,9 +91,13 @@ public final class ServiceManifestBuilder implements ManifestProvider {
             a.extract = true;
         }
         m.artifacts.add(a);
+        if (spec.bridge == null || spec.bridge.enabled) {
+            bridges.forFamily(m.family).ifPresent(m.artifacts::add);
+        }
 
         addTemplates(svc, m);
         network(svc, setup, m);
+        addForwardingMods(m);
         launch(svc, setup, m);
 
         if (spec.deployOnStop != null) {
@@ -126,6 +139,32 @@ public final class ServiceManifestBuilder implements ManifestProvider {
                 }
             }
             m.templates.add(t);
+        }
+    }
+
+    /** Fabric derrière Velocity (forwarding moderne) : FabricProxy-Lite et sa dépendance Fabric API. */
+    private void addForwardingMods(ServiceManifest m) throws RetryLaterException, ServiceFailureException, IOException {
+        if (mods == null || !"fabric".equals(m.family) || !"modern".equals(m.network.forwarding)) {
+            return;
+        }
+        for (String project : List.of("fabricproxy-lite", "fabric-api")) {
+            var plan = mods.latest(project, "fabric", m.softwareVersion);
+            if (plan.isEmpty()) {
+                throw new ServiceFailureException("ForwardingModUnavailable",
+                        project + " is not available for Minecraft " + m.softwareVersion
+                                + " (set bridge.forwarding: none or legacy)");
+            }
+            ServiceSoftware.ArtifactStatus st = software.ensureDownload(plan.get());
+            if (st.availability() == ServiceSoftware.Availability.WAITING) {
+                throw new RetryLaterException(st.message(), 5);
+            }
+            if (st.availability() == ServiceSoftware.Availability.FAILED) {
+                throw new ServiceFailureException("SoftwareDownloadFailed", st.message());
+            }
+            ServiceManifest.Artifact a = new ServiceManifest.Artifact();
+            a.url = "/internal/v1/files/" + ArtifactCache.storageKey(plan.get());
+            a.target = plan.get().target();
+            m.artifacts.add(a);
         }
     }
 

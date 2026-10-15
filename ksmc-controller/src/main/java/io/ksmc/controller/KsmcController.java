@@ -18,6 +18,7 @@ import io.ksmc.controller.reconciler.ServiceTaskReconciler;
 import io.ksmc.controller.reconciler.SoftwareDefinitionReconciler;
 import io.ksmc.controller.task.ScalingStrategies;
 import io.ksmc.controller.service.ArtifactCache;
+import io.ksmc.controller.service.ModrinthMods;
 import io.ksmc.controller.service.PodFactory;
 import io.ksmc.controller.service.ServiceManifestBuilder;
 import io.ksmc.controller.service.ServiceSoftware;
@@ -61,7 +62,8 @@ public final class KsmcController {
                 new HttpTemplateSource(httpClient), new ConfigMapTemplateSource()));
         ServiceSoftware software = new ServiceSoftware(client, catalog, new ArtifactCache(storage, httpClient),
                 new BuildJobRunner(client, storage, config), config);
-        ServiceManifestBuilder manifests = new ServiceManifestBuilder(client, software, templates, storage, config);
+        ServiceManifestBuilder manifests = new ServiceManifestBuilder(client, software, templates, storage, config)
+                .withMods(new ModrinthMods(new JdkResolverContext(), clock));
         EventRecorder events = new EventRecorder(client);
         BridgeHub bridges = new BridgeHub(client, config.namespace(), nats, clock);
         nats.onReady(m -> {
@@ -79,7 +81,8 @@ public final class KsmcController {
         register(operator, config, new ServiceGroupReconciler());
         operator.start();
 
-        InternalApi internal = new InternalApi(new PodAuthenticator(client, clock), client, storage, manifests);
+        InternalApi internal = new InternalApi(new PodAuthenticator(client, clock), client, storage, manifests,
+                config.bridgesDir());
         HttpServer http = new HttpServer(health, List.of(internal)).start(config.httpPort());
         LOG.info("HTTP prêt sur le port {}", http.port());
 

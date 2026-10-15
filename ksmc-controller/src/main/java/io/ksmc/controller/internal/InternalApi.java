@@ -36,12 +36,19 @@ public final class InternalApi implements HttpRoutes {
     private final KubernetesClient client;
     private final ArtifactStorage storage;
     private final ManifestProvider manifests;
+    private final String bridgesDir;
 
     public InternalApi(PodAuthenticator auth, KubernetesClient client, ArtifactStorage storage, ManifestProvider manifests) {
+        this(auth, client, storage, manifests, "/opt/ksmc/bridges");
+    }
+
+    public InternalApi(PodAuthenticator auth, KubernetesClient client, ArtifactStorage storage, ManifestProvider manifests,
+            String bridgesDir) {
         this.auth = auth;
         this.client = client;
         this.storage = storage;
         this.manifests = manifests;
+        this.bridgesDir = bridgesDir;
     }
 
     @Override
@@ -50,6 +57,22 @@ public final class InternalApi implements HttpRoutes {
         routes.get("/internal/v1/files/<key>", this::download);
         routes.put("/internal/v1/artifacts/<key>", this::uploadArtifact);
         routes.put("/internal/v1/services/{ns}/{name}/deploy", this::deploy);
+        routes.get("/internal/v1/bridges/{file}", this::bridge);
+    }
+
+    /** JAR d'un bridge embarqué dans l'image du controller. */
+    private void bridge(Context ctx) throws Exception {
+        identity(ctx);
+        String file = ctx.pathParam("file");
+        if (!file.matches("ksmc-bridge-[a-z]+\\.jar")) {
+            throw new NotFoundResponse();
+        }
+        Path jar = Path.of(bridgesDir, file);
+        if (!Files.isRegularFile(jar)) {
+            throw new NotFoundResponse();
+        }
+        ctx.header("Content-Length", String.valueOf(Files.size(jar)));
+        ctx.contentType("application/java-archive").result(Files.newInputStream(jar));
     }
 
     private PodIdentity identity(Context ctx) {

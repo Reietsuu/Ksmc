@@ -61,6 +61,16 @@ public final class ServiceSoftware {
         return new Setup(def, resolved, java, image);
     }
 
+    /** Disponibilité d'un téléchargement annexe (mods...) dans le cache partagé. */
+    public ArtifactStatus ensureDownload(ArtifactPlan.Download plan) throws IOException {
+        ArtifactCache.Status s = cache.ensure(plan);
+        return switch (s.state()) {
+            case READY -> new ArtifactStatus(Availability.READY, null);
+            case DOWNLOADING -> new ArtifactStatus(Availability.WAITING, s.message());
+            case FAILED -> new ArtifactStatus(Availability.FAILED, s.message());
+        };
+    }
+
     /** Disponibilité de l'artefact ; démarre le téléchargement ou la construction si nécessaire. */
     public ArtifactStatus ensureArtifact(String namespace, Setup setup) throws IOException {
         ArtifactPlan plan = setup.resolved().plan();
