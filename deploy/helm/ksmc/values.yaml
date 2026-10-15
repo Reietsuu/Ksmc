@@ -18,6 +18,24 @@ controller:
   affinity: {}
   podAnnotations: {}
 
+# Stockage du controller : Template Store, cache des logiciels et des templates (PVC ReadWriteOnce).
+storage:
+  size: 10Gi
+  # Vide = StorageClass par défaut du cluster
+  storageClassName: ""
+
+# Images des services Minecraft (une variante par version de Java : <tag>-java8, -java17, -java21, -java25).
+runtime:
+  image:
+    repository: ghcr.io/reietsuu/ksmc-runtime
+    # Par défaut : appVersion du chart.
+    tag: ""
+
+# Définitions de logiciels installées par défaut (paper, folia, spigot, velocity, bungeecord, waterfall,
+# fabric, forge, neoforge). Mettre à false pour gérer soi-même les SoftwareDefinition.
+softwareDefinitions:
+  install: true
+
 service:
   type: ClusterIP
   port: 8080

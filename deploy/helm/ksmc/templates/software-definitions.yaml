@@ -1,0 +1,37 @@
+{{- if .Values.softwareDefinitions.install }}
+{{- $mc := list (dict "minecraft" "1.8-1.16.5" "java" 8) (dict "minecraft" "1.17-1.20.4" "java" 17) (dict "minecraft" "1.20.5-1.21.99" "java" 21) (dict "minecraft" "26+" "java" 25) }}
+{{- $defs := list
+  (dict "name" "paper" "env" "server" "family" "paper" "type" "papermc" "params" (dict "project" "paper") "java" $mc)
+  (dict "name" "folia" "env" "server" "family" "paper" "type" "papermc" "params" (dict "project" "folia") "java" $mc)
+  (dict "name" "spigot" "env" "server" "family" "spigot" "type" "buildtools" "params" (dict) "java" $mc)
+  (dict "name" "fabric" "env" "server" "family" "fabric" "type" "fabric-meta" "params" (dict) "java" $mc)
+  (dict "name" "forge" "env" "server" "family" "forge" "type" "forge-installer" "params" (dict) "java" $mc)
+  (dict "name" "neoforge" "env" "server" "family" "neoforge" "type" "neoforge-installer" "params" (dict) "java" $mc)
+  (dict "name" "velocity" "env" "proxy" "family" "velocity" "type" "papermc" "params" (dict "project" "velocity") "java" (list (dict "minecraft" "1-3.3.99" "java" 17) (dict "minecraft" "3.4+" "java" 21)))
+  (dict "name" "waterfall" "env" "proxy" "family" "bungeecord" "type" "papermc" "params" (dict "project" "waterfall") "java" (list (dict "minecraft" "0+" "java" 21)))
+  (dict "name" "bungeecord" "env" "proxy" "family" "bungeecord" "type" "jenkins" "params" (dict) "java" (list (dict "minecraft" "0+" "java" 21)))
+}}
+{{- range $defs }}
+---
+apiVersion: ksmc.io/v1alpha1
+kind: SoftwareDefinition
+metadata:
+  name: {{ .name }}
+  labels: {{- include "ksmc.labels" $ | nindent 4 }}
+  annotations:
+    helm.sh/resource-policy: keep
+spec:
+  environment: {{ .env }}
+  family: {{ .family }}
+  resolver:
+    type: {{ .type }}
+    {{- with .params }}
+    params: {{- toYaml . | nindent 6 }}
+    {{- end }}
+  javaVersions: {{- toYaml .java | nindent 4 }}
+  {{- if eq .family "bungeecord" }}
+  launch:
+    stopCommand: end
+  {{- end }}
+{{- end }}
+{{- end }}

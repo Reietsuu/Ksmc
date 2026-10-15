@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "ksmc.fullname" . }}-data
+  labels: {{- include "ksmc.labels" . | nindent 4 }}
+  annotations:
+    # Conservé à la désinstallation : contient les templates des utilisateurs.
+    helm.sh/resource-policy: keep
+spec:
+  accessModes: [ReadWriteOnce]
+  {{- with .Values.storage.storageClassName }}
+  storageClassName: {{ . }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.storage.size }}
