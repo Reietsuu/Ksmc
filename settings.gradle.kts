@@ -19,6 +19,7 @@ include(
     "ksmc-wire",
     "ksmc-wrapper",
     "ksmc-messaging-nats",
+    "ksmc-bridge-common",
     "ksmc-controller",
     "ksmc-e2e",
 )

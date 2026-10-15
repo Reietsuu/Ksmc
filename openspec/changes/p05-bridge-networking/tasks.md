@@ -2,7 +2,7 @@
 
 ## 1. Cœur commun
 
-- [ ] 1.1 `ksmc-bridge-common` : identité, cache services (RPC + événements), sélection fallback/forced hosts ; tests unitaires
+- [x] 1.1 `ksmc-bridge-common` : identité, cache services (RPC + événements), sélection fallback/forced hosts ; tests unitaires
 - [ ] 1.2 Controller : RPC `services.list`, réception `service.info` → status (débit limité), relais événements joueurs ; tests
 - [ ] 1.3 Injection automatique du bridge dans le manifest selon le logiciel, `bridge.enabled` ; test unitaire
 

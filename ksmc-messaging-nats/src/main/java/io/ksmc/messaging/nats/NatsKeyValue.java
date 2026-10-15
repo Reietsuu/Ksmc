@@ -63,6 +63,16 @@ final class NatsKeyValue implements KeyValueApi {
 
     @Override
     public Subscription watch(String keyPattern, final Watcher watcher) {
+        return watch(keyPattern, watcher, new KeyValueWatchOption[] {KeyValueWatchOption.UPDATES_ONLY});
+    }
+
+    @Override
+    public Subscription watchWithCurrent(String keyPattern, final Watcher watcher) {
+        // Sans option : dernière valeur de chaque clé, puis tous les changements (suppressions comprises).
+        return watch(keyPattern, watcher, new KeyValueWatchOption[0]);
+    }
+
+    private Subscription watch(String keyPattern, final Watcher watcher, KeyValueWatchOption[] options) {
         try {
             final NatsKeyValueWatchSubscription sub = kv.watch(keyPattern, new KeyValueWatcher() {
                 @Override
@@ -75,7 +85,7 @@ final class NatsKeyValue implements KeyValueApi {
                 public void endOfData() {
                     // fin de l'état initial : rien de particulier
                 }
-            }, KeyValueWatchOption.UPDATES_ONLY);
+            }, options);
             return () -> {
                 try {
                     sub.unsubscribe();

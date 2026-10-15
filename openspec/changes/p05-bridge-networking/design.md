@@ -29,3 +29,19 @@ Messagerie (p04) disponible. Les bridges utilisent `ksmc-plugin-api` minimal (co
 
 - [Fabric/NeoForge cassent souvent entre versions MC] → une ligne supportée, CI qui construit ; versions supplémentaires = travail futur.
 - [Charge d'écriture sur l'API K8s due aux états] → limitation de débit + regroupement des patches de status.
+
+## Décisions prises pendant l'implémentation
+
+7. **Registre des services en KV plutôt que RPC + événements** : le controller écrit dans le bucket `services`
+   (une entrée `ServiceInfo` par service démarré, TTL 60 s rafraîchie toutes les 15 s, supprimée à l'arrêt).
+   Les proxies **surveillent** ce bucket (valeurs actuelles puis changements) : chargement initial et mises à jour
+   en un seul mécanisme, latence < 1 s. Les rapports des bridges serveur (`ksmc.<ns>.report.<service>`) sont
+   appliqués par le controller au KV immédiatement et au statut Kubernetes au plus toutes les 5 s.
+8. **Joueurs** : les proxies publient `ksmc.<ns>.pev.<login|switch|disconnect>` ; le controller tient le bucket
+   `players` (TTL 30 s, rafraîchi par les proxies) et relaie en événements `player.*`. Actions joueurs par requête
+   `ksmc.<ns>.rpc.player.<proxy>`.
+9. **Velocity 4.x** : l'API 4.2 est compilée pour Java 25 ; le bridge Velocity est donc compilé en Java 25 (la CI
+   passe au JDK 25). Les proxies Velocity 3.x ne sont pas supportés par le bridge (laissé ouvert : variante 3.x).
+10. **Limite assumée** : les identifiants NATS `service` peuvent écrire dans les buckets KV (nécessaire au bucket
+   `shared`) ; une entrée `services` falsifiée par un plugin malveillant est écrasée par le controller au
+   rafraîchissement suivant. Durcissement prévu : comptes NATS par rôle (proxy/serveur).
