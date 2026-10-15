@@ -7,8 +7,8 @@
 
 ## 2. Transport NATS
 
-- [ ] 2.1 `ksmc-messaging-nats` : publication/abonnement ciblés, request/reply avec timeout ; tests avec conteneur NATS (Testcontainers) 
-- [ ] 2.2 Événements JetStream (stream, rejouer depuis séquence/heure) et KV (CAS, watch, TTL) ; tests Testcontainers
+- [x] 2.1 `ksmc-messaging-nats` : publication/abonnement ciblés, request/reply avec timeout ; tests avec conteneur NATS (Testcontainers) 
+- [x] 2.2 Événements JetStream (stream, rejouer depuis séquence/heure) et KV (CAS, watch, TTL) ; tests Testcontainers
 - [ ] 2.3 Comptes NATS `controller`/`service` dans le chart + Secret ; test e2e de refus de publication d'événement par un service
 
 ## 3. Intégration
