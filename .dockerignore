@@ -1,0 +1,4 @@
+*
+!ksmc-controller/build/install/
+!ksmc-wrapper/build/libs/
+!docker/

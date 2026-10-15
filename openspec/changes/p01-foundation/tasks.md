@@ -16,8 +16,8 @@
 
 ## 3. Controller minimal et chart
 
-- [ ] 3.1 `ksmc-controller` : main, config par variables d'environnement, client fabric8, JOSDK démarré sans reconciler, Javalin avec `/healthz` et `/readyz` (API K8s + NATS) ; test unitaire de readiness ; vérifier `./gradlew :ksmc-controller:test`
-- [ ] 3.2 `docker/controller.Dockerfile` ; vérifier `docker build -f docker/controller.Dockerfile .`
+- [x] 3.1 `ksmc-controller` : main, config par variables d'environnement, client fabric8, JOSDK démarré sans reconciler, Javalin avec `/healthz` et `/readyz` (API K8s + NATS) ; test unitaire de readiness ; vérifier `./gradlew :ksmc-controller:test`
+- [x] 3.2 `docker/controller.Dockerfile` ; vérifier `docker build -f docker/controller.Dockerfile .`
 - [ ] 3.3 Chart Helm : CRDs, ServiceAccount + ClusterRole/Role, Deployment controller, Service, dépendance NATS (JetStream), `values.yaml` documenté ; vérifier `helm lint` et `helm template`
 - [ ] 3.4 Documenter l'installation dans `docs/INSTALL.md` ; vérifier que les commandes du doc fonctionnent dans l'e2e
 

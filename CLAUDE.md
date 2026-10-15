@@ -12,8 +12,12 @@ Le quota peut couper une session à tout moment. Le dépôt doit donc toujours �
    Lire `docs/HANDOFF.md` s'il existe (état en cours, pièges rencontrés).
 2. **Travail** : une tâche à la fois. Cocher la case dans `tasks.md` dans le même commit que le code.
 3. **Commits** : auteur = Reietsuu (config git locale du dépôt, e-mail noreply GitHub ; vérifier
-   `git config user.name` avant le premier commit d'une session, jamais `root`). Conventional Commits, push sur `main` à la fin de chaque groupe de tâches
+   `git config user.name` avant le premier commit d'une session, jamais `root`). Conventional Commits, push à la fin de chaque groupe de tâches
    (ou plus tôt si le travail est gros). Jamais de travail non commité en fin de session.
+   **Branches** : `main` = historique officiel ; il ne reçoit que des merges de PR à CI verte et les tags
+   de version. Chaque change se fait sur `feat/<change>` (ex. `feat/p02-service-runtime`) avec une PR
+   ouverte vers `main` dès le premier push ; merge (commit de merge, pas de squash) quand le change est
+   terminé et la CI verte, puis tag éventuel. Essais/expériences : `test/<sujet>`. Correctifs : `fix/<sujet>`.
 4. **Économie de tokens** :
    - lire les fichiers par plages (`sed -n`, `grep -n`) plutôt qu'en entier ;
    - lancer les builds avec `-q` et ne regarder que les erreurs (`| tail -40`) ;
