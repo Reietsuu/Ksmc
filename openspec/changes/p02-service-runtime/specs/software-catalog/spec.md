@@ -52,9 +52,14 @@ stocker dans le cache ; les services en attente SHALL rester en phase `Preparing
 - **THEN** une construction est lancée, le service est `Preparing`, puis `Running` après la fin de la construction
 
 ### Requirement: Choix automatique de Java
-Le système SHALL choisir l'image runtime Java compatible avec la version Minecraft (Java 8 jusqu'à 1.16, 17 pour
-1.17 à 1.20.4, 21 à partir de 1.20.5), sauf si la task impose une image.
+Le système SHALL choisir l'image runtime Java compatible : version minimale annoncée par la source si elle en
+fournit une, sinon règles par version Minecraft (8 jusqu'à 1.16.5, 17 de 1.17 à 1.20.4, 21 de 1.20.5 à 1.21.x,
+25 à partir de 26.1), sauf si la task impose une image.
 
 #### Scenario: Serveur legacy
 - **WHEN** un service `paper` `1.8.8` est créé
 - **THEN** son Pod utilise l'image `ksmc-runtime:java8`
+
+#### Scenario: Version à numérotation annuelle
+- **WHEN** un service `paper` `26.1.2` est créé
+- **THEN** son Pod utilise l'image `ksmc-runtime:java25`
