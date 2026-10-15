@@ -23,10 +23,10 @@
 
 ## 4. CI et e2e
 
-- [ ] 4.1 Workflow `ci.yml` : build + tests + `checkCrds` + `openspec validate --all` + `helm lint` ; pousser et vérifier `gh run watch` vert
-- [ ] 4.2 Workflow `images.yml` : build/push `ksmc-controller` sur GHCR depuis `main` (tags SHA + `edge`) ; vérifier l'image dans `gh api /users/Reietsuu/packages`
-- [ ] 4.3 `scripts/e2e-kind.sh` + projet `ksmc-e2e` avec scénarios : CRDs installées, task invalide refusée, `kubectl scale` modifie `minServiceCount`, exemples acceptés, controller `Ready` ; job `e2e` dans `ci.yml` ; vérifier en CI
-- [ ] 4.4 Workflow `release.yml` déclenché par tag `v*` (chart packagé + artefacts) ; vérifier par `act`-free dry-run : `gh workflow view release.yml`
+- [x] 4.1 Workflow `ci.yml` : build + tests + `checkCrds` + `openspec validate --all` + `helm lint` ; pousser et vérifier `gh run watch` vert
+- [x] 4.2 Workflow `images.yml` : build/push `ksmc-controller` sur GHCR depuis `main` (tags SHA + `edge`) ; vérifier l'image dans `gh api /users/Reietsuu/packages`
+- [x] 4.3 `scripts/e2e-kind.sh` + projet `ksmc-e2e` avec scénarios : CRDs installées, task invalide refusée, `kubectl scale` modifie `minServiceCount`, exemples acceptés, controller `Ready` ; job `e2e` dans `ci.yml` ; vérifier en CI
+- [x] 4.4 Workflow `release.yml` déclenché par tag `v*` (chart packagé + artefacts) ; vérifier par `act`-free dry-run : `gh workflow view release.yml`
 
 ## Workflow follow-up
 
