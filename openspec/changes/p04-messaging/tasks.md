@@ -2,8 +2,8 @@
 
 ## 1. Protocole
 
-- [ ] 1.1 `ksmc-wire` : `ChannelMessage`, `Target`, `Sender`, `CloudEvent`, `RpcError`, codec JSON versionné ; tests de compatibilité (champ inconnu ignoré)
-- [ ] 1.2 Interfaces `MessagingTransport`, `ChannelApi`, `EventApi`, `KeyValueApi` dans `ksmc-wire` (Java 8) ; vérifier compilation `--release 8`
+- [x] 1.1 `ksmc-wire` : `ChannelMessage`, `Target`, `Sender`, `CloudEvent`, `RpcError`, codec JSON versionné ; tests de compatibilité (champ inconnu ignoré)
+- [x] 1.2 Interfaces `MessagingTransport`, `ChannelApi`, `EventApi`, `KeyValueApi` dans `ksmc-wire` (Java 8) ; vérifier compilation `--release 8`
 
 ## 2. Transport NATS
 
