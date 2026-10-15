@@ -1,0 +1,11 @@
+# Module exemple (construit depuis examples/module-hello, publié dans les releases).
+apiVersion: ksmc.io/v1alpha1
+kind: KsmcModule
+metadata:
+  name: hello
+spec:
+  source:
+    url: https://github.com/Reietsuu/Ksmc/releases/download/v0.1.0/ksmc-module-hello.jar
+    sha256: 0000000000000000000000000000000000000000000000000000000000000000
+  config:
+    greeting: Bonjour

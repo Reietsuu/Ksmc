@@ -1,0 +1,10 @@
+# Groupe appliqué automatiquement à tous les serveurs de jeu.
+apiVersion: ksmc.io/v1alpha1
+kind: ServiceGroup
+metadata:
+  name: all-servers
+spec:
+  targetEnvironments: [server]
+  jvmOptions: ["-XX:+UseG1GC"]
+  env:
+    TZ: Europe/Paris

@@ -9,10 +9,10 @@
 
 ## 2. Modèle de ressources
 
-- [ ] 2.1 POJOs `ServiceTask` (spec, status, scale), `ServiceGroup`, `ServiceTemplate`, `CloudService`, `SoftwareDefinition`, `KsmcModule` + types communs (`Condition`, `extensions`, `PodTemplateOverride`) ; vérifier `./gradlew :ksmc-api:compileJava`
-- [ ] 2.2 Annotations de validation, colonnes `additionalPrinterColumns`, noms courts ; tests unitaires de sérialisation ; vérifier `./gradlew :ksmc-api:test`
-- [ ] 2.3 Tâche `generateCrds` → `deploy/helm/ksmc/crds/*.yaml` + tâche `checkCrds` (diff) ; vérifier `./gradlew generateCrds checkCrds`
-- [ ] 2.4 Exemples `examples/*.yaml` (une ressource de chaque type, dont task Paper `lobby` et task Velocity `proxy`) ; vérifier qu'ils passent `kubectl apply --dry-run=server` dans l'e2e (tâche 4.3)
+- [x] 2.1 POJOs `ServiceTask` (spec, status, scale), `ServiceGroup`, `ServiceTemplate`, `CloudService`, `SoftwareDefinition`, `KsmcModule` + types communs (`Condition`, `extensions`, `PodTemplateOverride`) ; vérifier `./gradlew :ksmc-api:compileJava`
+- [x] 2.2 Annotations de validation, colonnes `additionalPrinterColumns`, noms courts ; tests unitaires de sérialisation ; vérifier `./gradlew :ksmc-api:test`
+- [x] 2.3 Tâche `generateCrds` → `deploy/helm/ksmc/crds/*.yaml` + tâche `checkCrds` (diff) ; vérifier `./gradlew generateCrds checkCrds`
+- [x] 2.4 Exemples `examples/*.yaml` (une ressource de chaque type, dont task Paper `lobby` et task Velocity `proxy`) ; vérifier qu'ils passent `kubectl apply --dry-run=server` dans l'e2e (tâche 4.3)
 
 ## 3. Controller minimal et chart
 

@@ -1,0 +1,48 @@
+# Proxy Velocity exposé hors du cluster.
+apiVersion: ksmc.io/v1alpha1
+kind: ServiceTask
+metadata:
+  name: proxy
+spec:
+  environment: proxy
+  software: {name: velocity, version: latest}
+  memoryMb: 512
+  minServiceCount: 1
+  maxServiceCount: 3
+  expose:
+    type: NodePort
+    nodePort: 30565
+    maxPlayers: 500
+---
+# Lobbies Paper : au moins 2, fallback des joueurs.
+apiVersion: ksmc.io/v1alpha1
+kind: ServiceTask
+metadata:
+  name: lobby
+spec:
+  environment: server
+  software: {name: paper, version: latest}
+  memoryMb: 1024
+  minServiceCount: 2
+  maxServiceCount: 5
+  templates:
+    - name: lobby-default
+      optional: true
+  fallback: {enabled: true, priority: 10}
+---
+# Serveur survie statique : nom et monde persistants.
+apiVersion: ksmc.io/v1alpha1
+kind: ServiceTask
+metadata:
+  name: survival
+spec:
+  environment: server
+  software: {name: paper, version: "1.21.4"}
+  memoryMb: 2048
+  minServiceCount: 1
+  static: true
+  storage: {size: 5Gi}
+  podTemplate:
+    spec:
+      nodeSelector:
+        kubernetes.io/os: linux

@@ -1,0 +1,19 @@
+# Template stocké dans le Template Store du controller.
+apiVersion: ksmc.io/v1alpha1
+kind: ServiceTemplate
+metadata:
+  name: lobby-default
+spec:
+  storage:
+    path: lobby/default
+---
+# Template depuis un dépôt git.
+apiVersion: ksmc.io/v1alpha1
+kind: ServiceTemplate
+metadata:
+  name: lobby-plugins
+spec:
+  git:
+    url: https://github.com/Reietsuu/Ksmc.git
+    ref: main
+    path: examples/templates/lobby-plugins

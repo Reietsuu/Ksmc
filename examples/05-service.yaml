@@ -1,0 +1,10 @@
+# Service autonome (sans task), utile pour des tests ponctuels.
+apiVersion: ksmc.io/v1alpha1
+kind: CloudService
+metadata:
+  name: sandbox
+spec:
+  environment: server
+  software: {name: paper, version: latest}
+  memoryMb: 1024
+  restartPolicy: OnFailure

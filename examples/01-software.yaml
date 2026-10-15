@@ -1,0 +1,28 @@
+# Définitions de logiciels (le chart installe ces définitions par défaut ; exemple pour référence).
+apiVersion: ksmc.io/v1alpha1
+kind: SoftwareDefinition
+metadata:
+  name: paper
+spec:
+  environment: server
+  family: paper
+  resolver:
+    type: papermc
+    params: {project: paper}
+  javaVersions:
+    - {minecraft: "1.8-1.16.5", java: 8}
+    - {minecraft: "1.17-1.20.4", java: 17}
+    - {minecraft: "1.20.5+", java: 21}
+---
+apiVersion: ksmc.io/v1alpha1
+kind: SoftwareDefinition
+metadata:
+  name: velocity
+spec:
+  environment: proxy
+  family: velocity
+  resolver:
+    type: papermc
+    params: {project: velocity}
+  javaVersions:
+    - {minecraft: "3.0+", java: 21}
