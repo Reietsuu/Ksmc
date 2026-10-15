@@ -65,8 +65,8 @@ public final class KsmcController {
 
         Operator operator = new Operator(o -> o.withKubernetesClient(client).withUseSSAToPatchPrimaryResource(false));
         register(operator, config, new SoftwareDefinitionReconciler(catalog));
-        register(operator, config, new CloudServiceReconciler(client, software, new PodFactory(config), events, clock));
-        register(operator, config, new ServiceTaskReconciler(client, new ScalingStrategies(), events, clock));
+        register(operator, config, new CloudServiceReconciler(client, software, new PodFactory(config), events, nats, clock));
+        register(operator, config, new ServiceTaskReconciler(client, new ScalingStrategies(), events, nats, clock));
         register(operator, config, new ServiceGroupReconciler());
         operator.start();
 

@@ -2,6 +2,9 @@ package io.ksmc.controller.messaging;
 
 import io.ksmc.controller.ControllerConfig;
 import io.ksmc.controller.health.HealthCheck;
+import io.ksmc.messaging.nats.NatsMessaging;
+import io.ksmc.wire.messaging.CloudEvent;
+import io.ksmc.wire.messaging.Identity;
 import io.nats.client.Connection;
 import io.nats.client.Nats;
 import io.nats.client.Options;
@@ -10,14 +13,19 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 /** Connexion NATS du controller, avec reconnexion infinie ; sert aussi de vérification de readiness. */
-public final class NatsConnector implements HealthCheck, AutoCloseable {
+public final class NatsConnector implements HealthCheck, CloudEvents, AutoCloseable {
+    /** Buckets KV créés par le controller au démarrage. */
+    static final String[] BUCKETS = {"shared"};
     private static final Logger LOG = LoggerFactory.getLogger(NatsConnector.class);
 
     private final Options options;
+    private final String namespace;
     private volatile Connection connection;
+    private volatile NatsMessaging messaging;
     private volatile boolean closed;
 
     public NatsConnector(ControllerConfig config) {
+        this.namespace = config.namespace();
         Options.Builder builder = new Options.Builder()
                 .server(config.natsUrl())
                 .connectionName("ksmc-controller")
@@ -38,7 +46,12 @@ public final class NatsConnector implements HealthCheck, AutoCloseable {
     private void connectLoop() {
         while (connection == null && !closed) {
             try {
-                connection = Nats.connect(options);
+                Connection c = Nats.connect(options);
+                NatsMessaging m = NatsMessaging.wrap(Identity.controller(namespace), c);
+                m.ensureInfrastructure(BUCKETS);
+                messaging = m;
+                connection = c;
+                LOG.info("Messagerie NATS prête (stream d'événements et buckets KV vérifiés)");
             } catch (Exception e) {
                 LOG.warn("NATS indisponible ({}), nouvel essai dans 2 s", e.getMessage());
                 try {
@@ -53,6 +66,48 @@ public final class NatsConnector implements HealthCheck, AutoCloseable {
 
     public Connection connection() {
         return connection;
+    }
+
+    /** Messagerie du controller, ou {@code null} tant que NATS n'est pas joignable. */
+    public NatsMessaging messaging() {
+        return messaging;
+    }
+
+    /**
+     * Envoie une commande console à un service ; renvoie l'accusé du wrapper ({@code ok} ou {@code error: ...}).
+     *
+     * @throws IllegalStateException si NATS est indisponible ou si le service ne répond pas
+     */
+    public String sendCommand(String service, String command) {
+        Connection c = connection;
+        if (c == null) {
+            throw new IllegalStateException("messaging unavailable");
+        }
+        try {
+            io.nats.client.Message reply = c.request(io.ksmc.messaging.nats.Subjects.command(namespace, service),
+                    command.getBytes(java.nio.charset.StandardCharsets.UTF_8), Duration.ofSeconds(5));
+            if (reply == null || reply.isStatusMessage()) {
+                throw new IllegalStateException("service " + service + " did not acknowledge the command");
+            }
+            return new String(reply.getData(), java.nio.charset.StandardCharsets.UTF_8);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException("interrupted", e);
+        }
+    }
+
+    @Override
+    public void publish(CloudEvent event) {
+        NatsMessaging m = messaging;
+        if (m == null) {
+            LOG.debug("événement {} non publié : NATS indisponible", event.type);
+            return;
+        }
+        try {
+            m.events().publish(event);
+        } catch (RuntimeException e) {
+            LOG.warn("événement {} non publié : {}", event.type, e.getMessage());
+        }
     }
 
     @Override

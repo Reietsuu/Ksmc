@@ -23,6 +23,8 @@ import io.ksmc.api.model.ServiceTask;
 import io.ksmc.api.model.ServiceTaskSpec;
 import io.ksmc.api.model.ServiceTaskStatus;
 import io.ksmc.api.spi.ScalingStrategy;
+import io.ksmc.controller.messaging.CloudEvents;
+import io.ksmc.controller.messaging.Snapshots;
 import io.ksmc.controller.task.EffectiveConfig;
 import io.ksmc.controller.task.ScalingStrategies;
 import io.ksmc.controller.task.ServiceSelection;
@@ -51,12 +53,15 @@ public final class ServiceTaskReconciler implements Reconciler<ServiceTask> {
     private final KubernetesClient client;
     private final ScalingStrategies strategies;
     private final EventRecorder events;
+    private final CloudEvents cloudEvents;
     private final Clock clock;
 
-    public ServiceTaskReconciler(KubernetesClient client, ScalingStrategies strategies, EventRecorder events, Clock clock) {
+    public ServiceTaskReconciler(KubernetesClient client, ScalingStrategies strategies, EventRecorder events,
+            CloudEvents cloudEvents, Clock clock) {
         this.client = client;
         this.strategies = strategies;
         this.events = events;
+        this.cloudEvents = cloudEvents;
         this.clock = clock;
     }
 
@@ -99,6 +104,10 @@ public final class ServiceTaskReconciler implements Reconciler<ServiceTask> {
             status.observedGeneration = generation;
             task.setStatus(status);
             return UpdateControl.patchStatus(task).rescheduleAfter(RESYNC);
+        }
+        String previousHash = status.effective == null ? null : status.effective.configHash;
+        if (previousHash != null && !previousHash.equals(effective.hash())) {
+            cloudEvents.publish(Snapshots.resource("task.updated", task, name));
         }
         status.effective = new ServiceTaskStatus.Effective();
         status.effective.groups = effective.groups();
@@ -272,6 +281,7 @@ public final class ServiceTaskReconciler implements Reconciler<ServiceTask> {
     private void delete(CloudService svc) {
         client.resources(CloudService.class).inNamespace(svc.getMetadata().getNamespace())
                 .withName(svc.getMetadata().getName()).delete();
+        cloudEvents.publish(Snapshots.service("service.deleted", svc));
     }
 
     // ---- Mises à jour ---------------------------------------------------------------------------
@@ -391,6 +401,7 @@ public final class ServiceTaskReconciler implements Reconciler<ServiceTask> {
                 && status.failureWindow.failures >= FAILURE_THRESHOLD;
         if (degraded && !Conditions.isTrue(status, DEGRADED)) {
             events.warning(task, "Degraded", status.failureWindow.lastReason);
+            cloudEvents.publish(Snapshots.resource("task.degraded", task, task.getMetadata().getName()));
         }
         Conditions.set(status, generation, DEGRADED, degraded, degraded ? "CrashLoop" : "Healthy",
                 degraded ? status.failureWindow.lastReason : null);

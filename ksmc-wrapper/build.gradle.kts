@@ -4,6 +4,14 @@ plugins {
 
 dependencies {
     implementation(project(":ksmc-wire"))
+    implementation(project(":ksmc-messaging-nats"))
+    testImplementation(libs.testcontainers)
+}
+
+// BouncyCastle n'est utilisé par jnats que pour l'authentification NKeys ; Ksmc utilise des mots de passe.
+// L'exclure garde le wrapper léger (les tests le vérifient en se connectant sans lui).
+configurations.all {
+    exclude(group = "org.bouncycastle")
 }
 
 // JAR autonome (dépendances incluses), copié dans les images runtime.

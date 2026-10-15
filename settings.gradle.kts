@@ -18,6 +18,7 @@ include(
     "ksmc-api",
     "ksmc-wire",
     "ksmc-wrapper",
+    "ksmc-messaging-nats",
     "ksmc-controller",
     "ksmc-e2e",
 )

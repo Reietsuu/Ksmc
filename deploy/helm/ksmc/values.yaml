@@ -52,12 +52,44 @@ nats:
   # false = utiliser un NATS existant via externalUrl
   enabled: true
   externalUrl: ""
+  # Pour un NATS externe : comptes à utiliser (laisser vide si le serveur n'exige pas d'authentification).
+  externalAuth:
+    controllerUser: ""
+    serviceUser: ""
   fullnameOverride: ksmc-nats
+  natsBox:
+    enabled: false
+  # Deux comptes : "controller" (tous les droits) et "service" (Pods Minecraft : ne peuvent ni publier
+  # d'événements cloud ni de commandes console, ni gérer les streams JetStream).
+  # Les mots de passe sont générés dans le Secret ksmc-nats-auth (conservé lors des mises à jour).
+  container:
+    env:
+      KSMC_CONTROLLER_PASSWORD:
+        valueFrom: {secretKeyRef: {name: ksmc-nats-auth, key: controller-password}}
+      KSMC_SERVICE_PASSWORD:
+        valueFrom: {secretKeyRef: {name: ksmc-nats-auth, key: service-password}}
   config:
     jetstream:
       enabled: true
       fileStore:
         pvc:
           size: 2Gi
-  natsBox:
-    enabled: false
+    merge:
+      authorization:
+        users:
+          - user: controller
+            password: << $KSMC_CONTROLLER_PASSWORD >>
+          - user: service
+            password: << $KSMC_SERVICE_PASSWORD >>
+            permissions:
+              publish:
+                deny:
+                  - "ksmc.*.ev.>"
+                  - "ksmc.*.cmd.>"
+                  - "$JS.API.STREAM.CREATE.>"
+                  - "$JS.API.STREAM.UPDATE.>"
+                  - "$JS.API.STREAM.DELETE.>"
+                  - "$JS.API.STREAM.PURGE.>"
+                  - "$JS.API.STREAM.MSG.DELETE.>"
+                  - "$JS.API.STREAM.SNAPSHOT.>"
+                  - "$JS.API.STREAM.RESTORE.>"

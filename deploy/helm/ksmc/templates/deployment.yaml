@@ -36,6 +36,14 @@ spec:
               value: "8080"
             - name: KSMC_NATS_URL
               value: {{ include "ksmc.natsUrl" . | quote }}
+            {{- if or .Values.nats.enabled .Values.nats.externalAuth.controllerUser }}
+            - name: KSMC_NATS_USER
+              value: {{ .Values.nats.enabled | ternary "controller" .Values.nats.externalAuth.controllerUser | quote }}
+            - name: KSMC_NATS_PASSWORD
+              valueFrom: {secretKeyRef: {name: ksmc-nats-auth, key: controller-password}}
+            - name: KSMC_NATS_SERVICE_USER
+              value: {{ .Values.nats.enabled | ternary "service" .Values.nats.externalAuth.serviceUser | quote }}
+            {{- end }}
             - name: KSMC_DATA_DIR
               value: /data
             - name: KSMC_RUNTIME_IMAGE

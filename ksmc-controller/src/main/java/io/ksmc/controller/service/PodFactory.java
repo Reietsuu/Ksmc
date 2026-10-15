@@ -29,6 +29,8 @@ import java.util.Map;
 public final class PodFactory {
     public static final String SERVER_DIR = "/server";
     public static final String FORWARDING_SECRET = "ksmc-forwarding";
+    /** Secret des mots de passe NATS créé par le chart. */
+    public static final String NATS_AUTH_SECRET = "ksmc-nats-auth";
     public static final int MINECRAFT_PORT = 25565;
     public static final int HEALTH_PORT = 8090;
     private static final ObjectMapper JSON = new ObjectMapper();
@@ -67,6 +69,12 @@ public final class PodFactory {
                 env("KSMC_TASK", spec.task == null ? "" : spec.task),
                 env("KSMC_ENVIRONMENT", env),
                 env("KSMC_SERVER_DIR", SERVER_DIR)));
+        envVars.add(env("KSMC_NATS_URL", config.natsUrl()));
+        if (config.natsServiceUser() != null && !config.natsServiceUser().isEmpty()) {
+            envVars.add(env("KSMC_NATS_USER", config.natsServiceUser()));
+            envVars.add(new EnvVarBuilder().withName("KSMC_NATS_PASSWORD").withNewValueFrom().withNewSecretKeyRef()
+                    .withName(NATS_AUTH_SECRET).withKey("service-password").endSecretKeyRef().endValueFrom().build());
+        }
         spec.env.forEach((k, v) -> envVars.add(env(k, v)));
 
         List<VolumeMount> mounts = new ArrayList<>(List.of(

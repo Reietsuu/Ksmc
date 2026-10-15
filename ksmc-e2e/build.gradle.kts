@@ -4,6 +4,7 @@ plugins {
 
 dependencies {
     testImplementation(project(":ksmc-api"))
+    testImplementation(project(":ksmc-messaging-nats"))
     testImplementation(libs.logback)
 }
 
