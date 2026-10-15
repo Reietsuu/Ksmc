@@ -36,6 +36,16 @@ spec:
               value: "8080"
             - name: KSMC_NATS_URL
               value: {{ include "ksmc.natsUrl" . | quote }}
+            - name: KSMC_DATA_DIR
+              value: /data
+            - name: KSMC_RUNTIME_IMAGE
+              value: {{ .Values.runtime.image.repository | quote }}
+            - name: KSMC_RUNTIME_TAG
+              value: {{ .Values.runtime.image.tag | default .Chart.AppVersion | quote }}
+            - name: KSMC_INTERNAL_URL
+              value: "http://{{ include "ksmc.fullname" . }}-controller.{{ .Release.Namespace }}.svc:{{ .Values.service.port }}"
+            - name: KSMC_ACCEPT_EULA
+              value: {{ .Values.minecraft.acceptEula | quote }}
             - name: KSMC_LOG_LEVEL
               value: {{ .Values.controller.logLevel | quote }}
             {{- with .Values.controller.extraEnv }}
@@ -50,10 +60,16 @@ spec:
           readinessProbe:
             httpGet: {path: /readyz, port: http}
             periodSeconds: 5
+          volumeMounts:
+            - {name: data, mountPath: /data}
           resources: {{- toYaml .Values.controller.resources | nindent 12 }}
           securityContext:
             allowPrivilegeEscalation: false
             capabilities: {drop: [ALL]}
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: {{ include "ksmc.fullname" . }}-data
       {{- with .Values.controller.nodeSelector }}
       nodeSelector: {{- toYaml . | nindent 8 }}
       {{- end }}

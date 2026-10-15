@@ -2,6 +2,7 @@ package io.ksmc.controller.http;
 
 import io.javalin.Javalin;
 import io.ksmc.controller.health.HealthRegistry;
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -12,7 +13,12 @@ public final class HttpServer implements AutoCloseable {
     private final Javalin app;
 
     public HttpServer(HealthRegistry health) {
+        this(health, List.of());
+    }
+
+    public HttpServer(HealthRegistry health, List<HttpRoutes> extraRoutes) {
         this.app = Javalin.create(config -> {
+            extraRoutes.forEach(r -> r.register(config.routes));
             config.startup.showJavalinBanner = false;
             config.routes.get("/healthz", ctx -> ctx.json(Map.of("status", "ok")));
             config.routes.get("/readyz", ctx -> {

@@ -200,6 +200,12 @@ spec:
                       type: "string"
                   type: "object"
                 type: "array"
+              image:
+                type: "string"
+              javaVersion:
+                type: "integer"
+              lastExitAt:
+                type: "string"
               lastPlayerAt:
                 type: "string"
               maxPlayers:
@@ -234,6 +240,8 @@ spec:
                 type: "string"
               reason:
                 type: "string"
+              restartCount:
+                type: "integer"
               softwareVersion:
                 type: "string"
               startedAt:

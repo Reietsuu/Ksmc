@@ -39,7 +39,7 @@ public class ServiceTemplateSpec implements Extensible {
         public String ref;
         /** Sous-dossier du dépôt à utiliser. */
         public String path;
-        /** Secret contenant {@code username}/{@code password} ou {@code ssh-privatekey}. */
+        /** Secret contenant {@code username} et {@code password} (ou jeton) pour un dépôt HTTPS privé. */
         public String secretRef;
     }
 

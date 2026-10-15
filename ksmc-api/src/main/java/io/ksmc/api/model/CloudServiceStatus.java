@@ -28,6 +28,13 @@ public class CloudServiceStatus extends KsmcStatus {
     public String startedAt;
     public String readyAt;
     public String lastPlayerAt;
+    /** Redémarrages effectués par la politique de redémarrage du service. */
+    public Integer restartCount;
+    /** Fin du dernier process (pour le délai entre redémarrages). */
+    public String lastExitAt;
+    /** Version Java et image runtime utilisées. */
+    public Integer javaVersion;
+    public String image;
     /** Propriétés libres définies par les plugins via le bridge. */
     public Map<String, String> properties = new LinkedHashMap<>();
 }

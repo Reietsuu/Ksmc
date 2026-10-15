@@ -112,7 +112,9 @@ class FoundationE2eTest {
                     List<HasMetadata> items = CLIENT.load(in).items();
                     assertThat(items).as(file.toString()).isNotEmpty();
                     for (HasMetadata item : items) {
-                        CLIENT.resource(item).inNamespace(NAMESPACE).dryRun().create();
+                        // Server-side apply en dry-run : valide aussi les ressources déjà installées par le chart.
+                        CLIENT.resource(item).inNamespace(NAMESPACE).dryRun().fieldManager("e2e").forceConflicts()
+                                .serverSideApply();
                     }
                 }
             }

@@ -9,6 +9,9 @@ logback = "1.6.5"
 gson = "2.14.0"
 testcontainers = "2.0.5"
 picocli = "4.7.7"
+jgit = "7.8.0.202609011348-r"
+commons-compress = "1.28.0"
+bouncycastle = "1.85"
 
 [libraries]
 fabric8-client = { module = "io.fabric8:kubernetes-client", version.ref = "fabric8" }
@@ -26,3 +29,6 @@ logback = { module = "ch.qos.logback:logback-classic", version.ref = "logback" }
 gson = { module = "com.google.code.gson:gson", version.ref = "gson" }
 testcontainers = { module = "org.testcontainers:testcontainers", version.ref = "testcontainers" }
 picocli = { module = "info.picocli:picocli", version.ref = "picocli" }
+jgit = { module = "org.eclipse.jgit:org.eclipse.jgit", version.ref = "jgit" }
+commons-compress = { module = "org.apache.commons:commons-compress", version.ref = "commons-compress" }
+bcprov = { module = "org.bouncycastle:bcprov-jdk18on", version.ref = "bouncycastle" }
