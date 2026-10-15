@@ -17,7 +17,7 @@
 - [x] 3.1 Projet `ksmc-wrapper` (Java 8) : sous-commande `prepare` (manifest, téléchargement, sha256, extraction, ordre des templates) ; tests unitaires avec serveur HTTP local
 - [x] 3.2 `ConfigPatcher` par famille (Paper/Spigot legacy et moderne, Velocity, Bungee, Fabric, Forge) ; tests sur fixtures
 - [x] 3.3 Sous-commande `run` : lancement JVM, santé `/live` `/ready` (SLP), stdin, SIGTERM + commande d'arrêt + timeout ; test d'intégration avec un faux serveur
-- [ ] 3.4 `docker/runtime.Dockerfile` (args Java 8/17/21/25) ; matrice dans `images.yml` ; vérifier `docker build` local de la variante 21
+- [x] 3.4 `docker/runtime.Dockerfile` (args Java 8/17/21/25) ; matrice dans `images.yml` ; vérifier `docker build` local de la variante 21
 
 ## 4. Cycle de vie du CloudService
 

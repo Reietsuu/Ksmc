@@ -60,9 +60,15 @@ kind export kubeconfig --name "$CLUSTER" >/dev/null
 
 if [[ "$SKIP_BUILD" == false ]]; then
   step "Build et chargement des images"
-  ./gradlew -q :ksmc-controller:installDist
+  ./gradlew -q :ksmc-controller:installDist :ksmc-wrapper:jar
   docker build -q -f docker/controller.Dockerfile -t "ghcr.io/reietsuu/ksmc-controller:$TAG" . >/dev/null
   kind load docker-image --name "$CLUSTER" "ghcr.io/reietsuu/ksmc-controller:$TAG"
+  # Variantes Java des images runtime utilisées par les scénarios (KSMC_E2E_JAVA, défaut : 21).
+  for java in ${KSMC_E2E_JAVA:-21}; do
+    docker build -q -f docker/runtime.Dockerfile --build-arg JAVA_VERSION="$java" \
+      -t "ghcr.io/reietsuu/ksmc-runtime:$TAG-java$java" . >/dev/null
+    kind load docker-image --name "$CLUSTER" "ghcr.io/reietsuu/ksmc-runtime:$TAG-java$java"
+  done
 fi
 
 step "Installation du chart"
@@ -70,6 +76,7 @@ helm dependency update deploy/helm/ksmc >/dev/null
 kubectl apply --server-side -f deploy/helm/ksmc/crds/ >/dev/null
 helm upgrade --install ksmc deploy/helm/ksmc -n "$NAMESPACE" --create-namespace --skip-crds \
   --set controller.image.tag="$TAG" --set controller.image.pullPolicy=Never \
+  --set runtime.image.tag="$TAG" --set minecraft.acceptEula=true \
   --wait --timeout 5m
 
 step "Scénarios e2e"
