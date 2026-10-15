@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: [main, "feat/**", "fix/**", "test/**"]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build & tests unitaires
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: {distribution: temurin, java-version: "21"}
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Build + tests
+        run: ./gradlew build checkCrds --stacktrace
+      - name: Rapports de tests
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with: {name: test-reports, path: "**/build/reports/tests/"}
+
+  specs:
+    name: Specs OpenSpec & chart
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: "20"}
+      - run: npm install -g @fission-ai/openspec@1.14.1
+      - run: openspec validate --all --strict
+      - name: Helm lint
+        run: |
+          scripts/tools.sh
+          export PATH="$PWD/.tools/bin:$PATH"
+          helm dependency update deploy/helm/ksmc
+          helm lint deploy/helm/ksmc
+
+  e2e:
+    name: E2E (kind)
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with: {distribution: temurin, java-version: "21"}
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Suite e2e
+        run: scripts/e2e-kind.sh

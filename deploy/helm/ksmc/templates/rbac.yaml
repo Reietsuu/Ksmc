@@ -1,0 +1,70 @@
+# Droits du controller dans son namespace.
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: {{ include "ksmc.fullname" . }}-controller
+  labels: {{- include "ksmc.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [ksmc.io]
+    resources: ["*"]
+    verbs: [get, list, watch, create, update, patch, delete]
+  - apiGroups: [""]
+    resources: [pods, pods/log, persistentvolumeclaims, services, secrets, configmaps, serviceaccounts]
+    verbs: [get, list, watch, create, update, patch, delete]
+  - apiGroups: [""]
+    resources: [pods/attach]
+    verbs: [create, get]
+  - apiGroups: ["", events.k8s.io]
+    resources: [events]
+    verbs: [create, patch, update]
+  - apiGroups: [batch]
+    resources: [jobs]
+    verbs: [get, list, watch, create, delete]
+  - apiGroups: [networking.k8s.io]
+    resources: [networkpolicies]
+    verbs: [get, list, watch, create, update, patch, delete]
+  - apiGroups: [coordination.k8s.io]
+    resources: [leases]
+    verbs: [get, list, watch, create, update, patch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: {{ include "ksmc.fullname" . }}-controller
+  labels: {{- include "ksmc.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: {{ include "ksmc.fullname" . }}-controller
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "ksmc.fullname" . }}-controller
+    namespace: {{ .Release.Namespace }}
+---
+# Droits cluster : lecture des CRDs et validation des jetons des Pods de services (TokenReview).
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: {{ include "ksmc.fullname" . }}-{{ .Release.Namespace }}-controller
+  labels: {{- include "ksmc.labels" . | nindent 4 }}
+rules:
+  - apiGroups: [authentication.k8s.io]
+    resources: [tokenreviews]
+    verbs: [create]
+  - apiGroups: [apiextensions.k8s.io]
+    resources: [customresourcedefinitions]
+    verbs: [get, list, watch]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: {{ include "ksmc.fullname" . }}-{{ .Release.Namespace }}-controller
+  labels: {{- include "ksmc.labels" . | nindent 4 }}
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: {{ include "ksmc.fullname" . }}-{{ .Release.Namespace }}-controller
+subjects:
+  - kind: ServiceAccount
+    name: {{ include "ksmc.fullname" . }}-controller
+    namespace: {{ .Release.Namespace }}

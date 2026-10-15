@@ -1,0 +1,14 @@
+apiVersion: v2
+name: ksmc
+description: Ksmc — Kubernetes Server Minecraft Cloud (un CloudNet natif Kubernetes)
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+home: https://github.com/Reietsuu/Ksmc
+sources: [https://github.com/Reietsuu/Ksmc]
+keywords: [minecraft, cloud, cloudnet, operator, velocity, paper]
+dependencies:
+  - name: nats
+    version: 2.15.1
+    repository: https://nats-io.github.io/k8s/helm/charts/
+    condition: nats.enabled

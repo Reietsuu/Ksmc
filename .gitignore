@@ -10,3 +10,4 @@ dashboard/dist/
 *.log
 .DS_Store
 .kube/
+deploy/helm/ksmc/charts/

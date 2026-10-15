@@ -1,0 +1,7 @@
+Ksmc {{ .Chart.AppVersion }} est installé dans le namespace {{ .Release.Namespace }}.
+
+Vérifier :
+  kubectl -n {{ .Release.Namespace }} get pods
+  kubectl api-resources --api-group=ksmc.io
+
+Exemples : https://github.com/Reietsuu/Ksmc/tree/main/examples
