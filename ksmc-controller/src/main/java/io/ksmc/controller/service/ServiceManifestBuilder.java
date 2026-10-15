@@ -210,13 +210,22 @@ public final class ServiceManifestBuilder implements ManifestProvider {
             return "none";
         }
         String mode = "none";
+        // Les tasks proxy existent avant leurs services : elles comptent même si aucun proxy ne tourne encore.
+        List<String[]> proxies = new java.util.ArrayList<>();
+        for (ServiceTask t : client.resources(ServiceTask.class).inNamespace(ns).list().getItems()) {
+            if (t.getSpec().environment == Environment.PROXY && t.getSpec().enabled) {
+                proxies.add(new String[] {t.getSpec().software.name, t.getSpec().bridge == null ? null : t.getSpec().bridge.forwarding});
+            }
+        }
         for (CloudService proxy : client.resources(CloudService.class).inNamespace(ns)
                 .withLabel(Ksmc.LABEL_ENVIRONMENT, "proxy").list().getItems()) {
-            String forced = proxy.getSpec().bridge == null ? null : proxy.getSpec().bridge.forwarding;
-            SoftwareDefinition def = client.resources(SoftwareDefinition.class).inNamespace(ns)
-                    .withName(proxy.getSpec().software.name).get();
+            proxies.add(new String[] {proxy.getSpec().software.name,
+                    proxy.getSpec().bridge == null ? null : proxy.getSpec().bridge.forwarding});
+        }
+        for (String[] proxy : proxies) {
+            SoftwareDefinition def = client.resources(SoftwareDefinition.class).inNamespace(ns).withName(proxy[0]).get();
             boolean velocity = def != null && def.getSpec().family.name().equals("VELOCITY");
-            String proxyMode = forced != null ? forced : velocity ? "modern" : "legacy";
+            String proxyMode = proxy[1] != null ? proxy[1] : velocity ? "modern" : "legacy";
             if ("modern".equals(proxyMode)) {
                 return "modern";
             }

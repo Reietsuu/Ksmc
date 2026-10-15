@@ -45,3 +45,11 @@ Messagerie (p04) disponible. Les bridges utilisent `ksmc-plugin-api` minimal (co
 10. **Limite assumée** : les identifiants NATS `service` peuvent écrire dans les buckets KV (nécessaire au bucket
    `shared`) ; une entrée `services` falsifiée par un plugin malveillant est écrasée par le controller au
    rafraîchissement suivant. Durcissement prévu : comptes NATS par rôle (proxy/serveur).
+11. **Validation e2e sans client bot** : un client Minecraft complet (phases login + configuration du protocole 26.x)
+    serait fragile d'une version à l'autre. L'e2e vérifie donc : l'enregistrement dynamique dans Velocity et
+    BungeeCord (journaux du proxy, < 5 s après `service.ready`), le ping « liste des serveurs » à travers le Service
+    Kubernetes du proxy (joueurs max du réseau), les rapports des bridges (registre + statut) et le relais des
+    événements joueurs. Le choix du lobby le moins rempli est couvert par les tests d'intégration du bridge (NATS
+    réel) ; la connexion d'un vrai client est un ordre de test manuel de `docs/TESTING.md`.
+12. **Mode de forwarding des serveurs** : déterminé à la préparation à partir des tasks et services proxy du
+    namespace ; ajouter un proxy d'un autre type plus tard nécessite de redémarrer les serveurs (mise à jour de task).
