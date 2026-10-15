@@ -17,6 +17,7 @@ rootProject.name = "ksmc"
 include(
     "ksmc-api",
     "ksmc-wire",
+    "ksmc-wrapper",
     "ksmc-controller",
     "ksmc-e2e",
 )
