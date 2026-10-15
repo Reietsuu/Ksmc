@@ -25,5 +25,9 @@ class BridgeArtifactsTest {
         assertThat(b.forFamily("velocity")).get().extracting(a -> a.target).isEqualTo("plugins/ksmc-bridge.jar");
         assertThat(b.forFamily("bungeecord")).as("jar absent de l'image").isEmpty();
         assertThat(b.forFamily("forge")).as("pas de bridge Forge legacy").isEmpty();
+
+        Files.writeString(dir.resolve("ksmc-bridge-fabric.jar"), "x");
+        assertThat(b.forFamily("fabric", "26.3")).get().extracting(a -> a.target).isEqualTo("mods/ksmc-bridge.jar");
+        assertThat(b.forFamily("fabric", "1.21.4")).as("hors de la ligne 26.x").isEmpty();
     }
 }

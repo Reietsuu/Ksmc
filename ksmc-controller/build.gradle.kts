@@ -28,7 +28,7 @@ val bridges by configurations.creating {
     isTransitive = false
 }
 dependencies {
-    for (bridge in listOf("velocity", "bungee")) {
+    for (bridge in listOf("velocity", "bungee", "bukkit", "fabric", "neoforge")) {
         bridges(project(mapOf("path" to ":ksmc-bridge-$bridge", "configuration" to "shadowRuntimeElements")))
     }
 }

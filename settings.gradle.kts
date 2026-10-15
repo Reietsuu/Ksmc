@@ -3,6 +3,12 @@ pluginManagement {
     repositories {
         gradlePluginPortal()
         mavenCentral()
+        maven("https://maven.fabricmc.net/") { content { includeGroupAndSubgroups("net.fabricmc") } }
+        maven("https://maven.neoforged.net/releases/") { content { includeGroupAndSubgroups("net.neoforged") } }
+    }
+    plugins {
+        id("net.fabricmc.fabric-loom") version "1.19.1"
+        id("net.neoforged.moddev") version "2.0.148"
     }
 }
 
@@ -41,6 +47,9 @@ include(
     "ksmc-bridge-common",
     "ksmc-bridge-velocity",
     "ksmc-bridge-bungee",
+    "ksmc-bridge-bukkit",
+    "ksmc-bridge-fabric",
+    "ksmc-bridge-neoforge",
     "ksmc-controller",
     "ksmc-e2e",
 )

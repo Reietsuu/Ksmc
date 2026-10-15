@@ -91,13 +91,16 @@ public final class ServiceManifestBuilder implements ManifestProvider {
             a.extract = true;
         }
         m.artifacts.add(a);
+        boolean bridged = false;
         if (spec.bridge == null || spec.bridge.enabled) {
-            bridges.forFamily(m.family).ifPresent(m.artifacts::add);
+            var bridge = bridges.forFamily(m.family, m.softwareVersion);
+            bridge.ifPresent(m.artifacts::add);
+            bridged = bridge.isPresent();
         }
 
         addTemplates(svc, m);
         network(svc, setup, m);
-        addForwardingMods(m);
+        addRequiredMods(m, bridged);
         launch(svc, setup, m);
 
         if (spec.deployOnStop != null) {
@@ -142,12 +145,23 @@ public final class ServiceManifestBuilder implements ManifestProvider {
         }
     }
 
-    /** Fabric derrière Velocity (forwarding moderne) : FabricProxy-Lite et sa dépendance Fabric API. */
-    private void addForwardingMods(ServiceManifest m) throws RetryLaterException, ServiceFailureException, IOException {
-        if (mods == null || !"fabric".equals(m.family) || !"modern".equals(m.network.forwarding)) {
+    /**
+     * Mods requis sur Fabric : Fabric API (bridge Ksmc et FabricProxy-Lite) et FabricProxy-Lite pour le forwarding
+     * moderne (Velocity).
+     */
+    private void addRequiredMods(ServiceManifest m, boolean bridged)
+            throws RetryLaterException, ServiceFailureException, IOException {
+        if (mods == null || !"fabric".equals(m.family)) {
             return;
         }
-        for (String project : List.of("fabricproxy-lite", "fabric-api")) {
+        List<String> projects = new java.util.ArrayList<>();
+        if ("modern".equals(m.network.forwarding)) {
+            projects.add("fabricproxy-lite");
+        }
+        if (bridged || !projects.isEmpty()) {
+            projects.add("fabric-api");
+        }
+        for (String project : projects) {
             var plan = mods.latest(project, "fabric", m.softwareVersion);
             if (plan.isEmpty()) {
                 throw new ServiceFailureException("ForwardingModUnavailable",
