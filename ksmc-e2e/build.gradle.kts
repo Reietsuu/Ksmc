@@ -15,7 +15,7 @@ tasks.test {
     systemProperty("ksmc.examples", rootProject.file("examples").absolutePath)
     // Les scripts lancent Gradle en -q : afficher quand même le nom et la cause des scénarios en échec.
     testLogging.quiet {
-        events("failed")
+        events("passed", "skipped", "failed")
         exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
     }
 }

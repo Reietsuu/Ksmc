@@ -9,5 +9,5 @@
 ## 2. Intégration
 
 - [x] 2.1 `status.autoscaling`, événements `ScaledUp`/`ScaledDown` + `task.scaled`, réconciliation périodique ; tests mock server
-- [ ] 2.2 Scénario e2e : bots de test remplissent une task → un service démarre ; départ des bots → arrêt après idle (valeurs courtes) ; vérifier en CI
-- [ ] 2.3 Documenter l'autoscaling dans `docs/USAGE.md` ; vérifier les exemples via e2e
+- [x] 2.2 Scénario e2e : bots de test remplissent une task → un service démarre ; départ des bots → arrêt après idle (valeurs courtes) ; vérifier en CI
+- [x] 2.3 Documenter l'autoscaling dans `docs/USAGE.md` ; vérifier les exemples via e2e
