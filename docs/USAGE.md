@@ -153,6 +153,10 @@ Ksmc ajoute automatiquement un bridge à chaque service (`spec.bridge.enabled: f
 
 Sans bridge, un service fonctionne normalement : son état vient du ping du wrapper.
 
+BungeeCord exige au moins un serveur dans `config.yml` : la configuration générée déclare un serveur factice
+`ksmc-placeholder` (injoignable, restreint) comme serveur par défaut ; le bridge redirige chaque connexion
+vers le serveur choisi (forced host ou fallback).
+
 **Forwarding** : les serveurs sont configurés automatiquement selon les proxies du namespace — `modern`
 (Velocity : Paper 1.13+ via `paper-global.yml`/`paper.yml`, Fabric via FabricProxy-Lite ajouté automatiquement),
 sinon `legacy` (BungeeCord : `spigot.yml` `bungeecord: true`). Pour Forge/NeoForge, choisir le mode avec
