@@ -78,7 +78,7 @@ public final class Autoscaler {
      * @param current   services routables actifs
      * @param starting  services routables pas encore {@code Running}
      * @param proposed  cible combinée des stratégies, bornée par min/max
-     * @param baseline  minimum à atteindre sans délai (min + démarrages manuels)
+     * @param baseline  minimum à atteindre sans délai (min, démarrages manuels, minimum programmé)
      */
     public static Decision decide(ServiceTask task, int current, int starting, int proposed, int baseline, Instant now,
             String reason) {
@@ -101,6 +101,11 @@ public final class Autoscaler {
             target = current;
         }
         String direction = target > current ? SCALED_UP : target < current ? SCALED_DOWN : null;
+        // Atteindre le minimum de la task (création, services perdus) n'est pas une décision d'autoscaling.
+        int specMinimum = task.getSpec().minServiceCount + task.getSpec().extraServices;
+        if (SCALED_UP.equals(direction) && current < specMinimum && target <= specMinimum) {
+            direction = null;
+        }
         return new Decision(target, direction, reason);
     }
 }

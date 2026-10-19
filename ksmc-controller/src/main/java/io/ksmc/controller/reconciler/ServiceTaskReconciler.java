@@ -31,6 +31,7 @@ import io.ksmc.controller.task.EffectiveConfig;
 import io.ksmc.controller.task.PlayersScalingStrategy;
 import io.ksmc.controller.task.ProxyExposure;
 import io.ksmc.controller.task.ScalingStrategies;
+import io.ksmc.controller.task.ScheduleScalingStrategy;
 import io.ksmc.controller.task.ServiceSelection;
 import io.ksmc.wire.messaging.CloudEvent;
 import java.time.Clock;
@@ -300,7 +301,8 @@ public final class ServiceTaskReconciler implements Reconciler<ServiceTask> {
         ServiceTaskSpec spec = task.getSpec();
         int current = routable.size();
         int starting = (int) routable.stream().filter(s -> !ServiceSelection.isRunning(s)).count();
-        int baseline = ScalingStrategies.bound(spec, spec.minServiceCount + spec.extraServices);
+        int scheduled = strategies.proposal(ScheduleScalingStrategy.NAME, new ScalingStrategy.Context(task, routable, now));
+        int baseline = ScalingStrategies.bound(spec, Math.max(spec.minServiceCount + spec.extraServices, scheduled));
         Double fill = PlayersScalingStrategy.fill(routable);
         int idle = PlayersScalingStrategy.idle(task, routable, now).size();
         String reason;
@@ -308,6 +310,7 @@ public final class ServiceTaskReconciler implements Reconciler<ServiceTask> {
             reason = fill != null && fill > PlayersScalingStrategy.threshold(task)
                     ? "remplissage %d %% > seuil %d %%".formatted(Math.round(fill * 100),
                             Math.round(PlayersScalingStrategy.threshold(task) * 100))
+                    : scheduled >= proposed ? "minimum programmé de %d service(s)".formatted(scheduled)
                     : "minimum de %d service(s)".formatted(proposed);
         } else {
             reason = idle > 0 ? "%d service(s) vide(s) depuis %d s".formatted(idle, PlayersScalingStrategy.idleSeconds(task))
