@@ -43,7 +43,10 @@ public final class ConsoleCommand extends BaseCommand {
         String ws = api.server().replaceFirst("^http", "ws") + "/api/v1/services/" + Api.encode(service)
                 + "/console?lines=" + lines + (api.token() == null ? "" : "&access_token=" + Api.encode(api.token()));
         CompletableFuture<Void> closed = new CompletableFuture<>();
-        Terminal terminal = interactive ? TerminalBuilder.builder().system(true).dumb(true).build() : null;
+        // Sans terminal (tube, tests) : terminal minimal sur l'entrée et la sortie standard.
+        Terminal terminal = !interactive ? null : System.console() != null
+                ? TerminalBuilder.builder().system(true).dumb(true).build()
+                : TerminalBuilder.builder().streams(System.in, System.out).dumb(true).build();
         LineReader reader = terminal == null ? null : LineReaderBuilder.builder().terminal(terminal).build();
         WebSocket.Listener listener = new WebSocket.Listener() {
             private final StringBuilder partial = new StringBuilder();

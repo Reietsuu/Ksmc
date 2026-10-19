@@ -9,6 +9,9 @@ dependencies {
     implementation(libs.jackson.databind)
     implementation(libs.jackson.yaml)
     implementation(libs.jline)
+    // Tests : serveur WebSocket de la console.
+    testImplementation(libs.javalin)
+    testImplementation(libs.logback)
 }
 
 application {
