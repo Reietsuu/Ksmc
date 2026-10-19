@@ -9,7 +9,7 @@
 
 ## 2. API plugins
 
-- [ ] 2.1 `ksmc-plugin-api` (Java 8) : point d'entrée, infos services/tasks/joueurs, channels, requêtes, événements, KV, état ; implémentation dans `ksmc-bridge-common` ; tests
+- [x] 2.1 `ksmc-plugin-api` (Java 8) : point d'entrée, infos services/tasks/joueurs, channels, requêtes, événements, KV, état ; implémentation dans `ksmc-bridge-common` ; tests
 - [ ] 2.2 Adaptateurs de scheduler par plateforme (Bukkit, Velocity, Bungee, Fabric, NeoForge) ; vérifier build de tous les bridges
 
 ## 3. Distribution et exemples

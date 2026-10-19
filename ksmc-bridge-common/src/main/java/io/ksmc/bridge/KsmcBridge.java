@@ -49,6 +49,8 @@ public final class KsmcBridge implements AutoCloseable {
     });
     private volatile NatsMessaging messaging;
     private volatile String state;
+    private volatile String motdOverride;
+    private volatile PluginApi pluginApi;
     private volatile boolean closed;
 
     public KsmcBridge(BridgeEnv env, Platform platform) {
@@ -87,6 +89,8 @@ public final class KsmcBridge implements AutoCloseable {
             platform.log("[ksmc] hors d'un service Ksmc : bridge inactif");
             return;
         }
+        pluginApi = new PluginApi(this, platform);
+        io.ksmc.plugin.Ksmc.register(pluginApi);
         scheduler.execute(new Runnable() {
             public void run() {
                 connect();
@@ -125,6 +129,10 @@ public final class KsmcBridge implements AutoCloseable {
                     refreshPlayers();
                 }
             }, PLAYER_REFRESH_SECONDS, PLAYER_REFRESH_SECONDS, TimeUnit.SECONDS);
+        }
+        PluginApi api = pluginApi;
+        if (api != null) {
+            api.connected(messaging);
         }
         platform.log("[ksmc] connecté au cloud (" + env.namespace + "/" + env.service + ")");
     }
@@ -279,6 +287,16 @@ public final class KsmcBridge implements AutoCloseable {
         report();
     }
 
+    /** Motd annoncé au cloud à la place de celui du serveur ({@code null} : celui du serveur). */
+    public void setMotd(String motd) {
+        this.motdOverride = motd;
+        report();
+    }
+
+    public Map<String, String> properties() {
+        return new LinkedHashMap<String, String>(customProperties);
+    }
+
     void report() {
         NatsMessaging m = messaging;
         if (m == null) {
@@ -289,7 +307,7 @@ public final class KsmcBridge implements AutoCloseable {
             r.service = env.service;
             r.onlinePlayers = platform.onlinePlayers().size();
             r.maxPlayers = platform.maxPlayers();
-            r.motd = platform.motd();
+            r.motd = motdOverride != null ? motdOverride : platform.motd();
             r.tps = platform.tps();
             r.state = state;
             r.properties = new LinkedHashMap<String, String>(customProperties);
@@ -351,6 +369,11 @@ public final class KsmcBridge implements AutoCloseable {
     @Override
     public void close() {
         closed = true;
+        PluginApi api = pluginApi;
+        if (api != null) {
+            io.ksmc.plugin.Ksmc.unregister(api);
+            api.close();
+        }
         scheduler.shutdownNow();
         for (Subscription s : subscriptions) {
             try {

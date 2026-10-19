@@ -55,4 +55,15 @@ public interface Platform {
 
     /** TPS actuels, ou {@code null} si indisponible. */
     Double tps();
+
+    // --- API plugins ------------------------------------------------------------------------------
+
+    /** Exécute sur le thread principal du serveur (défaut : sur place, pour les plateformes sans thread principal). */
+    default java.util.concurrent.Executor mainThread() {
+        return new java.util.concurrent.Executor() {
+            public void execute(Runnable command) {
+                command.run();
+            }
+        };
+    }
 }
