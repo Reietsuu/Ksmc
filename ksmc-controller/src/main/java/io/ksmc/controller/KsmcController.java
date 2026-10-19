@@ -53,7 +53,6 @@ public final class KsmcController {
 
         NatsConnector nats = new NatsConnector(config);
         health.register(nats);
-        nats.connectAsync();
 
         FileArtifactStorage storage = new FileArtifactStorage(Path.of(System.getenv().getOrDefault("KSMC_DATA_DIR", "/data")));
         HttpClient httpClient = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.NORMAL).build();
@@ -73,6 +72,7 @@ public final class KsmcController {
                 throw new IllegalStateException("bridge hub: " + e.getMessage(), e);
             }
         });
+        nats.connectAsync();
 
         Operator operator = new Operator(o -> o.withKubernetesClient(client).withUseSSAToPatchPrimaryResource(false));
         register(operator, config, new SoftwareDefinitionReconciler(catalog));
