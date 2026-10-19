@@ -52,5 +52,6 @@ include(
     "ksmc-bridge-fabric",
     "ksmc-bridge-neoforge",
     "ksmc-controller",
+    "ksmc-cli",
     "ksmc-e2e",
 )
