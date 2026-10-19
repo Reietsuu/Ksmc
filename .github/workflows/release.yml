@@ -23,6 +23,11 @@ jobs:
         run: >-
           ./gradlew -PksmcVersion="${GITHUB_REF_NAME#v}"
           :ksmc-wire:publish :ksmc-api:publish :ksmc-plugin-api:publish
+      - name: CLI (zip)
+        run: |
+          ./gradlew -PksmcVersion="${GITHUB_REF_NAME#v}" :ksmc-cli:distZip
+          mkdir -p dist
+          cp ksmc-cli/build/distributions/ksmc-*.zip dist/ksmc-cli-"${GITHUB_REF_NAME#v}".zip
       - name: Chart Helm
         run: |
           scripts/tools.sh

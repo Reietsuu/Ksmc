@@ -85,6 +85,7 @@ kubectl -n "$NAMESPACE" rollout status deployment/ksmc-controller --timeout=180s
 step "Exemples (module et plugin)"
 ./gradlew -q -p examples/module-hello build
 ./gradlew -q -p examples/plugin-hello build
+./gradlew -q :ksmc-cli:installDist
 
 step "Scénarios e2e"
 KSMC_NAMESPACE="$NAMESPACE" ./gradlew -q :ksmc-e2e:test -Pe2e --rerun-tasks

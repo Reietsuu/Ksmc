@@ -18,3 +18,8 @@ application {
     mainClass = "io.ksmc.cli.Main"
     applicationName = "ksmc"
 }
+
+tasks.jar {
+    manifest { attributes("Implementation-Version" to project.version) }
+}
+
