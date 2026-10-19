@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.concurrent.Executor;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.kyori.adventure.title.Title;
@@ -223,5 +224,11 @@ public final class KsmcVelocityBridge implements Platform {
 
     private static Component text(String legacy) {
         return LEGACY.deserialize(legacy == null ? "" : legacy);
+    }
+
+    /** Velocity n'a pas de thread principal : les rappels des plugins passent par son ordonnanceur. */
+    @Override
+    public Executor mainThread() {
+        return task -> proxy.getScheduler().buildTask(this, task).schedule();
     }
 }

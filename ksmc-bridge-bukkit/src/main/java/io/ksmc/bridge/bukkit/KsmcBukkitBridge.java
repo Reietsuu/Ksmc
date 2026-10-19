@@ -8,10 +8,12 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Callable;
+import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.Player;
+import org.bukkit.plugin.Plugin;
 import org.bukkit.plugin.java.JavaPlugin;
 
 /** Bridge Ksmc pour Spigot/Paper (1.8.8 et plus récent). */
@@ -165,6 +167,47 @@ public final class KsmcBukkitBridge extends JavaPlugin implements Platform {
             double[] tps = (double[]) paperTps.invoke(null);
             return Math.min(20.0, Math.round(tps[0] * 100.0) / 100.0);
         } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private volatile Executor mainThread;
+
+    /** Thread principal (ordonnanceur Bukkit) ; Folia : ordonnanceur de la région globale. */
+    @Override
+    public Executor mainThread() {
+        Executor e = mainThread;
+        if (e == null) {
+            e = folia();
+            if (e == null) {
+                e = task -> {
+                    if (Bukkit.isPrimaryThread()) {
+                        task.run();
+                    } else if (isEnabled()) {
+                        Bukkit.getScheduler().runTask(this, task);
+                    }
+                };
+            }
+            mainThread = e;
+        }
+        return e;
+    }
+
+    /** Ordonnanceur global de Folia (absent de l'API 1.8.8, donc par réflexion), ou {@code null} hors Folia. */
+    private Executor folia() {
+        try {
+            Class.forName("io.papermc.paper.threadedregions.RegionizedServer");
+            final Object scheduler = org.bukkit.Server.class.getMethod("getGlobalRegionScheduler").invoke(getServer());
+            final Method execute = Class.forName("io.papermc.paper.threadedregions.scheduler.GlobalRegionScheduler")
+                    .getMethod("execute", Plugin.class, Runnable.class);
+            return task -> {
+                try {
+                    execute.invoke(scheduler, this, task);
+                } catch (ReflectiveOperationException ex) {
+                    getLogger().warning("[ksmc] tâche non planifiée : " + ex);
+                }
+            };
+        } catch (ReflectiveOperationException notFolia) {
             return null;
         }
     }
