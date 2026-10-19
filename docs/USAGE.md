@@ -68,6 +68,40 @@ un de ses groupes change :
 Si la mise à jour n'est pas terminée après `progressDeadlineSeconds` (défaut 600), la condition
 `Progressing` passe à `False` (`ProgressDeadlineExceeded`).
 
+### Autoscaling
+
+Par défaut une task garde `minServiceCount` services (+ démarrages manuels). `spec.autoscaling` ajoute des
+stratégies, combinées : la cible est la plus grande de leurs propositions, bornée par `minServiceCount` et
+`maxServiceCount`. Exemple complet : la task `bedwars` de [`examples/04-tasks.yaml`](../examples/04-tasks.yaml).
+
+| Champ | Défaut | Rôle |
+|---|---|---|
+| `strategies` | `[static]` | `players`, `schedule` ou une stratégie fournie par un module |
+| `scaleUpThreshold` | 0.8 | `players` : un service de plus quand le remplissage moyen des services `Running` le **dépasse** |
+| `idleStopSeconds` | 300 | `players` : un service vide depuis ce délai est arrêté (jamais sous le minimum) |
+| `cooldownSeconds` | 60 | après une décision, pas de décision inverse avant ce délai |
+| `maxConcurrentStarts` | 1 | services en démarrage simultanés au-delà du minimum |
+| `preparedServices` | 0 | services démarrés d'avance, exclus du routage, promus quand il faut un service |
+| `schedule` | — | règles `{from, to, timeZone, minServiceCount}` (cron Unix) : minimum entre `from` et `to` |
+
+- **Remplissage** : joueurs / places des services routables `Running` (places annoncées par le bridge). Un service
+  qui démarre ne compte pas encore : avec `maxConcurrentStarts: 1`, un seul démarrage à la fois.
+- **Services vides** : l'instant depuis lequel chaque service est vide est mémorisé dans
+  `status.autoscaling.emptySince` (il survit au redémarrage du controller) ; on arrête d'abord celui qui est vide
+  depuis le plus longtemps.
+- **Minimum programmé** (`schedule`) : appliqué immédiatement, sans limite de démarrages. Une règle est active
+  entre une occurrence de `from` et l'occurrence suivante de `to` (les plages de nuit `0 22 * * *` → `0 6 * * *`
+  fonctionnent). Après la plage, les services en trop s'arrêtent quand ils sont vides (si `players` est listé),
+  sinon tout de suite.
+- **Services préparés** : label `ksmc.io/prepared=true`, ignorés par les proxies. Quand il faut un service, un
+  préparé (`Running` de préférence) est promu immédiatement (label retiré, événement `ServicePromoted`) et un
+  nouveau préparé est démarré.
+- **Transparence** : chaque décision produit un événement Kubernetes `ScaledUp`/`ScaledDown` sur la task
+  (`kubectl describe mctask bedwars` → `2 → 3 : remplissage 85 % > seuil 80 %`) et un événement cloud
+  `task.scaled` (`from`, `to`, `direction`, `reason`, `fill`). L'état courant est dans `status.autoscaling`
+  (`desiredServices`, `observedFill`, `lastDecision`, `lastReason`, `lastScaleTime`).
+- Les tasks avec autoscaling sont réévaluées toutes les 10 s (en plus des changements de joueurs).
+
 ## Groupes (`ServiceGroup`, `mcgroup`)
 
 Un groupe partage une configuration (templates, options JVM, variables, propriétés, `podTemplate`) entre tasks.

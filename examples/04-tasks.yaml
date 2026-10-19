@@ -46,3 +46,25 @@ spec:
     spec:
       nodeSelector:
         kubernetes.io/os: linux
+---
+# Parties à la demande : un service de plus au-delà de 80 % de remplissage, arrêt des parties vides après
+# 5 minutes, une partie toujours prête, et au moins 4 parties le soir.
+apiVersion: ksmc.io/v1alpha1
+kind: ServiceTask
+metadata:
+  name: bedwars
+spec:
+  environment: server
+  software: {name: paper, version: "1.21.4"}
+  memoryMb: 2048
+  minServiceCount: 1
+  maxServiceCount: 20
+  autoscaling:
+    strategies: [players, schedule]
+    scaleUpThreshold: 0.8
+    idleStopSeconds: 300
+    cooldownSeconds: 60
+    maxConcurrentStarts: 2
+    preparedServices: 1
+    schedule:
+      - {from: "0 18 * * *", to: "0 23 * * *", timeZone: Europe/Paris, minServiceCount: 4}
