@@ -5,3 +5,6 @@ Vérifier :
   kubectl api-resources --api-group=ksmc.io
 
 Exemples : https://github.com/Reietsuu/Ksmc/tree/main/examples
+
+Jeton administrateur de l'API (en-tête « Authorization: Bearer <jeton> ») :
+  kubectl -n {{ .Release.Namespace }} get secret ksmc-api-token -o jsonpath='{.data.token}' | base64 -d

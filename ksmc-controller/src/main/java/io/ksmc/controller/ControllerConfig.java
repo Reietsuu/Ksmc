@@ -18,7 +18,8 @@ public record ControllerConfig(
         boolean acceptEula,
         String bridgesDir,
         String builtinModulesDir,
-        String dataDir) {
+        String dataDir,
+        String apiToken) {
 
     private static final Path SA_NAMESPACE = Path.of("/var/run/secrets/kubernetes.io/serviceaccount/namespace");
 
@@ -36,7 +37,8 @@ public record ControllerConfig(
                 Boolean.parseBoolean(env.getOrDefault("KSMC_ACCEPT_EULA", "false")),
                 env.getOrDefault("KSMC_BRIDGES_DIR", "/opt/ksmc/bridges"),
                 env.getOrDefault("KSMC_BUILTIN_MODULES_DIR", "/opt/ksmc/modules"),
-                env.getOrDefault("KSMC_DATA_DIR", "/data"));
+                env.getOrDefault("KSMC_DATA_DIR", "/data"),
+                env.get("KSMC_API_TOKEN"));
     }
 
     /** Image runtime pour une version de Java (ex. {@code ghcr.io/reietsuu/ksmc-runtime:0.1.0-java21}). */

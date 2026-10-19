@@ -18,12 +18,16 @@ import io.ksmc.api.model.CloudService;
 import io.ksmc.api.model.CloudServiceSpec;
 import io.ksmc.api.model.Environment;
 import io.ksmc.api.model.Ksmc;
+import io.ksmc.api.spi.ServicePodCustomizer;
 import io.ksmc.controller.ControllerConfig;
 import io.ksmc.controller.internal.InternalApi;
 import io.ksmc.controller.internal.PodAuthenticator;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /** Construit le Pod d'un {@link CloudService} : défauts Ksmc puis {@code podTemplate} fusionné. */
 public final class PodFactory {
@@ -39,11 +43,19 @@ public final class PodFactory {
     public record ImageTemplate(int index, String image, String path) {
     }
 
+    private static final Logger LOG = LoggerFactory.getLogger(PodFactory.class);
     private final ControllerConfig config;
     private final KubernetesSerialization serialization = new KubernetesSerialization();
+    private final Supplier<List<ServicePodCustomizer>> customizers;
 
     public PodFactory(ControllerConfig config) {
+        this(config, List::of);
+    }
+
+    /** @param customizers personnalisations fournies par les modules, appliquées avant le {@code podTemplate} */
+    public PodFactory(ControllerConfig config, Supplier<List<ServicePodCustomizer>> customizers) {
         this.config = config;
+        this.customizers = customizers;
     }
 
     public static String pvcName(CloudService svc) {
@@ -149,7 +161,28 @@ public final class PodFactory {
                                     .endSource().endProjected().build())
                 .endSpec()
                 .build();
-        return applyPodTemplate(pod, spec.podTemplate);
+        return applyPodTemplate(customize(svc, pod), spec.podTemplate);
+    }
+
+    /** Applique les personnalisations des modules ; une erreur est journalisée sans bloquer le service. */
+    Pod customize(CloudService svc, Pod pod) {
+        Map<String, String> identity = new java.util.LinkedHashMap<>(pod.getMetadata().getLabels());
+        String name = pod.getMetadata().getName();
+        String namespace = pod.getMetadata().getNamespace();
+        for (ServicePodCustomizer c : customizers.get()) {
+            try {
+                c.customize(svc, pod);
+            } catch (RuntimeException e) {
+                LOG.warn("Personnalisation de Pod {} en échec pour {} : {}", c.getClass().getName(), name, e.toString());
+            }
+        }
+        pod.getMetadata().setName(name);
+        pod.getMetadata().setNamespace(namespace);
+        if (pod.getMetadata().getLabels() == null) {
+            pod.getMetadata().setLabels(new java.util.LinkedHashMap<>());
+        }
+        pod.getMetadata().getLabels().putAll(identity);
+        return pod;
     }
 
     /** Fusionne le fragment {@code podTemplate} (metadata + spec d'un PodTemplateSpec) dans le Pod. */

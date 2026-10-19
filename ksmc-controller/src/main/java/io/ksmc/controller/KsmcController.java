@@ -5,10 +5,16 @@ import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 import io.javaoperatorsdk.operator.Operator;
 import io.javaoperatorsdk.operator.api.reconciler.Reconciler;
 import io.ksmc.api.module.ExtensionRegistry;
+import io.ksmc.api.spi.ScalingStrategy;
+import io.ksmc.api.spi.ServicePodCustomizer;
+import io.ksmc.api.spi.SoftwareResolver;
+import io.ksmc.api.spi.TemplateSourceProvider;
 import io.ksmc.controller.bridge.BridgeHub;
 import io.ksmc.controller.health.HealthRegistry;
 import io.ksmc.controller.health.KubernetesHealthCheck;
 import io.ksmc.controller.http.HttpServer;
+import io.ksmc.controller.http.ModuleApi;
+import io.ksmc.controller.http.StaticTokenAuthenticator;
 import io.ksmc.controller.internal.InternalApi;
 import io.ksmc.controller.internal.PodAuthenticator;
 import io.ksmc.controller.messaging.NatsConnector;
@@ -36,6 +42,7 @@ import io.ksmc.controller.template.GitTemplateSource;
 import io.ksmc.controller.template.HttpTemplateSource;
 import io.ksmc.controller.template.StorageTemplateSource;
 import io.ksmc.controller.template.TemplateResolver;
+import io.ksmc.wire.messaging.MessagingTransport;
 import java.net.http.HttpClient;
 import java.nio.file.Path;
 import java.time.Clock;
@@ -61,9 +68,15 @@ public final class KsmcController {
 
         FileArtifactStorage storage = new FileArtifactStorage(Path.of(config.dataDir()));
         HttpClient httpClient = HttpClient.newBuilder().followRedirects(HttpClient.Redirect.NORMAL).build();
+        // Extensions des modules (SPI) : reliées aux registres des consommateurs.
+        ExtensionRegistry extensions = new ExtensionRegistry(e -> LOG.warn("Module : {}", e.toString()));
         SoftwareCatalog catalog = new SoftwareCatalog(new JdkResolverContext(), clock);
+        extensions.bind(SoftwareResolver.class, catalog::register, catalog::unregister);
         TemplateResolver templates = new TemplateResolver(List.of(new StorageTemplateSource(), new GitTemplateSource(),
                 new HttpTemplateSource(httpClient), new ConfigMapTemplateSource()));
+        extensions.bind(TemplateSourceProvider.class, templates::register, templates::unregister);
+        ScalingStrategies scaling = new ScalingStrategies();
+        extensions.bind(ScalingStrategy.class, scaling::register, scaling::unregister);
         ArtifactCache artifacts = new ArtifactCache(storage, httpClient);
         ServiceSoftware software = new ServiceSoftware(client, catalog, artifacts,
                 new BuildJobRunner(client, storage, config), config);
@@ -82,16 +95,20 @@ public final class KsmcController {
 
         Operator operator = new Operator(o -> o.withKubernetesClient(client).withUseSSAToPatchPrimaryResource(false));
         register(operator, config, new SoftwareDefinitionReconciler(catalog));
-        register(operator, config, new CloudServiceReconciler(client, software, new PodFactory(config), events, nats, bridges, clock));
-        register(operator, config, new ServiceTaskReconciler(client, new ScalingStrategies(), events, nats, bridges, clock));
+        register(operator, config, new CloudServiceReconciler(client, software,
+                new PodFactory(config, () -> extensions.all(ServicePodCustomizer.class)), events, nats, bridges, clock));
+        register(operator, config, new ServiceTaskReconciler(client, scaling, events, nats, bridges, clock));
         register(operator, config, new ServiceGroupReconciler());
 
         // Modules : chaque module voit l'API publique, son registre et la messagerie du controller.
-        ExtensionRegistry extensions = new ExtensionRegistry(e -> LOG.warn("Module : {}", e.toString()));
         Path dataDir = Path.of(config.dataDir());
         ModuleHost modules = new ModuleHost(extensions, (descriptor, scope, moduleConfig, loader) ->
                 new DefaultModuleContext(descriptor, scope, moduleConfig, loader, client, config.namespace(),
-                        nats::messaging, dataDir.resolve("modules")));
+                        () -> {
+                            // Transport fourni par un module (ex. Redis) prioritaire sur NATS pour les modules.
+                            List<MessagingTransport> transports = extensions.all(MessagingTransport.class);
+                            return transports.isEmpty() ? nats.messaging() : transports.getFirst();
+                        }, dataDir.resolve("modules")));
         ModuleSources moduleSources = new ModuleSources(storage, artifacts, httpClient, dataDir.resolve("module-jars"),
                 Path.of(config.builtinModulesDir()));
         KsmcModuleReconciler moduleReconciler = new KsmcModuleReconciler(client, config.namespace(), modules, moduleSources);
@@ -110,7 +127,8 @@ public final class KsmcController {
 
         InternalApi internal = new InternalApi(new PodAuthenticator(client, clock), client, storage, manifests,
                 config.bridgesDir());
-        HttpServer http = new HttpServer(health, List.of(internal)).start(config.httpPort());
+        ModuleApi moduleApi = new ModuleApi(extensions, new StaticTokenAuthenticator(config.apiToken()));
+        HttpServer http = new HttpServer(health, List.of(internal, moduleApi)).start(config.httpPort());
         LOG.info("HTTP prêt sur le port {}", http.port());
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {

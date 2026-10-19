@@ -47,6 +47,20 @@ Les SPI sont introduites progressivement en p02–p05 dans `ksmc-api`. Ce change
    - Modules intégrés : `builtinModules` dans les values → une ressource `KsmcModule` `source.builtin` par entrée,
      JAR attendu dans `/opt/ksmc/modules/<id>.jar` de l'image.
 
+10. **Choix d'implémentation (1.4)** :
+    - Authentification provisoire jusqu'aux comptes de p08 : jeton administrateur unique (Secret `ksmc-api-token`
+      généré par le chart, en-tête `Authorization: Bearer`), derrière l'interface `ApiAuthenticator` que p08 remplacera.
+      Sans jeton : tout est refusé. Permissions avec joker (`*`, `hello.*`). Authentification vérifiée avant la recherche
+      de route (un anonyme ne peut pas sonder les routes existantes).
+    - Routes de module : `/api/v1/modules/<id>/<chemin>` ; `GET /api/v1/modules/<id>/cli` (descripteurs CLI) ;
+      `GET /api/v1/ui/modules` (pages du dashboard) ; `GET /modules/<id>/ui.js` (bundle, sans authentification).
+      Une erreur du module donne un 500 sans divulguer son message.
+    - SPI reliées via `ExtensionRegistry.bind` : `SoftwareResolver`, `TemplateSourceProvider`, `ScalingStrategy` ;
+      `ServicePodCustomizer` appliqué avant le `podTemplate` (le nom, le namespace et les labels d'identité restent
+      protégés ; une erreur est journalisée sans bloquer le service).
+    - `MessagingTransport` enregistré par un module : utilisé par les contextes de modules à la place de NATS.
+      Le remplacement pour les services (wrapper, bridges) est hors périmètre de ce change.
+
 ## Risks / Trade-offs
 
 - [Fuites de classloader au rechargement] → tests qui chargent/déchargent 20 fois et vérifient le nettoyage des enregistrements.

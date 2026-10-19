@@ -18,6 +18,10 @@ public final class ExtensionRegistry {
     private final Map<Class<?>, List<Entry<?>>> extensions = new ConcurrentHashMap<>();
     private final Map<String, Scope> scopes = new ConcurrentHashMap<>();
     private final Consumer<Throwable> errors;
+    private final Map<Class<?>, List<Binding<?>>> bindings = new ConcurrentHashMap<>();
+
+    private record Binding<T>(Consumer<T> onAdd, Consumer<T> onRemove) {
+    }
 
     private record Entry<T>(String owner, T value) {
     }
@@ -54,6 +58,27 @@ public final class ExtensionRegistry {
         return out;
     }
 
+    /**
+     * Relie une SPI à un consommateur qui a son propre registre ({@code register/unregister}) : appelé pour les
+     * implémentations déjà présentes puis à chaque ajout ou retrait.
+     */
+    public <T> void bind(Class<T> spi, Consumer<T> onAdd, Consumer<T> onRemove) {
+        bindings.computeIfAbsent(spi, k -> new CopyOnWriteArrayList<>()).add(new Binding<>(onAdd, onRemove));
+        all(spi).forEach(onAdd);
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T> void fire(Class<T> spi, Object value, boolean added) {
+        for (Binding<?> b : bindings.getOrDefault(spi, List.of())) {
+            Binding<T> binding = (Binding<T>) b;
+            try {
+                (added ? binding.onAdd() : binding.onRemove()).accept((T) value);
+            } catch (RuntimeException e) {
+                errors.accept(e);
+            }
+        }
+    }
+
     /** Nombre d'enregistrements d'un propriétaire (tests, diagnostic). */
     public int count(String owner) {
         Scope s = scopes.get(owner);
@@ -75,12 +100,13 @@ public final class ExtensionRegistry {
             }
             Entry<T> entry = new Entry<>(owner, implementation);
             extensions.computeIfAbsent(spi, k -> new CopyOnWriteArrayList<>()).add(entry);
+            fire(spi, implementation, true);
             return track(new Registration() {
                 @Override
                 public void close() {
                     List<Entry<?>> list = extensions.get(spi);
-                    if (list != null) {
-                        list.remove(entry);
+                    if (list != null && list.remove(entry)) {
+                        fire(spi, implementation, false);
                     }
                 }
             });

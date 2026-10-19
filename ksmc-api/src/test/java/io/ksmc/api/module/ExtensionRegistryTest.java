@@ -60,4 +60,19 @@ class ExtensionRegistryTest {
         assertThat(registry.all(Greeter.class)).isEmpty();
         assertThat(registry.count("m")).isZero();
     }
+
+    @Test
+    void bindingsSeeExistingAndFutureImplementations() {
+        ExtensionRegistry registry = new ExtensionRegistry();
+        registry.scope("a").register(Greeter.class, () -> "a");
+        List<String> live = new ArrayList<>();
+        registry.bind(Greeter.class, g -> live.add(g.greet()), g -> live.remove(g.greet()));
+        assertThat(live).containsExactly("a");
+
+        registry.scope("b").register(Greeter.class, () -> "b");
+        assertThat(live).containsExactly("a", "b");
+
+        registry.closeScope("a");
+        assertThat(live).containsExactly("b");
+    }
 }
