@@ -1,0 +1,13 @@
+# Tasks
+
+## 1. Stratégies
+
+- [x] 1.1 Stratégie `players` (seuil, idle, cooldown, `maxConcurrentStarts`) ; tests unitaires avec horloge simulée
+- [x] 1.2 Stratégie `schedule` (cron + fuseau) et composition ; tests unitaires
+- [x] 1.3 Services préparés (label, promotion, exclusion par les bridges proxy) ; tests unitaires
+
+## 2. Intégration
+
+- [x] 2.1 `status.autoscaling`, événements `ScaledUp`/`ScaledDown` + `task.scaled`, réconciliation périodique ; tests mock server
+- [x] 2.2 Scénario e2e : bots de test remplissent une task → un service démarre ; départ des bots → arrêt après idle (valeurs courtes) ; vérifier en CI
+- [x] 2.3 Documenter l'autoscaling dans `docs/USAGE.md` ; vérifier les exemples via e2e

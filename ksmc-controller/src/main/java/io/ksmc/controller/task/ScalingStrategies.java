@@ -12,6 +12,8 @@ public final class ScalingStrategies {
 
     public ScalingStrategies() {
         register(new StaticScalingStrategy());
+        register(new PlayersScalingStrategy());
+        register(new ScheduleScalingStrategy());
     }
 
     public void register(ScalingStrategy strategy) {
@@ -27,7 +29,8 @@ public final class ScalingStrategies {
         ServiceTaskSpec spec = context.task().getSpec();
         List<String> names = spec.autoscaling == null || spec.autoscaling.strategies.isEmpty()
                 ? List.of(StaticScalingStrategy.NAME) : spec.autoscaling.strategies;
-        int target = spec.minServiceCount;
+        // Le minimum et les démarrages manuels restent acquis quelles que soient les stratégies.
+        int target = spec.minServiceCount + spec.extraServices;
         for (String name : names) {
             ScalingStrategy s = strategies.get(name);
             if (s != null) {
@@ -37,9 +40,16 @@ public final class ScalingStrategies {
         return bound(spec, target);
     }
 
-    static int bound(ServiceTaskSpec spec, int value) {
+    public static int bound(ServiceTaskSpec spec, int value) {
         int v = Math.max(spec.minServiceCount, value);
         return spec.maxServiceCount >= 0 ? Math.min(spec.maxServiceCount, v) : v;
+    }
+
+    /** Proposition d'une stratégie de la task (si elle est listée et connue), sinon {@link ScalingStrategy#NO_OPINION}. */
+    public int proposal(String name, ScalingStrategy.Context context) {
+        ServiceTaskSpec.Autoscaling a = context.task().getSpec().autoscaling;
+        ScalingStrategy s = strategies.get(name);
+        return a == null || s == null || !a.strategies.contains(name) ? ScalingStrategy.NO_OPINION : s.desiredServices(context);
     }
 
     public boolean has(String name) {

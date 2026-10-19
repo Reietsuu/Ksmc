@@ -308,10 +308,20 @@ spec:
                 properties:
                   desiredServices:
                     type: "integer"
+                  emptySince:
+                    additionalProperties:
+                      type: "string"
+                    type: "object"
                   lastDecision:
+                    type: "string"
+                  lastReason:
                     type: "string"
                   lastScaleTime:
                     type: "string"
+                  observedFill:
+                    type: "number"
+                  preparedServices:
+                    type: "integer"
                 type: "object"
               conditions:
                 items:

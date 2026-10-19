@@ -2,12 +2,14 @@
 
 Dernière mise à jour : 2026-10-19
 
-- **Mergé dans `main`** : p01 → p06 (PR #1 à #6), CI verte, changes archivés.
-- **Suivant** : p07-autoscaling sur `feat/p07-autoscaling`.
+- **Mergé dans `main`** : p01 → p07 (PR #1 à #7), CI verte, changes archivés.
+- **Suivant** : p08-rest-api sur `feat/p08-rest-api`.
 - **Provisoire (p06)** : API protégée par un jeton admin unique (Secret `ksmc-api-token`, `StaticTokenAuthenticator`) ;
   p08 doit le remplacer par les comptes (interface `ApiAuthenticator`). Le dashboard (p10) doit fournir `mount(el, api)` avec `api.fetch(path)`.
 - **Limites connues** : `service.deleted` n'est publié que pour les services supprimés par leur task
   (pas de finalizer, pour ne jamais bloquer une suppression si le controller est absent).
+- **Sécurité à revoir** : tous les services partagent l'utilisateur NATS `service` ; un service peut publier les
+  rapports (joueurs, état) d'un autre service. Envisager des permissions NATS par service (p08/p11).
 - **À nettoyer** : warnings 404 du controller quand il patche le statut d'une ressource déjà supprimée
   (sans effet, bruit dans les logs). CI : chaque push d'une branche feat/ lance la CI deux fois
   (push + pull_request) — changement du workflow refusé par les permissions, à faire par l'utilisateur.

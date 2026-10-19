@@ -15,6 +15,8 @@ dependencies {
     implementation(libs.logback)
     implementation(libs.jgit)
     implementation(libs.commons.compress)
+    // Règles horaires de l'autoscaling (cron Unix + fuseau).
+    implementation(libs.cron.utils)
     testImplementation(libs.fabric8.server.mock)
     testImplementation(libs.testcontainers)
 }

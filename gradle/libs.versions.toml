@@ -1,4 +1,5 @@
 [versions]
+cron-utils = "9.2.1"
 fabric8 = "7.9.0"
 josdk = "5.6.2"
 javalin = "7.2.3"
@@ -17,6 +18,7 @@ bungeecord = "1.21-R0.4"
 spigot = "1.8.8-R0.1-SNAPSHOT"
 
 [libraries]
+cron-utils = { module = "com.cronutils:cron-utils", version.ref = "cron-utils" }
 fabric8-client = { module = "io.fabric8:kubernetes-client", version.ref = "fabric8" }
 fabric8-model-annotator = { module = "io.fabric8:kubernetes-model-common", version.ref = "fabric8" }
 fabric8-crd-generator = { module = "io.fabric8:crd-generator-api-v2", version.ref = "fabric8" }
