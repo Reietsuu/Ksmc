@@ -19,6 +19,10 @@ public final class SessionAuthenticator implements ApiAuthenticator {
         this.jwt = jwt;
     }
 
+    public AccountStore accounts() {
+        return accounts;
+    }
+
     @Override
     public Optional<Principal> authenticate(Context ctx) {
         Object cached = ctx.attribute(ApiSupport.PRINCIPAL);
@@ -31,6 +35,11 @@ public final class SessionAuthenticator implements ApiAuthenticator {
             // Navigateurs : pas d'en-tête possible pour WebSocket/EventSource.
             token = ctx.queryParam("access_token");
         }
+        return authenticateToken(token);
+    }
+
+    @Override
+    public Optional<Principal> authenticateToken(String token) {
         if (token == null || token.isEmpty()) {
             return Optional.empty();
         }

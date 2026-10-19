@@ -21,6 +21,9 @@ import io.ksmc.controller.http.ActionApi;
 import io.ksmc.controller.http.ApiSupport;
 import io.ksmc.controller.http.AuditLog;
 import io.ksmc.controller.http.AuthApi;
+import io.ksmc.controller.http.ConsoleApi;
+import io.ksmc.controller.http.EventsApi;
+import io.ksmc.controller.http.OpenApiDocs;
 import io.ksmc.controller.http.HttpServer;
 import io.ksmc.controller.http.ModuleApi;
 import io.ksmc.controller.http.ResourceApi;
@@ -156,8 +159,11 @@ public final class KsmcController {
         ResourceApi resourceApi = new ResourceApi(client, config.namespace(), players, audit);
         ActionApi actionApi = new ActionApi(client, config.namespace(), nats::sendCommand, players, audit);
         TemplateFilesApi templateFiles = new TemplateFilesApi(storage, audit);
+        EventsApi eventsApi = new EventsApi(sessions, nats::messaging, audit);
+        ConsoleApi consoleApi = new ConsoleApi(client, config.namespace(), sessions,
+                ConsoleApi.kubernetes(client, config.namespace()), nats::sendCommand, audit);
         HttpServer http = new HttpServer(health, List.of(new ApiSupport(sessions), authApi, actionApi, resourceApi,
-                templateFiles, internal, moduleApi)).start(config.httpPort());
+                templateFiles, eventsApi, consoleApi, new OpenApiDocs(), internal, moduleApi)).start(config.httpPort());
         LOG.info("HTTP prêt sur le port {}", http.port());
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {

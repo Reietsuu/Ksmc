@@ -23,4 +23,9 @@ public interface ApiAuthenticator {
 
     /** Utilisateur de la requête, ou vide si elle n'est pas authentifiée. */
     Optional<Principal> authenticate(Context ctx);
+
+    /** Utilisateur d'un jeton (WebSocket : en-tête ou {@code ?access_token=}), ou vide. */
+    default Optional<Principal> authenticateToken(String token) {
+        return Optional.empty();
+    }
 }

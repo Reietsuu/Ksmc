@@ -33,6 +33,12 @@ final class ApiTestServer implements AutoCloseable {
     }
 
     ApiTestServer(KubernetesClient client, List<HttpRoutes> routes, AuditLog audit) {
+        this(client, auth -> routes, audit);
+    }
+
+    /** Routes construites avec l'authentificateur du serveur (WebSocket, console...). */
+    ApiTestServer(KubernetesClient client, java.util.function.Function<ApiAuthenticator, List<HttpRoutes>> routes,
+            AuditLog audit) {
         Clock clock = Clock.systemUTC();
         accounts = new AccountStore(client, "test", clock);
         accounts.bootstrap(null);
@@ -44,9 +50,10 @@ final class ApiTestServer implements AutoCloseable {
         viewer = accounts.createToken("eve", "test", null).value();
         this.audit = audit;
         Jwt jwt = new Jwt("0123456789abcdef0123456789abcdef".getBytes(StandardCharsets.UTF_8), clock);
+        SessionAuthenticator sessions = new SessionAuthenticator(accounts, jwt);
         List<HttpRoutes> all = new ArrayList<>();
-        all.add(new ApiSupport(new SessionAuthenticator(accounts, jwt)));
-        all.addAll(routes);
+        all.add(new ApiSupport(sessions));
+        all.addAll(routes.apply(sessions));
         server = new HttpServer(new HealthRegistry(), all).start(0);
     }
 
@@ -63,6 +70,10 @@ final class ApiTestServer implements AutoCloseable {
         } catch (Exception e) {
             throw new AssertionError(e);
         }
+    }
+
+    int port() {
+        return server.port();
     }
 
     HttpResponse<String> call(String method, String path, String token, Object body) {

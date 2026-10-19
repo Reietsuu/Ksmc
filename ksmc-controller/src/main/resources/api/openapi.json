@@ -1,0 +1,3262 @@
+{
+ "openapi": "3.0.3",
+ "info": {
+  "title": "Ksmc API",
+  "version": "1.0.0",
+  "description": "API du cloud Minecraft Ksmc. Authentification : `Authorization: Bearer <jeton>` (session obtenue par `/api/v1/auth/login` ou jeton d'API `ksmc_…`). Erreurs : `{code, message, details}`. Voir docs/API.md."
+ },
+ "servers": [
+  {
+   "url": "/"
+  }
+ ],
+ "security": [
+  {
+   "bearer": []
+  }
+ ],
+ "paths": {
+  "/api/v1/auth/login": {
+   "post": {
+    "summary": "Connexion (nom / mot de passe)",
+    "tags": [
+     "auth"
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "required": [
+         "username",
+         "password"
+        ],
+        "properties": {
+         "username": {
+          "type": "string"
+         },
+         "password": {
+          "type": "string"
+         }
+        }
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Session"
+        }
+       }
+      }
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    },
+    "security": []
+   }
+  },
+  "/api/v1/auth/refresh": {
+   "post": {
+    "summary": "Renouveler la session",
+    "tags": [
+     "auth"
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "required": [
+         "refreshToken"
+        ],
+        "properties": {
+         "refreshToken": {
+          "type": "string"
+         }
+        }
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Session"
+        }
+       }
+      }
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    },
+    "security": []
+   }
+  },
+  "/api/v1/auth/password": {
+   "post": {
+    "summary": "Changer son mot de passe (nouvelle session)",
+    "tags": [
+     "auth"
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "required": [
+         "currentPassword",
+         "newPassword"
+        ],
+        "properties": {
+         "currentPassword": {
+          "type": "string"
+         },
+         "newPassword": {
+          "type": "string",
+          "minLength": 10
+         }
+        }
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Session"
+        }
+       }
+      }
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   }
+  },
+  "/api/v1/auth/me": {
+   "get": {
+    "summary": "Utilisateur courant et permissions",
+    "tags": [
+     "auth"
+    ],
+    "responses": {
+     "200": {
+      "description": "OK"
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   }
+  },
+  "/api/v1/auth/tokens": {
+   "get": {
+    "summary": "Jetons d'API (les siens ; ?all=true : tous, ksmc.account.admin)",
+    "tags": [
+     "auth"
+    ],
+    "parameters": [
+     {
+      "name": "all",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK"
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   },
+   "post": {
+    "summary": "Créer un jeton d'API (affiché une seule fois)",
+    "tags": [
+     "auth"
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "required": [
+         "name"
+        ],
+        "properties": {
+         "name": {
+          "type": "string"
+         },
+         "expiresInDays": {
+          "type": "integer"
+         }
+        }
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "OK"
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   }
+  },
+  "/api/v1/auth/tokens/{id}": {
+   "delete": {
+    "summary": "Révoquer un jeton",
+    "tags": [
+     "auth"
+    ],
+    "parameters": [
+     {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "OK"
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   }
+  },
+  "/api/v1/accounts": {
+   "get": {
+    "summary": "Comptes",
+    "tags": [
+     "accounts"
+    ],
+    "description": "Permission : `ksmc.account.admin`.",
+    "responses": {
+     "200": {
+      "description": "OK"
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   },
+   "post": {
+    "summary": "Créer un compte",
+    "tags": [
+     "accounts"
+    ],
+    "description": "Permission : `ksmc.account.admin`.",
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "required": [
+         "name",
+         "password",
+         "roles"
+        ],
+        "properties": {
+         "name": {
+          "type": "string"
+         },
+         "password": {
+          "type": "string"
+         },
+         "roles": {
+          "type": "array",
+          "items": {
+           "type": "string"
+          }
+         },
+         "mustChangePassword": {
+          "type": "boolean",
+          "default": true
+         }
+        }
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "OK"
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   }
+  },
+  "/api/v1/accounts/{name}": {
+   "delete": {
+    "summary": "Supprimer un compte (et ses jetons)",
+    "tags": [
+     "accounts"
+    ],
+    "description": "Permission : `ksmc.account.admin`.",
+    "parameters": [
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "OK"
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   }
+  },
+  "/api/v1/accounts/{name}/roles": {
+   "put": {
+    "summary": "Rôles d'un compte",
+    "tags": [
+     "accounts"
+    ],
+    "description": "Permission : `ksmc.account.admin`.",
+    "parameters": [
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "properties": {
+         "roles": {
+          "type": "array",
+          "items": {
+           "type": "string"
+          }
+         }
+        }
+       }
+      }
+     }
+    },
+    "responses": {
+     "204": {
+      "description": "OK"
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   }
+  },
+  "/api/v1/accounts/{name}/password": {
+   "put": {
+    "summary": "Réinitialiser un mot de passe (changement exigé)",
+    "tags": [
+     "accounts"
+    ],
+    "description": "Permission : `ksmc.account.admin`.",
+    "parameters": [
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "properties": {
+         "password": {
+          "type": "string"
+         }
+        }
+       }
+      }
+     }
+    },
+    "responses": {
+     "204": {
+      "description": "OK"
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   }
+  },
+  "/api/v1/roles": {
+   "get": {
+    "summary": "Rôles et permissions",
+    "tags": [
+     "accounts"
+    ],
+    "description": "Permission : `ksmc.account.admin`.",
+    "responses": {
+     "200": {
+      "description": "OK"
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   }
+  },
+  "/api/v1/roles/{name}": {
+   "put": {
+    "summary": "Créer ou remplacer un rôle",
+    "tags": [
+     "accounts"
+    ],
+    "description": "Permission : `ksmc.account.admin`.",
+    "parameters": [
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "properties": {
+         "permissions": {
+          "type": "array",
+          "items": {
+           "type": "string"
+          }
+         }
+        }
+       }
+      }
+     }
+    },
+    "responses": {
+     "204": {
+      "description": "OK"
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   },
+   "delete": {
+    "summary": "Supprimer un rôle inutilisé",
+    "tags": [
+     "accounts"
+    ],
+    "description": "Permission : `ksmc.account.admin`.",
+    "parameters": [
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "OK"
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   }
+  },
+  "/api/v1/permissions": {
+   "get": {
+    "summary": "Permissions intégrées et des modules",
+    "tags": [
+     "accounts"
+    ],
+    "responses": {
+     "200": {
+      "description": "OK"
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   }
+  },
+  "/api/v1/tasks": {
+   "get": {
+    "summary": "Lister (tasks)",
+    "tags": [
+     "tasks"
+    ],
+    "description": "Permission : `ksmc.task.read`.",
+    "parameters": [
+     {
+      "name": "limit",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string"
+      },
+      "description": "1–500, défaut 100"
+     },
+     {
+      "name": "continue",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string"
+      },
+      "description": "curseur de la page suivante"
+     },
+     {
+      "name": "labelSelector",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "task",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ResourceList"
+        }
+       }
+      }
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   },
+   "post": {
+    "summary": "Créer",
+    "tags": [
+     "tasks"
+    ],
+    "description": "Permission : `ksmc.task.write`.",
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/Resource"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Resource"
+        }
+       }
+      }
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   }
+  },
+  "/api/v1/tasks/{name}": {
+   "get": {
+    "summary": "Lire (ETag = resourceVersion)",
+    "tags": [
+     "tasks"
+    ],
+    "description": "Permission : `ksmc.task.read`.",
+    "parameters": [
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Resource"
+        }
+       }
+      }
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   },
+   "put": {
+    "summary": "Remplacer (spec, labels, annotations)",
+    "tags": [
+     "tasks"
+    ],
+    "description": "Permission : `ksmc.task.write`.",
+    "parameters": [
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "If-Match",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "type": "string"
+      },
+      "description": "ETag attendu (409 Conflict sinon)"
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/Resource"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Resource"
+        }
+       }
+      }
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   },
+   "patch": {
+    "summary": "Modifier (JSON merge patch)",
+    "tags": [
+     "tasks"
+    ],
+    "description": "Permission : `ksmc.task.write`.",
+    "parameters": [
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "If-Match",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "type": "string"
+      },
+      "description": "ETag attendu (409 Conflict sinon)"
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Resource"
+        }
+       }
+      }
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   },
+   "delete": {
+    "summary": "Supprimer",
+    "tags": [
+     "tasks"
+    ],
+    "description": "Permission : `ksmc.task.write`.",
+    "parameters": [
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "If-Match",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "type": "string"
+      },
+      "description": "ETag attendu (409 Conflict sinon)"
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "OK"
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   }
+  },
+  "/api/v1/groups": {
+   "get": {
+    "summary": "Lister (groups)",
+    "tags": [
+     "groups"
+    ],
+    "description": "Permission : `ksmc.group.read`.",
+    "parameters": [
+     {
+      "name": "limit",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string"
+      },
+      "description": "1–500, défaut 100"
+     },
+     {
+      "name": "continue",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string"
+      },
+      "description": "curseur de la page suivante"
+     },
+     {
+      "name": "labelSelector",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "task",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ResourceList"
+        }
+       }
+      }
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   },
+   "post": {
+    "summary": "Créer",
+    "tags": [
+     "groups"
+    ],
+    "description": "Permission : `ksmc.group.write`.",
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/Resource"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Resource"
+        }
+       }
+      }
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   }
+  },
+  "/api/v1/groups/{name}": {
+   "get": {
+    "summary": "Lire (ETag = resourceVersion)",
+    "tags": [
+     "groups"
+    ],
+    "description": "Permission : `ksmc.group.read`.",
+    "parameters": [
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Resource"
+        }
+       }
+      }
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   },
+   "put": {
+    "summary": "Remplacer (spec, labels, annotations)",
+    "tags": [
+     "groups"
+    ],
+    "description": "Permission : `ksmc.group.write`.",
+    "parameters": [
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "If-Match",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "type": "string"
+      },
+      "description": "ETag attendu (409 Conflict sinon)"
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/Resource"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Resource"
+        }
+       }
+      }
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   },
+   "patch": {
+    "summary": "Modifier (JSON merge patch)",
+    "tags": [
+     "groups"
+    ],
+    "description": "Permission : `ksmc.group.write`.",
+    "parameters": [
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "If-Match",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "type": "string"
+      },
+      "description": "ETag attendu (409 Conflict sinon)"
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Resource"
+        }
+       }
+      }
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   },
+   "delete": {
+    "summary": "Supprimer",
+    "tags": [
+     "groups"
+    ],
+    "description": "Permission : `ksmc.group.write`.",
+    "parameters": [
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "If-Match",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "type": "string"
+      },
+      "description": "ETag attendu (409 Conflict sinon)"
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "OK"
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   }
+  },
+  "/api/v1/templates": {
+   "get": {
+    "summary": "Lister (templates)",
+    "tags": [
+     "templates"
+    ],
+    "description": "Permission : `ksmc.template.read`.",
+    "parameters": [
+     {
+      "name": "limit",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string"
+      },
+      "description": "1–500, défaut 100"
+     },
+     {
+      "name": "continue",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string"
+      },
+      "description": "curseur de la page suivante"
+     },
+     {
+      "name": "labelSelector",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "task",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ResourceList"
+        }
+       }
+      }
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   },
+   "post": {
+    "summary": "Créer",
+    "tags": [
+     "templates"
+    ],
+    "description": "Permission : `ksmc.template.write`.",
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/Resource"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Resource"
+        }
+       }
+      }
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   }
+  },
+  "/api/v1/templates/{name}": {
+   "get": {
+    "summary": "Lire (ETag = resourceVersion)",
+    "tags": [
+     "templates"
+    ],
+    "description": "Permission : `ksmc.template.read`.",
+    "parameters": [
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Resource"
+        }
+       }
+      }
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   },
+   "put": {
+    "summary": "Remplacer (spec, labels, annotations)",
+    "tags": [
+     "templates"
+    ],
+    "description": "Permission : `ksmc.template.write`.",
+    "parameters": [
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "If-Match",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "type": "string"
+      },
+      "description": "ETag attendu (409 Conflict sinon)"
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/Resource"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Resource"
+        }
+       }
+      }
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   },
+   "patch": {
+    "summary": "Modifier (JSON merge patch)",
+    "tags": [
+     "templates"
+    ],
+    "description": "Permission : `ksmc.template.write`.",
+    "parameters": [
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "If-Match",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "type": "string"
+      },
+      "description": "ETag attendu (409 Conflict sinon)"
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Resource"
+        }
+       }
+      }
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   },
+   "delete": {
+    "summary": "Supprimer",
+    "tags": [
+     "templates"
+    ],
+    "description": "Permission : `ksmc.template.write`.",
+    "parameters": [
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "If-Match",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "type": "string"
+      },
+      "description": "ETag attendu (409 Conflict sinon)"
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "OK"
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   }
+  },
+  "/api/v1/services": {
+   "get": {
+    "summary": "Lister (services)",
+    "tags": [
+     "services"
+    ],
+    "description": "Permission : `ksmc.service.read`.",
+    "parameters": [
+     {
+      "name": "limit",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string"
+      },
+      "description": "1–500, défaut 100"
+     },
+     {
+      "name": "continue",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string"
+      },
+      "description": "curseur de la page suivante"
+     },
+     {
+      "name": "labelSelector",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "task",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ResourceList"
+        }
+       }
+      }
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   },
+   "post": {
+    "summary": "Créer",
+    "tags": [
+     "services"
+    ],
+    "description": "Permission : `ksmc.service.write`.",
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/Resource"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Resource"
+        }
+       }
+      }
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   }
+  },
+  "/api/v1/services/{name}": {
+   "get": {
+    "summary": "Lire (ETag = resourceVersion)",
+    "tags": [
+     "services"
+    ],
+    "description": "Permission : `ksmc.service.read`.",
+    "parameters": [
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Resource"
+        }
+       }
+      }
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   },
+   "put": {
+    "summary": "Remplacer (spec, labels, annotations)",
+    "tags": [
+     "services"
+    ],
+    "description": "Permission : `ksmc.service.write`.",
+    "parameters": [
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "If-Match",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "type": "string"
+      },
+      "description": "ETag attendu (409 Conflict sinon)"
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/Resource"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Resource"
+        }
+       }
+      }
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   },
+   "patch": {
+    "summary": "Modifier (JSON merge patch)",
+    "tags": [
+     "services"
+    ],
+    "description": "Permission : `ksmc.service.write`.",
+    "parameters": [
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "If-Match",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "type": "string"
+      },
+      "description": "ETag attendu (409 Conflict sinon)"
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Resource"
+        }
+       }
+      }
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   },
+   "delete": {
+    "summary": "Supprimer",
+    "tags": [
+     "services"
+    ],
+    "description": "Permission : `ksmc.service.write`.",
+    "parameters": [
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "If-Match",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "type": "string"
+      },
+      "description": "ETag attendu (409 Conflict sinon)"
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "OK"
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   }
+  },
+  "/api/v1/software": {
+   "get": {
+    "summary": "Lister (software)",
+    "tags": [
+     "software"
+    ],
+    "description": "Permission : `ksmc.software.read`.",
+    "parameters": [
+     {
+      "name": "limit",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string"
+      },
+      "description": "1–500, défaut 100"
+     },
+     {
+      "name": "continue",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string"
+      },
+      "description": "curseur de la page suivante"
+     },
+     {
+      "name": "labelSelector",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "task",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ResourceList"
+        }
+       }
+      }
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   },
+   "post": {
+    "summary": "Créer",
+    "tags": [
+     "software"
+    ],
+    "description": "Permission : `ksmc.software.write`.",
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/Resource"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Resource"
+        }
+       }
+      }
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   }
+  },
+  "/api/v1/software/{name}": {
+   "get": {
+    "summary": "Lire (ETag = resourceVersion)",
+    "tags": [
+     "software"
+    ],
+    "description": "Permission : `ksmc.software.read`.",
+    "parameters": [
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Resource"
+        }
+       }
+      }
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   },
+   "put": {
+    "summary": "Remplacer (spec, labels, annotations)",
+    "tags": [
+     "software"
+    ],
+    "description": "Permission : `ksmc.software.write`.",
+    "parameters": [
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "If-Match",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "type": "string"
+      },
+      "description": "ETag attendu (409 Conflict sinon)"
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/Resource"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Resource"
+        }
+       }
+      }
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   },
+   "patch": {
+    "summary": "Modifier (JSON merge patch)",
+    "tags": [
+     "software"
+    ],
+    "description": "Permission : `ksmc.software.write`.",
+    "parameters": [
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "If-Match",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "type": "string"
+      },
+      "description": "ETag attendu (409 Conflict sinon)"
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Resource"
+        }
+       }
+      }
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   },
+   "delete": {
+    "summary": "Supprimer",
+    "tags": [
+     "software"
+    ],
+    "description": "Permission : `ksmc.software.write`.",
+    "parameters": [
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "If-Match",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "type": "string"
+      },
+      "description": "ETag attendu (409 Conflict sinon)"
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "OK"
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   }
+  },
+  "/api/v1/modules": {
+   "get": {
+    "summary": "Lister (modules)",
+    "tags": [
+     "modules"
+    ],
+    "description": "Permission : `ksmc.module.read`.",
+    "parameters": [
+     {
+      "name": "limit",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string"
+      },
+      "description": "1–500, défaut 100"
+     },
+     {
+      "name": "continue",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string"
+      },
+      "description": "curseur de la page suivante"
+     },
+     {
+      "name": "labelSelector",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "task",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/ResourceList"
+        }
+       }
+      }
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   },
+   "post": {
+    "summary": "Créer",
+    "tags": [
+     "modules"
+    ],
+    "description": "Permission : `ksmc.module.write`.",
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/Resource"
+       }
+      }
+     }
+    },
+    "responses": {
+     "201": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Resource"
+        }
+       }
+      }
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   }
+  },
+  "/api/v1/modules/{name}": {
+   "get": {
+    "summary": "Lire (ETag = resourceVersion)",
+    "tags": [
+     "modules"
+    ],
+    "description": "Permission : `ksmc.module.read`.",
+    "parameters": [
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Resource"
+        }
+       }
+      }
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   },
+   "put": {
+    "summary": "Remplacer (spec, labels, annotations)",
+    "tags": [
+     "modules"
+    ],
+    "description": "Permission : `ksmc.module.write`.",
+    "parameters": [
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "If-Match",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "type": "string"
+      },
+      "description": "ETag attendu (409 Conflict sinon)"
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "$ref": "#/components/schemas/Resource"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Resource"
+        }
+       }
+      }
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   },
+   "patch": {
+    "summary": "Modifier (JSON merge patch)",
+    "tags": [
+     "modules"
+    ],
+    "description": "Permission : `ksmc.module.write`.",
+    "parameters": [
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "If-Match",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "type": "string"
+      },
+      "description": "ETag attendu (409 Conflict sinon)"
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object"
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "OK",
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/Resource"
+        }
+       }
+      }
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   },
+   "delete": {
+    "summary": "Supprimer",
+    "tags": [
+     "modules"
+    ],
+    "description": "Permission : `ksmc.module.write`.",
+    "parameters": [
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "If-Match",
+      "in": "header",
+      "required": false,
+      "schema": {
+       "type": "string"
+      },
+      "description": "ETag attendu (409 Conflict sinon)"
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "OK"
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   }
+  },
+  "/api/v1/tasks/{name}/start": {
+   "post": {
+    "summary": "Démarrer N services en plus (noms renvoyés)",
+    "tags": [
+     "tasks"
+    ],
+    "description": "Permission : `ksmc.task.start`.",
+    "parameters": [
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "properties": {
+         "count": {
+          "type": "integer",
+          "default": 1
+         }
+        }
+       }
+      }
+     }
+    },
+    "responses": {
+     "202": {
+      "description": "OK"
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   }
+  },
+  "/api/v1/tasks/{name}/maintenance": {
+   "post": {
+    "summary": "Maintenance",
+    "tags": [
+     "tasks"
+    ],
+    "description": "Permission : `ksmc.task.write`.",
+    "parameters": [
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "properties": {
+         "enabled": {
+          "type": "boolean"
+         }
+        }
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "OK"
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   }
+  },
+  "/api/v1/services/{name}/stop": {
+   "post": {
+    "summary": "Arrêter",
+    "tags": [
+     "services"
+    ],
+    "description": "Permission : `ksmc.service.write`.",
+    "parameters": [
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "202": {
+      "description": "OK"
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   }
+  },
+  "/api/v1/services/{name}/start": {
+   "post": {
+    "summary": "Démarrer (service statique arrêté)",
+    "tags": [
+     "services"
+    ],
+    "description": "Permission : `ksmc.service.write`.",
+    "parameters": [
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "202": {
+      "description": "OK"
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   }
+  },
+  "/api/v1/services/{name}/restart": {
+   "post": {
+    "summary": "Redémarrer",
+    "tags": [
+     "services"
+    ],
+    "description": "Permission : `ksmc.service.write`.",
+    "parameters": [
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "202": {
+      "description": "OK"
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   }
+  },
+  "/api/v1/services/{name}/command": {
+   "post": {
+    "summary": "Commande console",
+    "tags": [
+     "services"
+    ],
+    "description": "Permission : `ksmc.service.command`.",
+    "parameters": [
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "properties": {
+         "command": {
+          "type": "string"
+         }
+        }
+       }
+      }
+     }
+    },
+    "responses": {
+     "202": {
+      "description": "OK"
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   }
+  },
+  "/api/v1/services/{name}/deploy": {
+   "post": {
+    "summary": "Sauvegarder le dossier du service dans un template storage",
+    "tags": [
+     "services"
+    ],
+    "description": "Permission : `ksmc.service.command + ksmc.template.write`.",
+    "parameters": [
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "properties": {
+         "template": {
+          "type": "string"
+         }
+        }
+       }
+      }
+     }
+    },
+    "responses": {
+     "202": {
+      "description": "OK"
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   }
+  },
+  "/api/v1/services/{name}/console": {
+   "get": {
+    "summary": "Console (WebSocket) : 200 dernières lignes puis le direct ; messages texte = commandes",
+    "tags": [
+     "services"
+    ],
+    "description": "Permission : `ksmc.service.console (+ ksmc.service.command pour écrire)`.",
+    "parameters": [
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "lines",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "access_token",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "101": {
+      "description": "Switching Protocols"
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   }
+  },
+  "/api/v1/services/{name}/logs": {
+   "get": {
+    "summary": "Logs (texte) ; ?previous=true : démarrage précédent",
+    "tags": [
+     "services"
+    ],
+    "description": "Permission : `ksmc.service.read`.",
+    "parameters": [
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "lines",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "previous",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK"
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   }
+  },
+  "/api/v1/services/{name}/lastlog": {
+   "get": {
+    "summary": "Extrait conservé du dernier échec",
+    "tags": [
+     "services"
+    ],
+    "description": "Permission : `ksmc.service.read`.",
+    "parameters": [
+     {
+      "name": "name",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK"
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   }
+  },
+  "/api/v1/players": {
+   "get": {
+    "summary": "Joueurs connectés",
+    "tags": [
+     "players"
+    ],
+    "description": "Permission : `ksmc.player.read`.",
+    "responses": {
+     "200": {
+      "description": "OK"
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   }
+  },
+  "/api/v1/players/{player}": {
+   "get": {
+    "summary": "Joueur (nom ou UUID)",
+    "tags": [
+     "players"
+    ],
+    "description": "Permission : `ksmc.player.read`.",
+    "parameters": [
+     {
+      "name": "player",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK"
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   }
+  },
+  "/api/v1/players/{player}/send": {
+   "post": {
+    "summary": "Action joueur : send",
+    "tags": [
+     "players"
+    ],
+    "description": "Permission : `ksmc.player.action`.",
+    "parameters": [
+     {
+      "name": "player",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "properties": {
+         "service": {
+          "type": "string"
+         },
+         "task": {
+          "type": "string"
+         }
+        }
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "OK"
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   }
+  },
+  "/api/v1/players/{player}/kick": {
+   "post": {
+    "summary": "Action joueur : kick",
+    "tags": [
+     "players"
+    ],
+    "description": "Permission : `ksmc.player.action`.",
+    "parameters": [
+     {
+      "name": "player",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "properties": {
+         "reason": {
+          "type": "string"
+         }
+        }
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "OK"
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   }
+  },
+  "/api/v1/players/{player}/message": {
+   "post": {
+    "summary": "Action joueur : message",
+    "tags": [
+     "players"
+    ],
+    "description": "Permission : `ksmc.player.action`.",
+    "parameters": [
+     {
+      "name": "player",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "properties": {
+         "text": {
+          "type": "string"
+         }
+        }
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "OK"
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   }
+  },
+  "/api/v1/players/{player}/title": {
+   "post": {
+    "summary": "Action joueur : title",
+    "tags": [
+     "players"
+    ],
+    "description": "Permission : `ksmc.player.action`.",
+    "parameters": [
+     {
+      "name": "player",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "properties": {
+         "title": {
+          "type": "string"
+         },
+         "subtitle": {
+          "type": "string"
+         }
+        }
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "OK"
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   }
+  },
+  "/api/v1/templates/{template}/files": {
+   "get": {
+    "summary": "Fichiers d'un template storage",
+    "tags": [
+     "template-files"
+    ],
+    "description": "Permission : `ksmc.template.read`.",
+    "parameters": [
+     {
+      "name": "template",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      },
+      "description": "chemin du template storage (peut contenir des /)"
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK"
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   }
+  },
+  "/api/v1/templates/{template}/files/{file}": {
+   "get": {
+    "summary": "Lire un fichier",
+    "tags": [
+     "template-files"
+    ],
+    "description": "Permission : `ksmc.template.read`.",
+    "parameters": [
+     {
+      "name": "template",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      },
+      "description": "chemin du template storage (peut contenir des /)"
+     },
+     {
+      "name": "file",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK"
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   },
+   "put": {
+    "summary": "Écrire un fichier (corps brut)",
+    "tags": [
+     "template-files"
+    ],
+    "description": "Permission : `ksmc.template.write`.",
+    "parameters": [
+     {
+      "name": "template",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      },
+      "description": "chemin du template storage (peut contenir des /)"
+     },
+     {
+      "name": "file",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "201": {
+      "description": "OK"
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   },
+   "patch": {
+    "summary": "Renommer : {\"path\": \"nouveau\"}",
+    "tags": [
+     "template-files"
+    ],
+    "description": "Permission : `ksmc.template.write`.",
+    "parameters": [
+     {
+      "name": "template",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      },
+      "description": "chemin du template storage (peut contenir des /)"
+     },
+     {
+      "name": "file",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "properties": {
+         "path": {
+          "type": "string"
+         }
+        }
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "OK"
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   },
+   "delete": {
+    "summary": "Supprimer un fichier ou un dossier",
+    "tags": [
+     "template-files"
+    ],
+    "description": "Permission : `ksmc.template.write`.",
+    "parameters": [
+     {
+      "name": "template",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      },
+      "description": "chemin du template storage (peut contenir des /)"
+     },
+     {
+      "name": "file",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "204": {
+      "description": "OK"
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   }
+  },
+  "/api/v1/templates/{template}/archive": {
+   "get": {
+    "summary": "Télécharger en ZIP",
+    "tags": [
+     "template-files"
+    ],
+    "description": "Permission : `ksmc.template.read`.",
+    "parameters": [
+     {
+      "name": "template",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      },
+      "description": "chemin du template storage (peut contenir des /)"
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK"
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   },
+   "put": {
+    "summary": "Téléverser un ZIP / tar.gz (remplace ; ?mode=merge pour fusionner)",
+    "tags": [
+     "template-files"
+    ],
+    "description": "Permission : `ksmc.template.write`.",
+    "parameters": [
+     {
+      "name": "template",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      },
+      "description": "chemin du template storage (peut contenir des /)"
+     },
+     {
+      "name": "mode",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK"
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   }
+  },
+  "/api/v1/events": {
+   "get": {
+    "summary": "Événements (WebSocket)",
+    "tags": [
+     "events"
+    ],
+    "description": "Permission : `ksmc.event.read`.",
+    "parameters": [
+     {
+      "name": "type",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "task",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "environment",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "since",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "access_token",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "101": {
+      "description": "Switching Protocols"
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   }
+  },
+  "/api/v1/events/stream": {
+   "get": {
+    "summary": "Événements (Server-Sent Events, reprise par Last-Event-ID)",
+    "tags": [
+     "events"
+    ],
+    "description": "Permission : `ksmc.event.read`.",
+    "parameters": [
+     {
+      "name": "type",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "task",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "environment",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "since",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK"
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   }
+  },
+  "/api/v1/audit": {
+   "get": {
+    "summary": "Journal d'audit (plus récent d'abord)",
+    "tags": [
+     "audit"
+    ],
+    "description": "Permission : `ksmc.audit.read`.",
+    "parameters": [
+     {
+      "name": "user",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "action",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "target",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string"
+      }
+     },
+     {
+      "name": "limit",
+      "in": "query",
+      "required": false,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK"
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   }
+  },
+  "/api/v1/modules/{id}/cli": {
+   "get": {
+    "summary": "Commandes CLI déclarées par un module",
+    "tags": [
+     "modules"
+    ],
+    "parameters": [
+     {
+      "name": "id",
+      "in": "path",
+      "required": true,
+      "schema": {
+       "type": "string"
+      }
+     }
+    ],
+    "responses": {
+     "200": {
+      "description": "OK"
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   }
+  },
+  "/api/v1/ui/modules": {
+   "get": {
+    "summary": "Pages du dashboard fournies par les modules",
+    "tags": [
+     "modules"
+    ],
+    "responses": {
+     "200": {
+      "description": "OK"
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   }
+  },
+  "/api/v1/openapi.json": {
+   "get": {
+    "summary": "Cette description",
+    "tags": [
+     "meta"
+    ],
+    "responses": {
+     "200": {
+      "description": "OK"
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    },
+    "security": []
+   }
+  }
+ },
+ "components": {
+  "securitySchemes": {
+   "bearer": {
+    "type": "http",
+    "scheme": "bearer"
+   }
+  },
+  "schemas": {
+   "Error": {
+    "type": "object",
+    "required": [
+     "code",
+     "message"
+    ],
+    "properties": {
+     "code": {
+      "type": "string",
+      "example": "Forbidden"
+     },
+     "message": {
+      "type": "string"
+     },
+     "details": {
+      "type": "object"
+     }
+    }
+   },
+   "Session": {
+    "type": "object",
+    "properties": {
+     "accessToken": {
+      "type": "string"
+     },
+     "refreshToken": {
+      "type": "string"
+     },
+     "tokenType": {
+      "type": "string"
+     },
+     "expiresIn": {
+      "type": "integer"
+     },
+     "mustChangePassword": {
+      "type": "boolean"
+     }
+    }
+   },
+   "Resource": {
+    "type": "object",
+    "description": "Forme des ressources Kubernetes Ksmc (voir les CRD)",
+    "properties": {
+     "metadata": {
+      "type": "object",
+      "properties": {
+       "name": {
+        "type": "string"
+       },
+       "labels": {
+        "type": "object"
+       },
+       "annotations": {
+        "type": "object"
+       },
+       "resourceVersion": {
+        "type": "string",
+        "readOnly": true
+       }
+      }
+     },
+     "spec": {
+      "type": "object"
+     },
+     "status": {
+      "type": "object",
+      "readOnly": true
+     }
+    }
+   },
+   "ResourceList": {
+    "type": "object",
+    "properties": {
+     "items": {
+      "type": "array",
+      "items": {
+       "$ref": "#/components/schemas/Resource"
+      }
+     },
+     "continue": {
+      "type": "string",
+      "nullable": true
+     }
+    }
+   }
+  },
+  "responses": {
+   "Error": {
+    "description": "Erreur",
+    "content": {
+     "application/json": {
+      "schema": {
+       "$ref": "#/components/schemas/Error"
+      }
+     }
+    }
+   }
+  }
+ }
+}

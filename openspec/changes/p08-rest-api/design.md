@@ -37,6 +37,21 @@ Javalin est déjà présent (p01). Les données sont dans les CRDs ; les comptes
    et les champs système du corps sont ignorés. Pagination : `limit` (1–500, défaut 100) et curseur `continue` de
    Kubernetes. Filtres : `labelSelector`, `task`.
 
+10. **Choix d'implémentation (2.2–3.1)** :
+    - OpenAPI écrite par `scripts/gen-openapi.py` (ressource `api/openapi.json`) plutôt que par le plugin
+      `javalin-openapi` (compatibilité Javalin 7 incertaine) ; `OpenApiDocsTest` appelle chaque opération documentée et
+      échoue si l'une n'existe pas. Swagger UI (`/api/docs`) chargé par le navigateur depuis jsDelivr (version épinglée).
+    - WebSocket : authentification dans `wsBeforeUpgrade` (refus 401/403 avant l'upgrade) ; navigateurs : jeton en
+      `?access_token=` (accepté seulement pour WebSocket et SSE). SSE : reprise par `Last-Event-ID`.
+    - Démarrage de N services : `extraServices` augmenté et noms calculés avec la règle du reconciler (plus petits
+      numéros libres) ; plafonné par `maxServiceCount` (409 `MaxServiceCountReached` si rien n'est possible).
+    - Déploiement vers un template : commande de contrôle `ksmc:deploy <template>` interceptée par le wrapper ; les
+      commandes utilisateur au préfixe `ksmc:` sont refusées (console et API).
+    - Console : messages JSON `{type: log|command|error|end}` ; commandes avec `ksmc.service.command`, lecture seule
+      sinon. Extrait des échecs : ConfigMap `<service>-lastlog` (500 lignes), possédé par la task du service (survit au
+      remplacement d'un service dynamique), sinon par le service.
+    - Audit : `AuditSink` (SPI des modules) en plus du ConfigMap `ksmc-audit` (1000 entrées) et du logger `ksmc.audit`.
+
 ## Risks / Trade-offs
 
 - [Secret limité à 1 Mo] → suffisant pour quelques milliers de comptes ; au-delà, `AuthProvider` externe.
