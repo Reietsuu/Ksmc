@@ -3118,6 +3118,22 @@
     }
    }
   },
+  "/api/v1/cli/commands": {
+   "get": {
+    "summary": "Commandes CLI de tous les modules actifs (découverte par la CLI)",
+    "tags": [
+     "modules"
+    ],
+    "responses": {
+     "200": {
+      "description": "OK"
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   }
+  },
   "/api/v1/ui/modules": {
    "get": {
     "summary": "Pages du dashboard fournies par les modules",

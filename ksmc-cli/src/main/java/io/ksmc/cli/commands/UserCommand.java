@@ -102,7 +102,7 @@ public final class UserCommand extends BaseCommand {
     public static final class RoleList extends BaseCommand {
         @Override
         protected void run() {
-            api().get("/api/v1/roles").fields().forEachRemaining(e -> out().println(e.getKey() + " : "
+            api().get("/api/v1/roles").properties().forEach(e -> out().println(e.getKey() + " : "
                     + Output.textOf(e.getValue())));
         }
     }

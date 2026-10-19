@@ -36,6 +36,7 @@ public final class ModuleApi implements HttpRoutes {
         routes.get("/api/v1/ui/modules", this::pages);
         routes.get("/modules/{id}/ui.js", this::bundle);
         routes.get(PREFIX + "{id}/cli", this::cli);
+        routes.get("/api/v1/cli/commands", this::allCli);
         for (RestRoutes.Method m : RestRoutes.Method.values()) {
             switch (m) {
                 case GET -> routes.get(PREFIX + "{id}/<path>", ctx -> dispatch(ctx, m));
@@ -92,6 +93,19 @@ public final class ModuleApi implements HttpRoutes {
         String id = ctx.pathParam("id");
         ctx.json(extensions.all(ModuleExtensions.Cli.class).stream().filter(c -> c.moduleId().equals(id))
                 .map(ModuleExtensions.Cli::command).toList());
+    }
+
+    /** Commandes CLI de tous les modules actifs : {@code {"<module>": [commande...]}} (découverte par la CLI). */
+    private void allCli(Context ctx) {
+        if (principal(ctx) == null) {
+            ctx.status(401).json(Map.of("error", "authentification requise"));
+            return;
+        }
+        Map<String, List<io.ksmc.api.module.CliCommand>> out = new java.util.TreeMap<>();
+        for (ModuleExtensions.Cli c : extensions.all(ModuleExtensions.Cli.class)) {
+            out.computeIfAbsent(c.moduleId(), k -> new ArrayList<>()).add(c.command());
+        }
+        ctx.json(out);
     }
 
     private void dispatch(Context ctx, RestRoutes.Method method) {

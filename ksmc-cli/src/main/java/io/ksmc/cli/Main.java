@@ -88,13 +88,15 @@ public final class Main implements Runnable {
 
     /** Pour les tests : exécute avec des sorties capturées et renvoie le code de sortie. */
     public static int execute(PrintWriter out, PrintWriter err, String... args) {
-        CommandLine cl = commandLine(new Main());
+        Main main = new Main();
+        main.out = out;
+        CommandLine cl = commandLine(main, args);
         cl.setOut(out);
         cl.setErr(err);
         return cl.execute(args);
     }
 
-    static CommandLine commandLine(Main main) {
+    static CommandLine commandLine(Main main, String[] args) {
         CommandLine cl = new CommandLine(main);
         cl.setExecutionExceptionHandler((e, cmd, parsed) -> {
             if (e instanceof CliException ce) {
@@ -106,14 +108,20 @@ public final class Main implements Runnable {
             cmd.getErr().flush();
             return 2;
         });
-        cl.setParameterExceptionHandler((e, args) -> {
+        cl.setParameterExceptionHandler((e, unmatched) -> {
             CommandLine cmd = e.getCommandLine();
             cmd.getErr().println("erreur : " + e.getMessage());
             cmd.getErr().println("voir « " + cmd.getCommandSpec().qualifiedName() + " --help »");
             cmd.getErr().flush();
             return 1;
         });
-        ModuleCommands.register(cl, main);
+        // Options globales (--context, --server...) lues avant la découverte des commandes de modules.
+        try {
+            new CommandLine(new GlobalOptions(main)).setUnmatchedArgumentsAllowed(true).parseArgs(args);
+        } catch (CommandLine.ParameterException ignored) {
+            // erreurs signalées par l'analyse principale
+        }
+        ModuleCommands.register(cl, main, args);
         withHelp(cl);
         return cl;
     }
@@ -127,7 +135,42 @@ public final class Main implements Runnable {
     }
 
     public static void main(String[] args) {
-        System.exit(commandLine(new Main()).execute(args));
+        System.exit(commandLine(new Main(), args).execute(args));
+    }
+
+    private PrintWriter out;
+
+    /** Sortie standard (celle de l'exécution en cours). */
+    public PrintWriter out() {
+        if (out == null) {
+            out = new PrintWriter(System.out, true);
+        }
+        return out;
+    }
+
+    /** Lecture anticipée des options globales, sans valider le reste de la ligne de commande. */
+    @Command(name = "ksmc")
+    static final class GlobalOptions {
+        private final Main main;
+
+        GlobalOptions(Main main) {
+            this.main = main;
+        }
+
+        @Option(names = "--context")
+        void context(String v) {
+            main.contextName = v;
+        }
+
+        @Option(names = "--server")
+        void server(String v) {
+            main.server = v;
+        }
+
+        @Option(names = "--token")
+        void token(String v) {
+            main.token = v;
+        }
     }
 
     static final class Version implements CommandLine.IVersionProvider {

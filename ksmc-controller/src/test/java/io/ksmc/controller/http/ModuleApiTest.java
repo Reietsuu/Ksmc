@@ -131,6 +131,7 @@ class ModuleApiTest {
         assertThat(call("GET", "/api/v1/modules/hello/cli", TOKEN, null).body())
                 .contains("\"name\":\"greet\"", "\"path\":\"greet/{who}\"");
         assertThat(call("GET", "/api/v1/modules/hello/cli", null, null).statusCode()).isEqualTo(401);
+        assertThat(call("GET", "/api/v1/cli/commands", TOKEN, null).body()).contains("\"hello\":[{\"name\":\"greet\"");
         assertThat(call("GET", "/api/v1/ui/modules", TOKEN, null).body())
                 .contains("\"bundle\":\"/modules/hello/ui.js\"", "\"title\":\"Hello\"");
         HttpResponse<String> js = call("GET", "/modules/hello/ui.js", null, null);

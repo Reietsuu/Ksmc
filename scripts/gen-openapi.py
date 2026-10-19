@@ -81,6 +81,7 @@ paths["/api/v1/events"] = {"get": op("Événements (WebSocket)", "ksmc.event.rea
 paths["/api/v1/events/stream"] = {"get": op("Événements (Server-Sent Events, reprise par Last-Event-ID)", "ksmc.event.read", params=[p("type", "query"), p("task", "query"), p("environment", "query"), p("since", "query")], tag="events")}
 paths["/api/v1/audit"] = {"get": op("Journal d'audit (plus récent d'abord)", "ksmc.audit.read", params=[p("user", "query"), p("action", "query"), p("target", "query"), p("limit", "query")], tag="audit")}
 paths["/api/v1/modules/{id}/cli"] = {"get": op("Commandes CLI déclarées par un module", params=[p("id")], tag="modules")}
+paths["/api/v1/cli/commands"] = {"get": op("Commandes CLI de tous les modules actifs (découverte par la CLI)", tag="modules")}
 paths["/api/v1/ui/modules"] = {"get": op("Pages du dashboard fournies par les modules", tag="modules")}
 paths["/api/v1/openapi.json"] = {"get": op("Cette description", tag="meta", public=True)}
 spec = {
