@@ -21,7 +21,7 @@ autoscaling, observabilité).
 
 - [Architecture](docs/ARCHITECTURE.md)
 - [Installation](docs/INSTALL.md) · [Utilisation](docs/USAGE.md)
-- [Messagerie](docs/MESSAGING.md) · [Modules et plugins](docs/MODULES.md)
+- [API REST](docs/API.md) · [Messagerie](docs/MESSAGING.md) · [Modules et plugins](docs/MODULES.md)
 - Specs : `openspec/changes/p01-…` à `p12-…`
 
 ## Licence
