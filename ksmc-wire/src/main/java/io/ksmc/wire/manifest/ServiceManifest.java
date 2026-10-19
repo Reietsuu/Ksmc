@@ -55,6 +55,12 @@ public class ServiceManifest {
     }
 
     public static class NetworkConfig {
+        /**
+         * Serveur factice déclaré dans la config BungeeCord (qui refuse de démarrer sans serveur) ;
+         * le bridge le retire au chargement, les vrais serveurs sont ajoutés dynamiquement.
+         */
+        public static final String BUNGEE_PLACEHOLDER_SERVER = "ksmc-placeholder";
+
         public int port = 25565;
         /** Forwarding entre proxy et serveurs : {@code modern} (Velocity), {@code legacy} (BungeeCord), {@code none}. */
         public String forwarding = "modern";

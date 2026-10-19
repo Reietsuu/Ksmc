@@ -127,13 +127,23 @@ class ConfigPatcherTest {
                   proxy_protocol: false
                 ip_forward: false
                 online_mode: false
+                servers: {}
                 """);
         ServiceManifest m = m("bungeecord", "1950", "legacy");
         m.network.proxyProtocol = true;
         new ConfigPatcher().apply(m, s.toFile());
 
         assertThat(read(s, "config.yml")).contains("  host: 0.0.0.0:25565", "  proxy_protocol: true", "ip_forward: true",
-                "online_mode: true");
+                "online_mode: true", "servers:\n  ksmc-placeholder:\n    address: 127.0.0.1:1");
+    }
+
+    @Test
+    void generatedBungeeConfigDeclaresPlaceholderServer() throws Exception {
+        Path s = server();
+        new ConfigPatcher().apply(m("bungeecord", "1950", "legacy"), s.toFile());
+
+        assertThat(read(s, "config.yml")).contains("servers:\n  ksmc-placeholder:\n    address: 127.0.0.1:1")
+                .doesNotContain("servers: {}");
     }
 
     @Test

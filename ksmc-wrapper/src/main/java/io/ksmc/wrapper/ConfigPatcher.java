@@ -110,6 +110,13 @@ final class ConfigPatcher {
 
     // ---- BungeeCord / Waterfall -----------------------------------------------------------------
 
+    /** BungeeCord refuse une liste de serveurs vide : serveur factice injoignable, retiré par le bridge. */
+    static final String PLACEHOLDER_SERVERS = "servers:\n"
+            + "  " + ServiceManifest.NetworkConfig.BUNGEE_PLACEHOLDER_SERVER + ":\n"
+            + "    address: 127.0.0.1:1\n"
+            + "    restricted: true\n"
+            + "    motd: Ksmc\n";
+
     private void bungee(ServiceManifest m, File dir) throws IOException {
         File file = new File(dir, "config.yml");
         if (!file.isFile()) {
@@ -126,7 +133,7 @@ final class ConfigPatcher {
                     + "  ping_passthrough: false\n"
                     + "ip_forward: true\n"
                     + "online_mode: " + onlineMode(m) + "\n"
-                    + "servers: {}\n");
+                    + PLACEHOLDER_SERVERS);
             return;
         }
         StringBuilder out = new StringBuilder();
@@ -143,6 +150,8 @@ final class ConfigPatcher {
                 line = indent + "proxy_protocol: " + m.network.proxyProtocol;
             } else if (t.startsWith("max_players:") && m.network.maxPlayers != null) {
                 line = indent + "max_players: " + m.network.maxPlayers;
+            } else if (indent.isEmpty() && t.equals("servers: {}")) {
+                line = PLACEHOLDER_SERVERS.trim();
             }
             out.append(line).append('\n');
         }

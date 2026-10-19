@@ -4,6 +4,7 @@ import io.ksmc.bridge.BridgeEnv;
 import io.ksmc.bridge.KsmcBridge;
 import io.ksmc.bridge.Platform;
 import io.ksmc.bridge.Router;
+import io.ksmc.wire.manifest.ServiceManifest;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
@@ -31,6 +32,8 @@ public final class KsmcBungeeBridge extends Plugin implements Listener, Platform
     @Override
     public void onEnable() {
         bridge = new KsmcBridge(BridgeEnv.fromSystem(), this);
+        // Serveur factice écrit par le wrapper pour que BungeeCord accepte de démarrer.
+        getProxy().getServers().remove(ServiceManifest.NetworkConfig.BUNGEE_PLACEHOLDER_SERVER);
         getProxy().getPluginManager().registerListener(this, this);
         bridge.start();
     }
