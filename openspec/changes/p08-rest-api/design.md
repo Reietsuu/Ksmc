@@ -31,6 +31,12 @@ Javalin est déjà présent (p01). Les données sont dans les CRDs ; les comptes
    - Rôles par défaut : `admin` (`*`), `operator` (tasks, groupes, templates, services, joueurs + lecture), `viewer`
      (lecture). Comptes, rôles, audit, écriture des logiciels et des modules : `admin` seulement.
 
+9. **Choix d'implémentation (2.1)** : écritures par `create`/`update`/merge patch avec `resourceVersion` (concurrence
+   optimiste native de Kubernetes, 409 `Conflict` si l'ETag est périmé) plutôt que par server-side apply : même
+   sémantique REST, et testable avec le serveur simulé fabric8 (qui ne gère pas l'apply). `status`, `ownerReferences`
+   et les champs système du corps sont ignorés. Pagination : `limit` (1–500, défaut 100) et curseur `continue` de
+   Kubernetes. Filtres : `labelSelector`, `task`.
+
 ## Risks / Trade-offs
 
 - [Secret limité à 1 Mo] → suffisant pour quelques milliers de comptes ; au-delà, `AuthProvider` externe.

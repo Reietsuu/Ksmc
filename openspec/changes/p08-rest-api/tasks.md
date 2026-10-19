@@ -7,7 +7,7 @@
 
 ## 2. API
 
-- [ ] 2.1 Endpoints CRUD tasks/groupes/logiciels/modules/services (server-side apply, ETag, erreurs, pagination) ; tests HTTP avec mock server
+- [x] 2.1 Endpoints CRUD tasks/groupes/logiciels/modules/services (server-side apply, ETag, erreurs, pagination) ; tests HTTP avec mock server
 - [ ] 2.2 Actions métier (start, stop, restart, command, deploy, maintenance, actions joueurs) ; tests
 - [ ] 2.3 Fichiers de templates (CRUD, archive) ; tests
 - [ ] 2.4 OpenAPI + Swagger UI ; flux événements WebSocket/SSE ; audit ; tests

@@ -14,6 +14,7 @@ import io.ksmc.controller.auth.AccountStore;
 import io.ksmc.controller.auth.Jwt;
 import io.ksmc.controller.auth.LoginRateLimiter;
 import io.ksmc.controller.bridge.BridgeHub;
+import io.ksmc.controller.bridge.PlayerService;
 import io.ksmc.controller.health.HealthRegistry;
 import io.ksmc.controller.health.KubernetesHealthCheck;
 import io.ksmc.controller.http.ApiSupport;
@@ -21,6 +22,7 @@ import io.ksmc.controller.http.AuditLog;
 import io.ksmc.controller.http.AuthApi;
 import io.ksmc.controller.http.HttpServer;
 import io.ksmc.controller.http.ModuleApi;
+import io.ksmc.controller.http.ResourceApi;
 import io.ksmc.controller.http.SessionAuthenticator;
 import io.ksmc.controller.internal.InternalApi;
 import io.ksmc.controller.internal.PodAuthenticator;
@@ -148,8 +150,10 @@ public final class KsmcController {
         AuthApi authApi = new AuthApi(accounts, jwt, new LoginRateLimiter(10, Duration.ofMinutes(1), clock),
                 new LoginRateLimiter(50, Duration.ofMinutes(1), clock), extensions, audit);
         ModuleApi moduleApi = new ModuleApi(extensions, sessions);
-        HttpServer http = new HttpServer(health, List.of(new ApiSupport(sessions), authApi, internal, moduleApi))
-                .start(config.httpPort());
+        PlayerService players = new PlayerService(nats::messaging);
+        ResourceApi resourceApi = new ResourceApi(client, config.namespace(), players, audit);
+        HttpServer http = new HttpServer(health, List.of(new ApiSupport(sessions), authApi, resourceApi, internal,
+                moduleApi)).start(config.httpPort());
         LOG.info("HTTP prêt sur le port {}", http.port());
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
