@@ -4,7 +4,7 @@
 
 - [x] 1.1 `KsmcModule`, `ModuleContext`, descripteur `ksmc-module.json`, `Registry` à désenregistrement automatique dans `ksmc-api` ; tests unitaires
 - [x] 1.2 Chargement : classloaders isolés, tri des dépendances, vérification d'API, confinement des exceptions ; tests avec JARs de test générés
-- [ ] 1.3 Reconciler `KsmcModule` : sources (HTTPS+sha256, Maven, store), phases, configuration à chaud, rechargement ; modules intégrés via values ; tests mock server
+- [x] 1.3 Reconciler `KsmcModule` : sources (HTTPS+sha256, Maven, store), phases, configuration à chaud, rechargement ; modules intégrés via values ; tests mock server
 - [ ] 1.4 Extensions REST (préfixe + permissions), descripteurs CLI, bundles dashboard, branchement de toutes les SPI existantes ; tests
 
 ## 2. API plugins

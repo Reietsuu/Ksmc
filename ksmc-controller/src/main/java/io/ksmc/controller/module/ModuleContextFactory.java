@@ -10,5 +10,6 @@ import java.util.function.Supplier;
 @FunctionalInterface
 public interface ModuleContextFactory {
 
-    ModuleContext create(ModuleDescriptor descriptor, Registry registry, Supplier<JsonNode> config);
+    /** @param classLoader classloader du module (ressources du JAR, ex. bundle du dashboard) */
+    ModuleContext create(ModuleDescriptor descriptor, Registry registry, Supplier<JsonNode> config, ClassLoader classLoader);
 }

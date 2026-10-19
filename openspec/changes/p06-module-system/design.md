@@ -35,6 +35,18 @@ Les SPI sont introduites progressivement en p02–p05 dans `ksmc-api`. Ce change
    - Plages de versions façon npm (`^`, `~`, `1.x`, comparateurs) implémentées dans `VersionRange` (pas de dépendance).
    - SPI ajoutée : `ServicePodCustomizer`. Le module s'enregistre via `ExtensionRegistry` (scope par module).
 
+9. **Choix d'implémentation (1.2–1.3)** :
+   - Classloader parent des modules : JDK + `io.ksmc.api`, `io.ksmc.wire`, `org.slf4j`, `com.fasterxml.jackson`,
+     `io.fabric8` (types présents dans `ModuleContext`) ; ordre de recherche : API → JAR du module → JAR des dépendances
+     déclarées (non transitif).
+   - Le nom de la ressource `KsmcModule` est l'id du module (préfixe REST/CLI) ; un JAR d'un autre id → `InvalidDescriptor`.
+   - Pas de finalizer (comme les services) : un balayage toutes les 15 s désactive les modules dont la ressource a disparu.
+   - Rechargement d'une dépendance : ses dépendants sont désactivés puis réactivés par leur vérification périodique (30 s).
+   - `store` : clé relative à la racine du stockage du controller (ex. `modules/hello.jar`) ; `maven` : dépôt Maven
+     Central par défaut, intégrité vérifiée par le `.sha1` publié à côté du JAR.
+   - Modules intégrés : `builtinModules` dans les values → une ressource `KsmcModule` `source.builtin` par entrée,
+     JAR attendu dans `/opt/ksmc/modules/<id>.jar` de l'image.
+
 ## Risks / Trade-offs
 
 - [Fuites de classloader au rechargement] → tests qui chargent/déchargent 20 fois et vérifient le nettoyage des enregistrements.

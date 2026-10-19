@@ -138,7 +138,7 @@ public final class ModuleHost {
             throw new ModuleException(ModuleException.LOAD_ERROR, "chargement de " + d.main + " : " + describe(e), e);
         }
         Active a = new Active(d, loader, module, config == null ? JsonNodeFactory.instance.objectNode() : config);
-        ModuleContext context = contexts.create(d, registry.scope(d.id), () -> a.config);
+        ModuleContext context = contexts.create(d, registry.scope(d.id), () -> a.config, loader);
         try {
             withLoader(loader, () -> {
                 module.onEnable(context);
@@ -167,15 +167,16 @@ public final class ModuleHost {
         if (value.equals(a.config)) {
             return;
         }
-        a.config = value;
         try {
             withLoader(a.loader, () -> {
                 a.module.onConfigChanged(value);
                 return null;
             });
         } catch (Throwable e) {
+            // Ancienne configuration conservée : la prochaine réconciliation retente.
             throw new ModuleException(ModuleException.CONFIG_ERROR, describe(e), e);
         }
+        a.config = value;
     }
 
     /** Désactive le module et, d'abord, ceux qui en dépendent ; renvoie les ids des dépendants désactivés. */

@@ -37,7 +37,7 @@ class ModuleHostTest {
     @BeforeEach
     void setUp() {
         registry = new ExtensionRegistry();
-        host = new ModuleHost(registry, TestContext::new);
+        host = new ModuleHost(registry, (d, r, c, l) -> new TestContext(d, r, c));
     }
 
     /** Module dont l'activation enregistre une stratégie de scaling nommée par {@code nameExpr}. */

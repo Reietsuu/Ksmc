@@ -41,6 +41,13 @@ minecraft:
 softwareDefinitions:
   install: true
 
+# Modules intégrés à l'image du controller (/opt/ksmc/modules/<id>.jar) : une ressource KsmcModule est créée
+# pour chacun ; enabled: false la garde désactivée. Exemple :
+#   builtinModules:
+#     hello: {enabled: true, config: {greeting: Bonjour}}
+# Les autres modules s'installent en créant une ressource KsmcModule (voir docs/MODULES.md).
+builtinModules: {}
+
 # NetworkPolicy : seuls les proxies peuvent joindre le port Minecraft des serveurs de jeu
 # (nécessite un CNI qui applique les NetworkPolicy : Calico, Cilium...).
 networkPolicy:
