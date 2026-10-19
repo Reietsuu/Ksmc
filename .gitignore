@@ -11,3 +11,5 @@ dashboard/dist/
 .DS_Store
 .kube/
 deploy/helm/ksmc/charts/
+examples/*/build/
+examples/*/.gradle/

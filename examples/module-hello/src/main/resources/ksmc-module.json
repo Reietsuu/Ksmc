@@ -1,0 +1,8 @@
+{
+  "id": "hello",
+  "name": "Hello",
+  "version": "1.0.0",
+  "description": "Module d'exemple : salue, relaie un message vers les serveurs et étiquette les Pods.",
+  "main": "com.example.hello.HelloModule",
+  "apiVersion": "^1.0"
+}

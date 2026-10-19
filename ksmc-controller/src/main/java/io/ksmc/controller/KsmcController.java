@@ -108,7 +108,7 @@ public final class KsmcController {
                             // Transport fourni par un module (ex. Redis) prioritaire sur NATS pour les modules.
                             List<MessagingTransport> transports = extensions.all(MessagingTransport.class);
                             return transports.isEmpty() ? nats.messaging() : transports.getFirst();
-                        }, dataDir.resolve("modules")));
+                        }, dataDir.resolve("module-data")));
         ModuleSources moduleSources = new ModuleSources(storage, artifacts, httpClient, dataDir.resolve("module-jars"),
                 Path.of(config.builtinModulesDir()));
         KsmcModuleReconciler moduleReconciler = new KsmcModuleReconciler(client, config.namespace(), modules, moduleSources);
