@@ -88,6 +88,86 @@ Listes (templates, options JVM, arguments) concaténées ; maps (env, propriét�
 gagne ; `podTemplate` fusionné. La configuration retenue est visible dans `status.effective` de la task.
 Une task qui référence un groupe inexistant ne crée aucun service (condition `Ready=False`, `GroupNotFound`).
 
+## Réseau : proxies, fallback et bridges
+
+### Exposer le réseau
+
+Chaque task `proxy` reçoit un Service Kubernetes **du même nom** qui répartit les joueurs sur ses proxies prêts :
+
+```yaml
+apiVersion: ksmc.io/v1alpha1
+kind: ServiceTask
+metadata: {name: proxy}
+spec:
+  environment: proxy
+  software: {name: velocity}
+  minServiceCount: 2
+  expose:
+    type: LoadBalancer              # LoadBalancer (défaut) | NodePort | ClusterIP
+    port: 25565
+    # nodePort: 30565               # avec type NodePort
+    maxPlayers: 1000                # affiché au ping (joueurs de tout le réseau / maximum)
+    proxyProtocol: false            # true derrière un load balancer qui envoie le PROXY protocol
+    externalTrafficPolicy: Local    # conserver l'IP source
+    annotations: {}                 # ex. annotations de load balancer du fournisseur cloud
+    loadBalancerSourceRanges: []
+  forcedHosts:
+    bedwars.example.com: bedwars    # se connecter par cet hôte envoie sur la task bedwars
+  properties:
+    ksmc.motd: "&6Mon réseau"
+    ksmc.maintenance.whitelist: "Steve,Alex"     # joueurs admis pendant la maintenance
+    ksmc.maintenance.message: "&cMaintenance en cours"
+    ksmc.no-fallback.message: "Aucun lobby disponible"
+    # ksmc.online-mode: "false"                 # réseau hors ligne (tests/LAN uniquement)
+```
+
+Les serveurs de jeu ne sont jamais exposés. Avec un CNI qui applique les NetworkPolicy,
+`--set networkPolicy.enabled=true` interdit l'accès à leur port Minecraft à tout autre Pod que les proxies.
+
+### Lobbies et fallback
+
+Une task serveur marquée `fallback` reçoit les joueurs à la connexion et après une expulsion :
+
+```yaml
+spec:
+  fallback: {enabled: true, priority: 10, permission: ""}   # permission optionnelle (ex. lobby.vip)
+```
+
+Le proxy choisit, parmi les services `Running` des tasks fallback accessibles au joueur, ceux de la plus haute
+priorité, puis le **moins rempli**. Sans fallback disponible, le joueur est déconnecté avec `ksmc.no-fallback.message`.
+Pendant la maintenance (`maintenance: true` sur la task proxy), seuls les joueurs de la liste blanche ou ayant la
+permission `ksmc.maintenance.bypass` peuvent entrer.
+
+### Bridges
+
+Ksmc ajoute automatiquement un bridge à chaque service (`spec.bridge.enabled: false` pour le désactiver) :
+
+| Logiciel | Bridge | Versions | Rôle |
+|---|---|---|---|
+| Velocity | plugin | API 4.x (Velocity 4) | enregistrement dynamique, fallback, forced hosts, maintenance, ping global, joueurs |
+| BungeeCord / Waterfall | plugin | BungeeCord 1.8+ | idem |
+| Paper / Spigot / Folia | plugin | 1.8.8 → dernière | état (joueurs, TPS, motd, état personnalisé), actions joueurs |
+| Fabric | mod (+ Fabric API ajoutée) | 26.x | état, actions joueurs |
+| NeoForge | mod | 26.x | état, actions joueurs |
+| Forge (legacy) | — | — | pas de bridge : état par Server List Ping |
+
+Sans bridge, un service fonctionne normalement : son état vient du ping du wrapper.
+
+BungeeCord exige au moins un serveur dans `config.yml` : la configuration générée déclare un serveur factice
+`ksmc-placeholder` (injoignable, restreint) comme serveur par défaut ; le bridge redirige chaque connexion
+vers le serveur choisi (forced host ou fallback).
+
+**Forwarding** : les serveurs sont configurés automatiquement selon les proxies du namespace — `modern`
+(Velocity : Paper 1.13+ via `paper-global.yml`/`paper.yml`, Fabric via FabricProxy-Lite ajouté automatiquement),
+sinon `legacy` (BungeeCord : `spigot.yml` `bungeecord: true`). Pour Forge/NeoForge, choisir le mode avec
+`bridge.forwarding` selon le mod de forwarding installé. Un serveur Spigot (non Paper) derrière Velocity doit
+utiliser `bridge.forwarding: legacy` côté proxy.
+
+### Joueurs
+
+Les proxies tiennent le registre des joueurs connectés (bucket `players`) et publient `player.login`,
+`player.server-switch` et `player.disconnect`. Un joueur d'un proxy disparu sort du registre en moins de 30 s.
+
 ## Logiciels (`SoftwareDefinition`, `mcsw`)
 
 Le chart installe neuf définitions : `paper`, `folia`, `spigot`, `fabric`, `forge`, `neoforge`

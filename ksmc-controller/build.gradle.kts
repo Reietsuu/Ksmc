@@ -16,10 +16,32 @@ dependencies {
     implementation(libs.jgit)
     implementation(libs.commons.compress)
     testImplementation(libs.fabric8.server.mock)
+    testImplementation(libs.testcontainers)
 }
 
 application {
     mainClass = "io.ksmc.controller.KsmcController"
+}
+
+// JARs des bridges servis aux services (copiés dans /opt/ksmc/bridges de l'image).
+val bridges by configurations.creating {
+    isCanBeConsumed = false
+    isTransitive = false
+}
+dependencies {
+    for (bridge in listOf("velocity", "bungee", "bukkit", "fabric", "neoforge")) {
+        bridges(project(mapOf("path" to ":ksmc-bridge-$bridge", "configuration" to "shadowRuntimeElements")))
+    }
+}
+distributions {
+    main {
+        contents {
+            from(bridges) {
+                into("bridges")
+                rename { name -> name.replace(Regex("-[0-9][^-]*(-SNAPSHOT)?\\.jar$"), ".jar") }
+            }
+        }
+    }
 }
 
 configurations.all {

@@ -55,6 +55,12 @@ public class ServiceManifest {
     }
 
     public static class NetworkConfig {
+        /**
+         * Serveur factice (injoignable, restreint) déclaré dans la config BungeeCord, qui exige au moins un
+         * serveur et un serveur par défaut existant ; le bridge redirige chaque connexion vers un vrai serveur.
+         */
+        public static final String BUNGEE_PLACEHOLDER_SERVER = "ksmc-placeholder";
+
         public int port = 25565;
         /** Forwarding entre proxy et serveurs : {@code modern} (Velocity), {@code legacy} (BungeeCord), {@code none}. */
         public String forwarding = "modern";

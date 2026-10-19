@@ -22,7 +22,10 @@ public final class NatsConnector implements HealthCheck, CloudEvents, AutoClosea
     private final String namespace;
     private volatile Connection connection;
     private volatile NatsMessaging messaging;
+    private final java.util.List<java.util.function.Consumer<NatsMessaging>> onReady =
+            new java.util.concurrent.CopyOnWriteArrayList<>();
     private volatile boolean closed;
+    private volatile boolean started;
 
     public NatsConnector(ControllerConfig config) {
         this.namespace = config.namespace();
@@ -40,20 +43,33 @@ public final class NatsConnector implements HealthCheck, CloudEvents, AutoClosea
 
     /** Connexion en arrière-plan : le controller démarre même si NATS n'est pas encore prêt. */
     public void connectAsync() {
+        started = true;
         Thread.ofVirtual().name("nats-connect").start(this::connectLoop);
     }
 
     private void connectLoop() {
         while (connection == null && !closed) {
+            Connection c = null;
             try {
-                Connection c = Nats.connect(options);
+                c = Nats.connect(options);
                 NatsMessaging m = NatsMessaging.wrap(Identity.controller(namespace), c);
                 m.ensureInfrastructure(BUCKETS);
+                for (var listener : onReady) {
+                    listener.accept(m);
+                }
                 messaging = m;
                 connection = c;
                 LOG.info("Messagerie NATS prête (stream d'événements et buckets KV vérifiés)");
             } catch (Exception e) {
                 LOG.warn("NATS indisponible ({}), nouvel essai dans 2 s", e.getMessage());
+                if (c != null) {
+                    try {
+                        c.close();
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        return;
+                    }
+                }
                 try {
                     Thread.sleep(2000);
                 } catch (InterruptedException ie) {
@@ -66,6 +82,15 @@ public final class NatsConnector implements HealthCheck, CloudEvents, AutoClosea
 
     public Connection connection() {
         return connection;
+    }
+
+    /** Action exécutée une fois la messagerie prête (avant que le controller ne soit déclaré prêt). */
+    public void onReady(java.util.function.Consumer<NatsMessaging> listener) {
+        // Enregistré après connectAsync, l'écouteur pourrait ne jamais être appelé (course avec la connexion).
+        if (started) {
+            throw new IllegalStateException("onReady doit être appelé avant connectAsync");
+        }
+        onReady.add(listener);
     }
 
     /** Messagerie du controller, ou {@code null} tant que NATS n'est pas joignable. */

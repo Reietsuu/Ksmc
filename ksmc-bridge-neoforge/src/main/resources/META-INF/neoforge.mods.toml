@@ -1,0 +1,17 @@
+modLoader = "javafml"
+loaderVersion = "[1,)"
+license = "Apache-2.0"
+
+[[mods]]
+modId = "ksmcbridge"
+version = "0.1.0"
+displayName = "Ksmc Bridge"
+description = "Intégration des serveurs NeoForge au cloud Ksmc"
+authors = "Ksmc"
+
+[[dependencies.ksmcbridge]]
+modId = "minecraft"
+type = "required"
+versionRange = "[26.1,)"
+ordering = "NONE"
+side = "SERVER"

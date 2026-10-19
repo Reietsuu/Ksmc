@@ -90,7 +90,7 @@ final class ConfigPatcher {
         String mode = "legacy".equals(m.network.forwarding) ? "legacy"
                 : "none".equals(m.network.forwarding) ? "none" : "modern";
         toml.setTop("bind", "\"0.0.0.0:" + m.network.port + "\"")
-                .setTop("online-mode", "true")
+                .setTop("online-mode", String.valueOf(onlineMode(m)))
                 .setTop("player-info-forwarding-mode", "\"" + mode + "\"")
                 .setTop("forwarding-secret-file", "\"forwarding.secret\"");
         if (m.network.maxPlayers != null) {
@@ -110,6 +110,13 @@ final class ConfigPatcher {
 
     // ---- BungeeCord / Waterfall -----------------------------------------------------------------
 
+    /** BungeeCord refuse une liste de serveurs vide : serveur factice injoignable et restreint. */
+    static final String PLACEHOLDER_SERVERS = "servers:\n"
+            + "  " + ServiceManifest.NetworkConfig.BUNGEE_PLACEHOLDER_SERVER + ":\n"
+            + "    address: 127.0.0.1:1\n"
+            + "    restricted: true\n"
+            + "    motd: Ksmc\n";
+
     private void bungee(ServiceManifest m, File dir) throws IOException {
         File file = new File(dir, "config.yml");
         if (!file.isFile()) {
@@ -118,15 +125,17 @@ final class ConfigPatcher {
                     + "  query_port: 25577\n"
                     + "  motd: " + quote(m.network.motd == null ? "Ksmc" : m.network.motd) + "\n"
                     + "  max_players: " + (m.network.maxPlayers == null ? 500 : m.network.maxPlayers) + "\n"
-                    + "  priorities: []\n"
+                    // Liste vide = BungeeCord ajoute « lobby » et refuse de démarrer ; le bridge choisit le vrai serveur.
+                    + "  priorities:\n"
+                    + "  - " + ServiceManifest.NetworkConfig.BUNGEE_PLACEHOLDER_SERVER + "\n"
                     + "  force_default_server: false\n"
                     + "  proxy_protocol: " + m.network.proxyProtocol + "\n"
                     + "  forced_hosts: {}\n"
                     + "  tab_list: GLOBAL_PING\n"
                     + "  ping_passthrough: false\n"
                     + "ip_forward: true\n"
-                    + "online_mode: true\n"
-                    + "servers: {}\n");
+                    + "online_mode: " + onlineMode(m) + "\n"
+                    + PLACEHOLDER_SERVERS);
             return;
         }
         StringBuilder out = new StringBuilder();
@@ -136,13 +145,15 @@ final class ConfigPatcher {
             if (t.startsWith("ip_forward:")) {
                 line = indent + "ip_forward: true";
             } else if (t.startsWith("online_mode:")) {
-                line = indent + "online_mode: true";
+                line = indent + "online_mode: " + onlineMode(m);
             } else if (t.startsWith("- host:") || t.startsWith("host:")) {
                 line = indent + (t.startsWith("-") ? "- " : "") + "host: 0.0.0.0:" + m.network.port;
             } else if (t.startsWith("proxy_protocol:")) {
                 line = indent + "proxy_protocol: " + m.network.proxyProtocol;
             } else if (t.startsWith("max_players:") && m.network.maxPlayers != null) {
                 line = indent + "max_players: " + m.network.maxPlayers;
+            } else if (indent.isEmpty() && t.equals("servers: {}")) {
+                line = PLACEHOLDER_SERVERS.trim();
             }
             out.append(line).append('\n');
         }
@@ -150,6 +161,11 @@ final class ConfigPatcher {
     }
 
     // ---- Utilitaires -----------------------------------------------------------------------------
+
+    /** Authentification Mojang des joueurs sur le proxy (désactivable par {@code ksmc.online-mode: "false"}). */
+    static boolean onlineMode(ServiceManifest m) {
+        return m.properties == null || !"false".equals(m.properties.get("ksmc.online-mode"));
+    }
 
     static void patchProperties(File file, Map<String, String> values) throws IOException {
         Map<String, String> remaining = new LinkedHashMap<String, String>(values);

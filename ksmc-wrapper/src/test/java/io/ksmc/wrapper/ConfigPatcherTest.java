@@ -110,6 +110,11 @@ class ConfigPatcherTest {
                 "haproxy-protocol = true");
         assertThat(toml.indexOf("bind")).isLessThan(toml.indexOf("[servers]"));
         assertThat(read(s, "forwarding.secret")).isEqualTo("s3cr3t");
+        assertThat(toml).contains("online-mode = true");
+
+        m.properties.put("ksmc.online-mode", "false");
+        new ConfigPatcher().apply(m, s.toFile());
+        assertThat(read(s, "velocity.toml")).contains("online-mode = false");
     }
 
     @Test
@@ -122,13 +127,23 @@ class ConfigPatcherTest {
                   proxy_protocol: false
                 ip_forward: false
                 online_mode: false
+                servers: {}
                 """);
         ServiceManifest m = m("bungeecord", "1950", "legacy");
         m.network.proxyProtocol = true;
         new ConfigPatcher().apply(m, s.toFile());
 
         assertThat(read(s, "config.yml")).contains("  host: 0.0.0.0:25565", "  proxy_protocol: true", "ip_forward: true",
-                "online_mode: true");
+                "online_mode: true", "servers:\n  ksmc-placeholder:\n    address: 127.0.0.1:1");
+    }
+
+    @Test
+    void generatedBungeeConfigDeclaresPlaceholderServer() throws Exception {
+        Path s = server();
+        new ConfigPatcher().apply(m("bungeecord", "1950", "legacy"), s.toFile());
+
+        assertThat(read(s, "config.yml")).contains("servers:\n  ksmc-placeholder:\n    address: 127.0.0.1:1",
+                "  priorities:\n  - ksmc-placeholder").doesNotContain("servers: {}");
     }
 
     @Test

@@ -46,7 +46,8 @@ class ServiceTaskReconcilerTest {
     @BeforeEach
     void setUp() {
         clock = new MutableClock();
-        reconciler = new ServiceTaskReconciler(client, new ScalingStrategies(), new EventRecorder(client), published::add, clock);
+        reconciler = new ServiceTaskReconciler(client, new ScalingStrategies(), new EventRecorder(client), published::add,
+                new io.ksmc.controller.bridge.BridgeHub(client, "test", published::add, clock), clock);
     }
 
     ServiceTask task(String name, String spec) {
