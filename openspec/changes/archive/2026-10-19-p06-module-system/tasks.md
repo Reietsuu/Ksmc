@@ -15,5 +15,5 @@
 ## 3. Distribution et exemples
 
 - [x] 3.1 Publication Maven (GitHub Packages) de `ksmc-api`, `ksmc-wire`, `ksmc-plugin-api` ; `jitpack.yml` ; vérifier `./gradlew publishToMavenLocal`
-- [ ] 3.2 `examples/module-hello` et `examples/plugin-hello` ; scénario e2e : installation du module, route REST, rechargement de config, checksum invalide ; plugin-hello reçoit un message de channel
-- [ ] 3.3 Guide `docs/MODULES.md` (créer un module/plugin pas à pas, SPI, permissions) ; vérifier que le pas-à-pas correspond aux exemples
+- [x] 3.2 `examples/module-hello` et `examples/plugin-hello` ; scénario e2e : installation du module, route REST, rechargement de config, checksum invalide ; plugin-hello reçoit un message de channel
+- [x] 3.3 Guide `docs/MODULES.md` (créer un module/plugin pas à pas, SPI, permissions) ; vérifier que le pas-à-pas correspond aux exemples
