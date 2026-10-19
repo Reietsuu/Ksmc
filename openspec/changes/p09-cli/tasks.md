@@ -3,7 +3,7 @@
 ## 1. Socle
 
 - [x] 1.1 Projet `ksmc-cli` : picocli, contextes `~/.ksmc/config.yaml` (permissions 600), login, client REST, formats de sortie, codes de sortie ; tests unitaires
-- [ ] 1.2 Commandes task/group/template/service/player/module/user/token/events ; tests contre un serveur HTTP de test
+- [x] 1.2 Commandes task/group/template/service/player/module/user/token/events ; tests contre un serveur HTTP de test
 
 ## 2. Interactif et extensibilité
 
