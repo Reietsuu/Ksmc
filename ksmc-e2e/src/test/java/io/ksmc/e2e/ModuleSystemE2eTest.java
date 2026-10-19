@@ -66,17 +66,20 @@ class ModuleSystemE2eTest {
                 .fieldManager("e2e").forceConflicts().serverSideApply();
     }
 
-    /** Copie un fichier dans le stockage du controller (PVC monté sur /data), via exec et l'entrée standard. */
+    /**
+     * Copie un petit fichier dans le stockage du controller (PVC monté sur /data). Contenu passé en base64 dans la
+     * commande : fermer l'entrée standard d'un exec fabric8 ne transmet pas de fin de fichier.
+     */
     static void upload(String target, Path file) throws Exception {
+        byte[] bytes = Files.readAllBytes(file);
+        assertThat(bytes.length).as("fichier trop gros pour exec : " + file).isLessThan(64 * 1024);
         Pod controller = CLIENT.pods().inNamespace(NAMESPACE).withLabel("app.kubernetes.io/component", "controller")
                 .list().getItems().getFirst();
         String dir = target.substring(0, target.lastIndexOf('/'));
+        String b64 = Base64.getEncoder().encodeToString(bytes);
         try (var exec = CLIENT.pods().inNamespace(NAMESPACE).withName(controller.getMetadata().getName())
-                .inContainer("controller").redirectingInput()
-                .exec("sh", "-c", "mkdir -p '" + dir + "' && cat > '" + target + "'")) {
-            try (var in = exec.getInput()) {
-                Files.copy(file, in);
-            }
+                .inContainer("controller")
+                .exec("sh", "-c", "mkdir -p '" + dir + "' && echo '" + b64 + "' | base64 -d > '" + target + "'")) {
             Integer code = exec.exitCode().get(60, java.util.concurrent.TimeUnit.SECONDS);
             assertThat(code).as("upload " + target).isZero();
         }
