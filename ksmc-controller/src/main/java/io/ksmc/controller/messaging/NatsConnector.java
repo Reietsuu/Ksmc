@@ -47,8 +47,9 @@ public final class NatsConnector implements HealthCheck, CloudEvents, AutoClosea
 
     private void connectLoop() {
         while (connection == null && !closed) {
+            Connection c = null;
             try {
-                Connection c = Nats.connect(options);
+                c = Nats.connect(options);
                 NatsMessaging m = NatsMessaging.wrap(Identity.controller(namespace), c);
                 m.ensureInfrastructure(BUCKETS);
                 for (var listener : onReady) {
@@ -59,6 +60,14 @@ public final class NatsConnector implements HealthCheck, CloudEvents, AutoClosea
                 LOG.info("Messagerie NATS prête (stream d'événements et buckets KV vérifiés)");
             } catch (Exception e) {
                 LOG.warn("NATS indisponible ({}), nouvel essai dans 2 s", e.getMessage());
+                if (c != null) {
+                    try {
+                        c.close();
+                    } catch (InterruptedException ie) {
+                        Thread.currentThread().interrupt();
+                        return;
+                    }
+                }
                 try {
                     Thread.sleep(2000);
                 } catch (InterruptedException ie) {

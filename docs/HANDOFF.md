@@ -18,6 +18,8 @@ Dernière mise à jour : 2026-10-15
 - Helm 4 : `--skip-crds` après `kubectl apply --server-side -f deploy/helm/ksmc/crds/` (sinon conflit SSA).
 - `gh` 2.46 : pas de `--json` sur `gh pr checks` → `gh run list -b <branche>`.
 - Les tâches longues (e2e) doivent être lancées avec l'arrière-plan de l'outil, pas `&` (tuées sinon).
+- Avant d'attendre un `exit=` dans `e2e.log`, SUPPRIMER le log : sinon on lit le résultat de l'exécution précédente.
+- JetStream du chart : stockage fichier uniquement (pas de buckets KV en mémoire).
 - jnats tire `bcprov-lts8on` : exclu dans controller (conflit fabric8 mock) et wrapper (inutile, mots de passe).
 - Paper `latest` (26.x) et Velocity 4.x exigent Java 25 : l'e2e charge les images runtime java21 et java25.
 - Tests des projets Java 8 : compilés en Java 17 → pas de `getFirst()`.

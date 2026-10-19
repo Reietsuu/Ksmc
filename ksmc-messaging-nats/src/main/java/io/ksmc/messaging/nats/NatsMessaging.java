@@ -150,8 +150,9 @@ public final class NatsMessaging implements MessagingTransport {
             try {
                 connection.keyValueManagement().getStatus(name);
             } catch (JetStreamApiException notFound) {
+                // Stockage fichier : le stockage mémoire de JetStream peut être désactivé côté serveur.
                 connection.keyValueManagement().create(KeyValueConfiguration.builder().name(name)
-                        .storageType(StorageType.Memory).ttl(ttl).maxHistoryPerKey(1).build());
+                        .storageType(StorageType.File).ttl(ttl).maxHistoryPerKey(1).build());
             }
         } catch (JetStreamApiException e) {
             throw new IOException("JetStream: " + e.getMessage(), e);
