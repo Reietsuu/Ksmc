@@ -179,8 +179,20 @@ class BridgeNetworkingE2eTest {
     void bungeeCordRegistersServersToo() {
         lobbies(1);
         proxy("bungeecord");
-        await("proxy BungeeCord et lobby Running", TIMEOUT, () -> running("e2en-proxy-1") && running("e2en-lobby-1"));
-        await("lobby enregistré dans BungeeCord", Duration.ofSeconds(30),
-                () -> logs("e2en-proxy-1").contains("serveur ajouté : e2en-lobby-1"));
+        try {
+            await("proxy BungeeCord et lobby Running", TIMEOUT, () -> running("e2en-proxy-1") && running("e2en-lobby-1"));
+            await("lobby enregistré dans BungeeCord", Duration.ofSeconds(30),
+                    () -> logs("e2en-proxy-1").contains("serveur ajouté : e2en-lobby-1"));
+        } catch (AssertionError e) {
+            throw new AssertionError(e.getMessage() + diagnostics("e2en-proxy-1"), e);
+        }
+    }
+
+    /** Statut et fin des logs d'un service, joints au message d'échec (les pods sont supprimés ensuite). */
+    static String diagnostics(String service) {
+        CloudService s = CLIENT.resources(CloudService.class).inNamespace(NAMESPACE).withName(service).get();
+        String log = logs(service);
+        return "\n--- statut " + service + " : " + (s == null ? "absent" : Serialization.asJson(s.getStatus()))
+                + "\n--- logs " + service + " :\n" + log.substring(Math.max(0, log.length() - 4000));
     }
 }

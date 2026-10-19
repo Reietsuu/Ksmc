@@ -16,6 +16,6 @@ tasks.test {
     // Les scripts lancent Gradle en -q : afficher quand même le nom et la cause des scénarios en échec.
     testLogging.quiet {
         events("failed")
-        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.SHORT
+        exceptionFormat = org.gradle.api.tasks.testing.logging.TestExceptionFormat.FULL
     }
 }
