@@ -27,6 +27,14 @@ Les SPI sont introduites progressivement en p02–p05 dans `ksmc-api`. Ce change
 7. **Exemples** : `examples/module-hello` (route REST, commande CLI, page dashboard, écouteur d'événement) et
    `examples/plugin-hello` (Bukkit : commande `/cloud` listant les services et envoyant un message de channel).
 
+8. **Choix d'implémentation (1.1)** :
+   - Les routes REST des modules utilisent des types propres (`RestRoutes.Request/Response`) et non ceux de Javalin :
+     l'API des modules ne dépend pas de la version de Javalin du controller (montée de version sans casser les modules).
+   - `ksmc-api` dépend de `ksmc-wire` (Java 8, sans dépendance) pour exposer `MessagingTransport`, `EventApi`, `KeyValueApi`.
+   - Version de l'API : `KsmcApiVersion.CURRENT` = 1.0.0 ; `apiVersion` absent du descripteur = `^<majeure courante>.0`.
+   - Plages de versions façon npm (`^`, `~`, `1.x`, comparateurs) implémentées dans `VersionRange` (pas de dépendance).
+   - SPI ajoutée : `ServicePodCustomizer`. Le module s'enregistre via `ExtensionRegistry` (scope par module).
+
 ## Risks / Trade-offs
 
 - [Fuites de classloader au rechargement] → tests qui chargent/déchargent 20 fois et vérifient le nettoyage des enregistrements.

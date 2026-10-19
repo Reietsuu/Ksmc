@@ -5,6 +5,8 @@ plugins {
 dependencies {
     api(libs.fabric8.client)
     api(libs.fabric8.generator.annotations)
+    // Types de messagerie exposés aux modules (ModuleContext).
+    api(project(":ksmc-wire"))
 }
 
 
