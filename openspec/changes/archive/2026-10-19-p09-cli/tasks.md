@@ -9,4 +9,4 @@
 
 - [x] 2.1 Console interactive (WebSocket + JLine), `logs -f` ; test avec serveur WebSocket de test
 - [x] 2.2 Commandes de modules dynamiques + complétion shell ; tests unitaires
-- [ ] 2.3 Packaging (zip + image), ajout à `release.yml` ; scénario e2e CLI (login, task start, service list -o name, commande du module hello) ; doc `docs/CLI.md` ; vérifier en CI
+- [x] 2.3 Packaging (zip + image), ajout à `release.yml` ; scénario e2e CLI (login, task start, service list -o name, commande du module hello) ; doc `docs/CLI.md` ; vérifier en CI

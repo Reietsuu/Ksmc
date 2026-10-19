@@ -2,8 +2,8 @@
 
 Dernière mise à jour : 2026-10-19
 
-- **Mergé dans `main`** : p01 → p08 (PR #1 à #8), CI verte, changes archivés.
-- **Suivant** : p09-cli sur `feat/p09-cli` (la CLI découvre les commandes des modules via `GET /api/v1/modules/<id>/cli`).
+- **Mergé dans `main`** : p01 → p09 (PR #1 à #9), CI verte, changes archivés.
+- **Suivant** : p10-dashboard sur `feat/p10-dashboard` (pages des modules : `GET /api/v1/ui/modules`, bundle `mount(el, api)` avec `api.fetch`).
 - **Limites connues** : `service.deleted` n'est publié que pour les services supprimés par leur task
   (pas de finalizer, pour ne jamais bloquer une suppression si le controller est absent).
 - **Sécurité à revoir** : tous les services partagent l'utilisateur NATS `service` ; un service peut publier les
