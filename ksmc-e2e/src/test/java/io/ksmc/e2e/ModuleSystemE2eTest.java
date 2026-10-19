@@ -66,13 +66,20 @@ class ModuleSystemE2eTest {
                 .fieldManager("e2e").forceConflicts().serverSideApply();
     }
 
-    /** Copie un fichier dans le stockage du controller (PVC monté sur /data). */
-    static void upload(String target, Path file) {
+    /** Copie un fichier dans le stockage du controller (PVC monté sur /data), via exec et l'entrée standard. */
+    static void upload(String target, Path file) throws Exception {
         Pod controller = CLIENT.pods().inNamespace(NAMESPACE).withLabel("app.kubernetes.io/component", "controller")
                 .list().getItems().getFirst();
-        boolean ok = CLIENT.pods().inNamespace(NAMESPACE).withName(controller.getMetadata().getName())
-                .inContainer("controller").file(target).upload(file);
-        assertThat(ok).as("upload " + target).isTrue();
+        String dir = target.substring(0, target.lastIndexOf('/'));
+        try (var exec = CLIENT.pods().inNamespace(NAMESPACE).withName(controller.getMetadata().getName())
+                .inContainer("controller").redirectingInput()
+                .exec("sh", "-c", "mkdir -p '" + dir + "' && cat > '" + target + "'")) {
+            try (var in = exec.getInput()) {
+                Files.copy(file, in);
+            }
+            Integer code = exec.exitCode().get(60, java.util.concurrent.TimeUnit.SECONDS);
+            assertThat(code).as("upload " + target).isZero();
+        }
     }
 
     static HttpResponse<String> call(String method, String path, boolean authenticated) throws Exception {
