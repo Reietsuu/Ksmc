@@ -6,6 +6,7 @@ on:
 
 permissions:
   contents: write
+  packages: write
 
 jobs:
   release:
@@ -17,6 +18,11 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - name: Build
         run: ./gradlew build -PksmcVersion="${GITHUB_REF_NAME#v}"
+      - name: Publication Maven (GitHub Packages)
+        env: {GITHUB_TOKEN: "${{ github.token }}"}
+        run: >-
+          ./gradlew -PksmcVersion="${GITHUB_REF_NAME#v}"
+          :ksmc-wire:publish :ksmc-api:publish :ksmc-plugin-api:publish
       - name: Chart Helm
         run: |
           scripts/tools.sh

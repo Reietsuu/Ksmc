@@ -61,6 +61,17 @@ Les SPI sont introduites progressivement en p02–p05 dans `ksmc-api`. Ce change
     - `MessagingTransport` enregistré par un module : utilisé par les contextes de modules à la place de NATS.
       Le remplacement pour les services (wrapper, bridges) est hors périmètre de ce change.
 
+11. **Choix d'implémentation (2.x–3.1)** :
+    - `ksmc-plugin-api` n'a aucune dépendance (Gson est relocalisé dans les bridges) : données JSON transmises en texte.
+      Embarqué non relocalisé dans chaque bridge ; un plugin déclare la dépendance au bridge (`depend: [KsmcBridge]`,
+      dépendance Velocity `ksmc-bridge`...).
+    - Les abonnements demandés avant la connexion à NATS sont différés puis appliqués à la connexion.
+    - Les gestionnaires de channels sont appelés sur un thread de messagerie (réponse immédiate) ; événements, KV et
+      futurs sur le thread principal (Bukkit : ordonnanceur, Folia : région globale, Fabric/NeoForge : file du serveur,
+      proxies : ordonnanceur du proxy).
+    - Publication : convention `ksmc.publish` (sources + javadoc, POM Apache-2.0), GitHub Packages à chaque tag `v*`,
+      `jitpack.yml` (JDK 21, seulement les trois bibliothèques).
+
 ## Risks / Trade-offs
 
 - [Fuites de classloader au rechargement] → tests qui chargent/déchargent 20 fois et vérifient le nettoyage des enregistrements.

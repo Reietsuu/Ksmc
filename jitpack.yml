@@ -1,0 +1,5 @@
+# JitPack : https://jitpack.io/#Reietsuu/Ksmc — seules les bibliothèques publiques sont construites.
+jdk:
+  - openjdk21
+install:
+  - ./gradlew -q :ksmc-wire:publishToMavenLocal :ksmc-api:publishToMavenLocal :ksmc-plugin-api:publishToMavenLocal -PksmcVersion=$VERSION
