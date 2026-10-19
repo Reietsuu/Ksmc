@@ -24,4 +24,4 @@ fi
 if [[ ! -x "$BIN/helm" ]]; then
   curl -fsSL "https://get.helm.sh/helm-${HELM_VERSION}-${OS}-${ARCH}.tar.gz" | tar -xz -C "$BIN" --strip-components=1 "${OS}-${ARCH}/helm"
 fi
-"$BIN/kind" version; "$BIN/kubectl" version --client | head -1; "$BIN/helm" version --short
+"$BIN/kind" version; "$BIN/kubectl" version --client | sed -n 1p; "$BIN/helm" version --short
