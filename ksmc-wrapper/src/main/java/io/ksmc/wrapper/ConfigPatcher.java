@@ -110,7 +110,7 @@ final class ConfigPatcher {
 
     // ---- BungeeCord / Waterfall -----------------------------------------------------------------
 
-    /** BungeeCord refuse une liste de serveurs vide : serveur factice injoignable, retiré par le bridge. */
+    /** BungeeCord refuse une liste de serveurs vide : serveur factice injoignable et restreint. */
     static final String PLACEHOLDER_SERVERS = "servers:\n"
             + "  " + ServiceManifest.NetworkConfig.BUNGEE_PLACEHOLDER_SERVER + ":\n"
             + "    address: 127.0.0.1:1\n"
@@ -125,7 +125,9 @@ final class ConfigPatcher {
                     + "  query_port: 25577\n"
                     + "  motd: " + quote(m.network.motd == null ? "Ksmc" : m.network.motd) + "\n"
                     + "  max_players: " + (m.network.maxPlayers == null ? 500 : m.network.maxPlayers) + "\n"
-                    + "  priorities: []\n"
+                    // Liste vide = BungeeCord ajoute « lobby » et refuse de démarrer ; le bridge choisit le vrai serveur.
+                    + "  priorities:\n"
+                    + "  - " + ServiceManifest.NetworkConfig.BUNGEE_PLACEHOLDER_SERVER + "\n"
                     + "  force_default_server: false\n"
                     + "  proxy_protocol: " + m.network.proxyProtocol + "\n"
                     + "  forced_hosts: {}\n"

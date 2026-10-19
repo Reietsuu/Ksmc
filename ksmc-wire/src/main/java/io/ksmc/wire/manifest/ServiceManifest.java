@@ -56,8 +56,8 @@ public class ServiceManifest {
 
     public static class NetworkConfig {
         /**
-         * Serveur factice déclaré dans la config BungeeCord (qui refuse de démarrer sans serveur) ;
-         * le bridge le retire au chargement, les vrais serveurs sont ajoutés dynamiquement.
+         * Serveur factice (injoignable, restreint) déclaré dans la config BungeeCord, qui exige au moins un
+         * serveur et un serveur par défaut existant ; le bridge redirige chaque connexion vers un vrai serveur.
          */
         public static final String BUNGEE_PLACEHOLDER_SERVER = "ksmc-placeholder";
 

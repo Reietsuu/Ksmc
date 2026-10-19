@@ -142,8 +142,8 @@ class ConfigPatcherTest {
         Path s = server();
         new ConfigPatcher().apply(m("bungeecord", "1950", "legacy"), s.toFile());
 
-        assertThat(read(s, "config.yml")).contains("servers:\n  ksmc-placeholder:\n    address: 127.0.0.1:1")
-                .doesNotContain("servers: {}");
+        assertThat(read(s, "config.yml")).contains("servers:\n  ksmc-placeholder:\n    address: 127.0.0.1:1",
+                "  priorities:\n  - ksmc-placeholder").doesNotContain("servers: {}");
     }
 
     @Test
