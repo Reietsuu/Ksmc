@@ -25,6 +25,7 @@ import io.ksmc.controller.http.HttpServer;
 import io.ksmc.controller.http.ModuleApi;
 import io.ksmc.controller.http.ResourceApi;
 import io.ksmc.controller.http.SessionAuthenticator;
+import io.ksmc.controller.http.TemplateFilesApi;
 import io.ksmc.controller.internal.InternalApi;
 import io.ksmc.controller.internal.PodAuthenticator;
 import io.ksmc.controller.messaging.NatsConnector;
@@ -154,8 +155,9 @@ public final class KsmcController {
         PlayerService players = new PlayerService(nats::messaging);
         ResourceApi resourceApi = new ResourceApi(client, config.namespace(), players, audit);
         ActionApi actionApi = new ActionApi(client, config.namespace(), nats::sendCommand, players, audit);
+        TemplateFilesApi templateFiles = new TemplateFilesApi(storage, audit);
         HttpServer http = new HttpServer(health, List.of(new ApiSupport(sessions), authApi, actionApi, resourceApi,
-                internal, moduleApi)).start(config.httpPort());
+                templateFiles, internal, moduleApi)).start(config.httpPort());
         LOG.info("HTTP prêt sur le port {}", http.port());
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
