@@ -2,8 +2,8 @@
 
 ## 1. Stratégies
 
-- [ ] 1.1 Stratégie `players` (seuil, idle, cooldown, `maxConcurrentStarts`) ; tests unitaires avec horloge simulée
-- [ ] 1.2 Stratégie `schedule` (cron + fuseau) et composition ; tests unitaires
+- [x] 1.1 Stratégie `players` (seuil, idle, cooldown, `maxConcurrentStarts`) ; tests unitaires avec horloge simulée
+- [x] 1.2 Stratégie `schedule` (cron + fuseau) et composition ; tests unitaires
 - [ ] 1.3 Services préparés (label, promotion, exclusion par les bridges proxy) ; tests unitaires
 
 ## 2. Intégration

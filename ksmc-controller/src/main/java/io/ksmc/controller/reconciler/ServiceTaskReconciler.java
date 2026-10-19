@@ -26,10 +26,13 @@ import io.ksmc.api.spi.ScalingStrategy;
 import io.ksmc.controller.bridge.BridgeHub;
 import io.ksmc.controller.messaging.CloudEvents;
 import io.ksmc.controller.messaging.Snapshots;
+import io.ksmc.controller.task.Autoscaler;
 import io.ksmc.controller.task.EffectiveConfig;
+import io.ksmc.controller.task.PlayersScalingStrategy;
 import io.ksmc.controller.task.ProxyExposure;
 import io.ksmc.controller.task.ScalingStrategies;
 import io.ksmc.controller.task.ServiceSelection;
+import io.ksmc.wire.messaging.CloudEvent;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
@@ -51,6 +54,8 @@ public final class ServiceTaskReconciler implements Reconciler<ServiceTask> {
     static final Duration FAILURE_WINDOW = Duration.ofMinutes(10);
     static final int FAILURE_THRESHOLD = 5;
     static final Duration RESYNC = Duration.ofSeconds(30);
+    /** Tasks avec autoscaling : réévaluation régulière (joueurs, horaires). */
+    static final Duration AUTOSCALING_RESYNC = Duration.ofSeconds(10);
 
     private final KubernetesClient client;
     private final ScalingStrategies strategies;
@@ -157,36 +162,86 @@ public final class ServiceTaskReconciler implements Reconciler<ServiceTask> {
         }
 
         ServiceTaskSpec spec = task.getSpec();
+        task.setStatus(status);
+        boolean autoscaled = spec.enabled && Autoscaler.enabled(task);
+        List<CloudService> prepared = new ArrayList<>(active.stream().filter(Autoscaler::prepared).toList());
+        List<CloudService> routable = new ArrayList<>(active.stream().filter(s -> !Autoscaler.prepared(s)).toList());
+        if (!autoscaled) {
+            // Plus d'autoscaling : les services préparés restants deviennent des services normaux.
+            prepared.forEach(this::promote);
+            routable.addAll(prepared);
+            prepared.clear();
+        }
+        ServiceTaskStatus.AutoscalingState scaling = null;
+        if (autoscaled) {
+            scaling = status.autoscaling == null ? new ServiceTaskStatus.AutoscalingState() : status.autoscaling;
+            Autoscaler.observe(scaling, active, now);
+            status.autoscaling = scaling;
+        } else {
+            status.autoscaling = null;
+        }
         int target = spec.enabled ? strategies.target(new ScalingStrategy.Context(task, active, now)) : 0;
+        if (autoscaled) {
+            target = decide(task, scaling, routable, target, now);
+        }
 
         // Mise à jour de configuration des services existants.
         reschedule = min(reschedule, applyUpdateStrategy(task, effective, active, status, generation, now));
+        // Les services remplacés par la mise à jour ne comptent plus.
+        routable.retainAll(active);
+        prepared.retainAll(active);
 
-        // Réduction.
-        if (active.size() > target) {
-            for (CloudService svc : ServiceSelection.toStop(name, active, active.size() - target)) {
+        // Réduction (les services vides depuis le plus longtemps d'abord).
+        if (routable.size() > target) {
+            Map<String, String> emptySince = scaling == null ? Map.of() : scaling.emptySince;
+            for (CloudService svc : ServiceSelection.toStop(name, routable, routable.size() - target, emptySince)) {
                 stop(svc, spec.enabled ? "ScaledDown" : "TaskDisabled");
+                active.remove(svc);
+                routable.remove(svc);
+            }
+        }
+        // Augmentation : promotion des services préparés (Running d'abord), puis création (avec backoff si la task
+        // échoue en boucle), puis renouvellement des services préparés.
+        int missing = target - routable.size();
+        prepared.sort(Comparator.comparing((CloudService s) -> ServiceSelection.isRunning(s) ? 0 : 1));
+        while (missing > 0 && !prepared.isEmpty()) {
+            CloudService promoted = prepared.removeFirst();
+            promote(promoted);
+            events.normal(task, "ServicePromoted", promoted.getMetadata().getName());
+            routable.add(promoted);
+            missing--;
+        }
+        int preparedMissing = autoscaled ? Autoscaler.preparedWanted(task) - prepared.size() : 0;
+        if (preparedMissing < 0) {
+            for (CloudService svc : ServiceSelection.toStop(name, prepared, -preparedMissing)) {
+                stop(svc, "PreparedScaledDown");
                 active.remove(svc);
             }
         }
-        // Augmentation (avec backoff si la task échoue en boucle).
-        int missing = target - active.size();
         int created = 0;
-        if (missing > 0) {
+        if (missing > 0 || preparedMissing > 0) {
             Instant notBefore = status.failureWindow == null || status.failureWindow.nextAttemptAfter == null
                     ? null : Instant.parse(status.failureWindow.nextAttemptAfter);
             if (notBefore != null && now.isBefore(notBefore)) {
                 reschedule = min(reschedule, Duration.between(now, notBefore));
             } else {
-                int restarted = restartStoppedStatics(task, services, missing, effective);
-                created += restarted;
-                missing -= restarted;
-                for (String newName : ServiceSelection.nextNames(name, allNames, Math.max(0, missing))) {
-                    create(task, newName, effective);
-                    allNames.add(newName);
+                if (missing > 0) {
+                    int restarted = restartStoppedStatics(task, services, missing, effective);
+                    created += restarted;
+                    missing -= restarted;
+                }
+                List<String> names = ServiceSelection.nextNames(name, allNames,
+                        Math.max(0, missing) + Math.max(0, preparedMissing));
+                for (int i = 0; i < names.size(); i++) {
+                    create(task, names.get(i), effective, i >= Math.max(0, missing));
+                    allNames.add(names.get(i));
                     created++;
                 }
             }
+        }
+        if (autoscaled) {
+            scaling.preparedServices = Autoscaler.preparedWanted(task);
+            reschedule = min(reschedule, AUTOSCALING_RESYNC);
         }
 
         aggregate(task, status, active, created, generation);
@@ -237,9 +292,64 @@ public final class ServiceTaskReconciler implements Reconciler<ServiceTask> {
         spec.extraServices = extra;
     }
 
+    // ---- Autoscaling ----------------------------------------------------------------------------
+
+    /** Applique cooldown et démarrages simultanés à la cible proposée ; trace les décisions. */
+    private int decide(ServiceTask task, ServiceTaskStatus.AutoscalingState scaling, List<CloudService> routable,
+            int proposed, Instant now) {
+        ServiceTaskSpec spec = task.getSpec();
+        int current = routable.size();
+        int starting = (int) routable.stream().filter(s -> !ServiceSelection.isRunning(s)).count();
+        int baseline = ScalingStrategies.bound(spec, spec.minServiceCount + spec.extraServices);
+        Double fill = PlayersScalingStrategy.fill(routable);
+        int idle = PlayersScalingStrategy.idle(task, routable, now).size();
+        String reason;
+        if (proposed > current) {
+            reason = fill != null && fill > PlayersScalingStrategy.threshold(task)
+                    ? "remplissage %d %% > seuil %d %%".formatted(Math.round(fill * 100),
+                            Math.round(PlayersScalingStrategy.threshold(task) * 100))
+                    : "minimum de %d service(s)".formatted(proposed);
+        } else {
+            reason = idle > 0 ? "%d service(s) vide(s) depuis %d s".formatted(idle, PlayersScalingStrategy.idleSeconds(task))
+                    : "cible réduite à %d".formatted(proposed);
+        }
+        Autoscaler.Decision d = Autoscaler.decide(task, current, starting, proposed, baseline, now, reason);
+        scaling.observedFill = fill == null ? null : Math.round(fill * 1000) / 1000.0;
+        scaling.desiredServices = d.target();
+        if (d.direction() != null) {
+            scaling.lastScaleTime = now.toString();
+            scaling.lastDecision = d.direction();
+            scaling.lastReason = d.reason();
+            String message = "%d → %d : %s".formatted(current, d.target(), d.reason());
+            events.normal(task, d.direction(), message);
+            CloudEvent event = Snapshots.resource("task.scaled", task, task.getMetadata().getName());
+            Map<String, Object> data = new LinkedHashMap<>();
+            data.put("from", current);
+            data.put("to", d.target());
+            data.put("direction", d.direction());
+            data.put("reason", d.reason());
+            data.put("fill", scaling.observedFill);
+            event.data = Snapshots.json(data);
+            cloudEvents.publish(event);
+            LOG.info("Task {} : {} ({})", task.getMetadata().getName(), d.direction(), message);
+        }
+        return d.target();
+    }
+
+    /** Rend un service préparé routable (retrait du label) et met à jour le registre des proxies sans attendre. */
+    private void promote(CloudService svc) {
+        CloudService updated = client.resources(CloudService.class).inNamespace(svc.getMetadata().getNamespace())
+                .withName(svc.getMetadata().getName()).edit(s -> {
+                    s.getMetadata().getLabels().remove(Ksmc.LABEL_PREPARED);
+                    return s;
+                });
+        svc.getMetadata().getLabels().remove(Ksmc.LABEL_PREPARED);
+        bridges.sync(updated);
+    }
+
     // ---- Création / arrêt ------------------------------------------------------------------------
 
-    private void create(ServiceTask task, String serviceName, EffectiveConfig effective) {
+    private void create(ServiceTask task, String serviceName, EffectiveConfig effective, boolean prepared) {
         CloudService svc = new CloudService();
         ObjectMeta meta = new ObjectMetaBuilder().withName(serviceName).withNamespace(task.getMetadata().getNamespace())
                 .addToLabels(Ksmc.LABEL_TASK, task.getMetadata().getName())
@@ -248,11 +358,14 @@ public final class ServiceTaskReconciler implements Reconciler<ServiceTask> {
                 .addToAnnotations(Ksmc.ANNOTATION_CONFIG_HASH, effective.hash())
                 .withOwnerReferences(CloudServiceReconciler.ownerReference(task))
                 .build();
+        if (prepared) {
+            meta.getLabels().put(Ksmc.LABEL_PREPARED, "true");
+        }
         svc.setMetadata(meta);
         svc.setSpec(copy(effective.serviceSpec()));
         try {
             client.resource(svc).create();
-            events.normal(task, "ServiceCreated", serviceName);
+            events.normal(task, prepared ? "PreparedServiceCreated" : "ServiceCreated", serviceName);
         } catch (KubernetesClientException e) {
             if (e.getCode() != 409) {
                 throw e;

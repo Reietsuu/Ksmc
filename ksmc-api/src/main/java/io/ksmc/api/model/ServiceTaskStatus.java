@@ -42,8 +42,16 @@ public class ServiceTaskStatus extends KsmcStatus {
 
     @JsonInclude(JsonInclude.Include.NON_NULL)
     public static class AutoscalingState {
+        /** Services routables visés (hors services préparés). */
         public Integer desiredServices;
+        public Integer preparedServices;
+        /** Remplissage moyen observé des services Running (joueurs / places). */
+        public Double observedFill;
         public String lastScaleTime;
+        /** {@code ScaledUp} ou {@code ScaledDown}. */
         public String lastDecision;
+        public String lastReason;
+        /** Service → instant depuis lequel il est vide (survit aux redémarrages du controller). */
+        public Map<String, String> emptySince = new LinkedHashMap<>();
     }
 }

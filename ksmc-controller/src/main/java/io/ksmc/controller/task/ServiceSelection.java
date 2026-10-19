@@ -44,20 +44,27 @@ public final class ServiceSelection {
      * de joueurs, puis le numéro le plus élevé.
      */
     public static List<CloudService> toStop(String task, List<CloudService> services, int count) {
+        return toStop(task, services, count, java.util.Map.of());
+    }
+
+    /** Comme {@link #toStop(String, List, int)}, en préférant parmi les vides celui qui l'est depuis le plus longtemps. */
+    public static List<CloudService> toStop(String task, List<CloudService> services, int count,
+            java.util.Map<String, String> emptySince) {
         return services.stream()
                 .sorted(Comparator
                         .comparing((CloudService s) -> isRunning(s) ? 1 : 0)
                         .thenComparing(s -> players(s))
+                        .thenComparing(s -> emptySince.getOrDefault(s.getMetadata().getName(), "~"))
                         .thenComparing(s -> -number(task, s.getMetadata().getName())))
                 .limit(Math.max(0, count))
                 .toList();
     }
 
-    static boolean isRunning(CloudService s) {
+    public static boolean isRunning(CloudService s) {
         return s.getStatus() != null && s.getStatus().phase == CloudServiceStatus.Phase.Running;
     }
 
-    static int players(CloudService s) {
+    public static int players(CloudService s) {
         return s.getStatus() == null || s.getStatus().onlinePlayers == null ? 0 : s.getStatus().onlinePlayers;
     }
 }
