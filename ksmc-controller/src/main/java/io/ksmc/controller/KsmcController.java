@@ -17,6 +17,7 @@ import io.ksmc.controller.bridge.BridgeHub;
 import io.ksmc.controller.bridge.PlayerService;
 import io.ksmc.controller.health.HealthRegistry;
 import io.ksmc.controller.health.KubernetesHealthCheck;
+import io.ksmc.controller.http.ActionApi;
 import io.ksmc.controller.http.ApiSupport;
 import io.ksmc.controller.http.AuditLog;
 import io.ksmc.controller.http.AuthApi;
@@ -152,8 +153,9 @@ public final class KsmcController {
         ModuleApi moduleApi = new ModuleApi(extensions, sessions);
         PlayerService players = new PlayerService(nats::messaging);
         ResourceApi resourceApi = new ResourceApi(client, config.namespace(), players, audit);
-        HttpServer http = new HttpServer(health, List.of(new ApiSupport(sessions), authApi, resourceApi, internal,
-                moduleApi)).start(config.httpPort());
+        ActionApi actionApi = new ActionApi(client, config.namespace(), nats::sendCommand, players, audit);
+        HttpServer http = new HttpServer(health, List.of(new ApiSupport(sessions), authApi, actionApi, resourceApi,
+                internal, moduleApi)).start(config.httpPort());
         LOG.info("HTTP prêt sur le port {}", http.port());
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
