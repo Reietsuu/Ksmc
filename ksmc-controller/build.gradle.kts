@@ -17,6 +17,8 @@ dependencies {
     implementation(libs.commons.compress)
     // Règles horaires de l'autoscaling (cron Unix + fuseau).
     implementation(libs.cron.utils)
+    // Hachage des mots de passe (argon2id).
+    implementation(libs.password4j)
     testImplementation(libs.fabric8.server.mock)
     testImplementation(libs.testcontainers)
 }

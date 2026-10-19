@@ -2,7 +2,7 @@
 
 ## 1. Accès
 
-- [ ] 1.1 `AccountStore` (Secret), argon2id, admin initial + changement obligatoire, rôles par défaut, permissions avec joker et permissions de modules ; tests unitaires
+- [x] 1.1 `AccountStore` (Secret), argon2id, admin initial + changement obligatoire, rôles par défaut, permissions avec joker et permissions de modules ; tests unitaires
 - [ ] 1.2 Login/refresh JWT, jetons d'API (création, liste, révocation), limitation de débit, filtre d'autorisation ; tests HTTP
 
 ## 2. API
