@@ -15,5 +15,5 @@
 ## 3. Console et validation
 
 - [x] 3.1 WebSocket console (logs + commandes) et extrait `lastlog` des échecs ; tests
-- [ ] 3.2 Scénarios e2e REST : login admin, création task par REST visible par kubectl, viewer refusé (403), commande console, flux d'événements ; vérifier en CI
-- [ ] 3.3 Documenter l'API et l'authentification dans `docs/API.md` (avec exemples curl) ; vérifier les exemples curl via e2e
+- [x] 3.2 Scénarios e2e REST : login admin, création task par REST visible par kubectl, viewer refusé (403), commande console, flux d'événements ; vérifier en CI
+- [x] 3.3 Documenter l'API et l'authentification dans `docs/API.md` (avec exemples curl) ; vérifier les exemples curl via e2e
