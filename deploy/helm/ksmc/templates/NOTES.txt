@@ -6,5 +6,5 @@ Vérifier :
 
 Exemples : https://github.com/Reietsuu/Ksmc/tree/main/examples
 
-Jeton administrateur de l'API (en-tête « Authorization: Bearer <jeton> ») :
-  kubectl -n {{ .Release.Namespace }} get secret ksmc-api-token -o jsonpath='{.data.token}' | base64 -d
+Compte administrateur (mot de passe à changer à la première connexion) :
+  kubectl -n {{ .Release.Namespace }} get secret ksmc-admin -o jsonpath='{.data.password}' | base64 -d

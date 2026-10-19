@@ -48,7 +48,11 @@ final class Runner {
         startStdinRelay();
         final CloudLink link = new CloudLink(env, new CloudLink.CommandSink() {
             public void send(String command) throws IOException {
-                sendCommand(command);
+                if (command.startsWith(DEPLOY_COMMAND)) {
+                    deployNow(command.substring(DEPLOY_COMMAND.length()).trim());
+                } else {
+                    sendCommand(command);
+                }
             }
         });
         link.startAsync();
@@ -124,14 +128,38 @@ final class Runner {
         deployOnStop();
     }
 
+    /** Commande de contrôle (envoyée par le controller, jamais transmise au serveur) : sauvegarde vers un template. */
+    static final String DEPLOY_COMMAND = "ksmc:deploy ";
+
+    /** Sauvegarde immédiate du dossier du service vers un template (en arrière-plan). */
+    void deployNow(final String template) throws IOException {
+        if (!template.matches("[A-Za-z0-9._/-]+") || template.contains("..")) {
+            throw new IOException("template invalide : " + template);
+        }
+        final String url = "/internal/v1/services/" + env.namespace + "/" + env.service + "/deploy?template=" + template;
+        final List<String> excludes = manifest == null || manifest.deployOnStop == null ? new ArrayList<String>()
+                : new ArrayList<String>(manifest.deployOnStop.excludes);
+        Thread t = new Thread(new Runnable() {
+            public void run() {
+                deploy(url, excludes);
+            }
+        }, "ksmc-deploy");
+        t.setDaemon(true);
+        t.start();
+    }
+
     /** Sauvegarde du dossier du service vers un template, si configurée. */
     void deployOnStop() {
         if (manifest.deployOnStop == null || !deployed.compareAndSet(false, true)) {
             return;
         }
-        File zip = new File(env.stateDir(), "deploy.zip");
+        deploy(manifest.deployOnStop.url, new ArrayList<String>(manifest.deployOnStop.excludes));
+    }
+
+    private void deploy(String url, List<String> excludeList) {
+        File zip = new File(env.stateDir(), "deploy-" + System.nanoTime() + ".zip");
         try {
-            List<String> excludes = new ArrayList<String>(manifest.deployOnStop.excludes);
+            List<String> excludes = new ArrayList<String>(excludeList);
             excludes.add(".ksmc/");
             OutputStream out = new FileOutputStream(zip);
             try {
@@ -139,7 +167,7 @@ final class Runner {
             } finally {
                 out.close();
             }
-            new InternalClient(env).put(manifest.deployOnStop.url, zip);
+            new InternalClient(env).put(url, zip);
             Log.info("dossier du service sauvegardé vers le template");
         } catch (IOException e) {
             Log.warn("échec de la sauvegarde vers le template : " + e.getMessage());

@@ -104,4 +104,31 @@ class RunnerTest {
         HealthServer h = new HealthServer(freePort(), () -> true, freePort());
         assertThat(h.ready(freePort())).isFalse();
     }
+
+    @Test
+    void deployCommandUploadsTheServerFolderToATemplate() throws Exception {
+        try (FakeControllerServer controller = new FakeControllerServer()) {
+            Files.writeString(tmp.resolve("token"), "jeton");
+            Files.writeString(tmp.resolve("server.properties"), "motd=Sauvegarde");
+            WrapperEnv env = new WrapperEnv(controller.url(), tmp.resolve("token").toFile(), "test", "s", tmp.toFile(),
+                    freePort(), null);
+            Files.createDirectories(env.stateDir().toPath());
+            Files.writeString(env.manifestFile().toPath(), Wire.toJson(new ServiceManifest()));
+            Runner runner = new Runner(env);
+
+            runner.deployNow("game/backup");
+
+            String path = "/internal/v1/services/test/s/deploy";
+            await(() -> controller.uploads.containsKey(path));
+            java.util.List<String> entries = new java.util.ArrayList<>();
+            try (var zip = new java.util.zip.ZipInputStream(new java.io.ByteArrayInputStream(controller.uploads.get(path)))) {
+                for (var e = zip.getNextEntry(); e != null; e = zip.getNextEntry()) {
+                    entries.add(e.getName());
+                }
+            }
+            assertThat(entries).contains("server.properties").noneMatch(e -> e.startsWith(".ksmc/"));
+            org.assertj.core.api.Assertions.assertThatThrownBy(() -> runner.deployNow("../etc"))
+                    .isInstanceOf(java.io.IOException.class);
+        }
+    }
 }

@@ -1,28 +1,31 @@
 package io.ksmc.controller.http;
 
 import io.javalin.http.Context;
+import io.ksmc.controller.auth.Permissions;
 import java.util.Optional;
+import java.util.Set;
 
 /** Authentification et autorisation des appels à l'API publique ({@code /api/v1}). */
 public interface ApiAuthenticator {
 
-    /** Utilisateur authentifié et ses permissions. */
-    record Principal(String name, java.util.Set<String> permissions) {
+    /** Utilisateur authentifié, ses permissions effectives et s'il doit d'abord changer son mot de passe. */
+    record Principal(String name, Set<String> permissions, boolean mustChangePassword) {
 
-        /** Permission exacte, joker {@code *} ou préfixe joker ({@code hello.*}). */
+        public Principal(String name, Set<String> permissions) {
+            this(name, permissions, false);
+        }
+
+        /** Permission exacte, joker {@code *} ou préfixe joker ({@code hello.*}) ; {@code null} : toujours vrai. */
         public boolean has(String permission) {
-            if (permission == null || permissions.contains("*") || permissions.contains(permission)) {
-                return true;
-            }
-            for (int i = permission.lastIndexOf('.'); i > 0; i = permission.lastIndexOf('.', i - 1)) {
-                if (permissions.contains(permission.substring(0, i) + ".*")) {
-                    return true;
-                }
-            }
-            return false;
+            return Permissions.grants(permissions, permission);
         }
     }
 
     /** Utilisateur de la requête, ou vide si elle n'est pas authentifiée. */
     Optional<Principal> authenticate(Context ctx);
+
+    /** Utilisateur d'un jeton (WebSocket : en-tête ou {@code ?access_token=}), ou vide. */
+    default Optional<Principal> authenticateToken(String token) {
+        return Optional.empty();
+    }
 }

@@ -152,18 +152,4 @@ class ModuleApiTest {
         assertThat(p.has(null)).isTrue();
     }
 
-    @Test
-    void staticTokenAuthenticatorRequiresTheConfiguredToken() throws Exception {
-        server.close();
-        hello();
-        server = new HttpServer(new HealthRegistry(), List.of(new ModuleApi(extensions,
-                new StaticTokenAuthenticator(TOKEN)))).start(0);
-        assertThat(call("GET", "/api/v1/modules/hello/hello", TOKEN, null).statusCode()).isEqualTo(200);
-        assertThat(call("GET", "/api/v1/modules/hello/hello", "x", null).statusCode()).isEqualTo(401);
-
-        server.close();
-        server = new HttpServer(new HealthRegistry(), List.of(new ModuleApi(extensions,
-                new StaticTokenAuthenticator(null)))).start(0);
-        assertThat(call("GET", "/api/v1/modules/hello/hello", "", null).statusCode()).isEqualTo(401);
-    }
 }

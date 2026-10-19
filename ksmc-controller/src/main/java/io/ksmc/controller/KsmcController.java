@@ -5,16 +5,30 @@ import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 import io.javaoperatorsdk.operator.Operator;
 import io.javaoperatorsdk.operator.api.reconciler.Reconciler;
 import io.ksmc.api.module.ExtensionRegistry;
+import io.ksmc.api.spi.AuditSink;
 import io.ksmc.api.spi.ScalingStrategy;
 import io.ksmc.api.spi.ServicePodCustomizer;
 import io.ksmc.api.spi.SoftwareResolver;
 import io.ksmc.api.spi.TemplateSourceProvider;
+import io.ksmc.controller.auth.AccountStore;
+import io.ksmc.controller.auth.Jwt;
+import io.ksmc.controller.auth.LoginRateLimiter;
 import io.ksmc.controller.bridge.BridgeHub;
+import io.ksmc.controller.bridge.PlayerService;
 import io.ksmc.controller.health.HealthRegistry;
 import io.ksmc.controller.health.KubernetesHealthCheck;
+import io.ksmc.controller.http.ActionApi;
+import io.ksmc.controller.http.ApiSupport;
+import io.ksmc.controller.http.AuditLog;
+import io.ksmc.controller.http.AuthApi;
+import io.ksmc.controller.http.ConsoleApi;
+import io.ksmc.controller.http.EventsApi;
+import io.ksmc.controller.http.OpenApiDocs;
 import io.ksmc.controller.http.HttpServer;
 import io.ksmc.controller.http.ModuleApi;
-import io.ksmc.controller.http.StaticTokenAuthenticator;
+import io.ksmc.controller.http.ResourceApi;
+import io.ksmc.controller.http.SessionAuthenticator;
+import io.ksmc.controller.http.TemplateFilesApi;
 import io.ksmc.controller.internal.InternalApi;
 import io.ksmc.controller.internal.PodAuthenticator;
 import io.ksmc.controller.messaging.NatsConnector;
@@ -46,6 +60,7 @@ import io.ksmc.wire.messaging.MessagingTransport;
 import java.net.http.HttpClient;
 import java.nio.file.Path;
 import java.time.Clock;
+import java.time.Duration;
 import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -127,8 +142,28 @@ public final class KsmcController {
 
         InternalApi internal = new InternalApi(new PodAuthenticator(client, clock), client, storage, manifests,
                 config.bridgesDir());
-        ModuleApi moduleApi = new ModuleApi(extensions, new StaticTokenAuthenticator(config.apiToken()));
-        HttpServer http = new HttpServer(health, List.of(internal, moduleApi)).start(config.httpPort());
+        // API publique : comptes (Secret ksmc-accounts), sessions JWT, jetons d'API, audit.
+        AccountStore accounts = new AccountStore(client, config.namespace(), clock);
+        try {
+            accounts.bootstrap(config.adminPassword());
+        } catch (RuntimeException e) {
+            LOG.error("Initialisation des comptes impossible : {}", e.getMessage());
+        }
+        Jwt jwt = new Jwt(jwtKey(config), clock);
+        SessionAuthenticator sessions = new SessionAuthenticator(accounts, jwt);
+        AuditLog audit = new AuditLog(client, config.namespace(), clock, () -> extensions.all(AuditSink.class));
+        AuthApi authApi = new AuthApi(accounts, jwt, new LoginRateLimiter(10, Duration.ofMinutes(1), clock),
+                new LoginRateLimiter(50, Duration.ofMinutes(1), clock), extensions, audit);
+        ModuleApi moduleApi = new ModuleApi(extensions, sessions);
+        PlayerService players = new PlayerService(nats::messaging);
+        ResourceApi resourceApi = new ResourceApi(client, config.namespace(), players, audit);
+        ActionApi actionApi = new ActionApi(client, config.namespace(), nats::sendCommand, players, audit);
+        TemplateFilesApi templateFiles = new TemplateFilesApi(storage, audit);
+        EventsApi eventsApi = new EventsApi(sessions, nats::messaging, audit);
+        ConsoleApi consoleApi = new ConsoleApi(client, config.namespace(), sessions,
+                ConsoleApi.kubernetes(client, config.namespace()), nats::sendCommand, audit);
+        HttpServer http = new HttpServer(health, List.of(new ApiSupport(sessions), authApi, actionApi, resourceApi,
+                templateFiles, eventsApi, consoleApi, new OpenApiDocs(), internal, moduleApi)).start(config.httpPort());
         LOG.info("HTTP prêt sur le port {}", http.port());
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
@@ -136,9 +171,21 @@ public final class KsmcController {
             http.close();
             operator.stop();
             modules.disableAll();
+            audit.close();
             nats.close();
             client.close();
         }, "ksmc-shutdown"));
+    }
+
+    /** Clé de signature des sessions (Secret {@code ksmc-jwt}) ; à défaut, aléatoire (sessions perdues au redémarrage). */
+    private static byte[] jwtKey(ControllerConfig config) {
+        if (config.jwtKey() != null && config.jwtKey().length() >= 32) {
+            return config.jwtKey().getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        }
+        LOG.warn("KSMC_JWT_KEY absente : clé de session aléatoire (les sessions ne survivent pas au redémarrage)");
+        byte[] key = new byte[32];
+        new java.security.SecureRandom().nextBytes(key);
+        return key;
     }
 
     /** Enregistre un reconciler limité au namespace d'installation. */

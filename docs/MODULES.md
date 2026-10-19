@@ -146,9 +146,9 @@ ctx.dashboardPage(new DashboardPage("Hello", "hand", "web/hello.js"));
   sérialisé en JSON (une `String` est envoyée en texte). Après désactivation : 404.
 - Permissions : une permission par route (`null` = utilisateur authentifié). Les jokers `hello.*` et `*` sont
   acceptés. Préfixez-les par l'id du module.
-- Authentification : en attendant les comptes de l'API REST, un jeton administrateur unique (en-tête
-  `Authorization: Bearer <jeton>`) :
-  `kubectl -n ksmc get secret ksmc-api-token -o jsonpath='{.data.token}' | base64 -d`.
+- Authentification : comptes de l'API (session ou jeton d'API, voir [API.md](API.md)). Les permissions des routes
+  de module s'accordent dans les rôles comme les autres (`PUT /api/v1/roles/<rôle>`), et `GET /api/v1/permissions`
+  liste celles des modules actifs.
 - CLI : `GET /api/v1/modules/<id>/cli` liste les commandes ; `{arg}` dans le chemin est remplacé par l'argument
   du même nom, les autres arguments passent en paramètres de requête.
 - Dashboard *(expérimental)* : le bundle est un module ES exportant `mount(element, api)`, servi sous
@@ -294,8 +294,10 @@ spec:
 Puis : installer le module (source `store` ci-dessus), créer une task Paper avec le template du plugin, et :
 
 ```bash
-TOKEN=$(kubectl -n ksmc get secret ksmc-api-token -o jsonpath='{.data.token}' | base64 -d)
 kubectl -n ksmc port-forward svc/ksmc-controller 8080 &
+# Session admin (voir docs/API.md pour la première connexion et les jetons d'API).
+TOKEN=$(curl -s localhost:8080/api/v1/auth/login -H 'Content-Type: application/json' \
+  -d '{"username":"admin","password":"<mot de passe>"}' | jq -r .accessToken)
 curl -H "Authorization: Bearer $TOKEN" localhost:8080/api/v1/modules/hello/hello
 curl -X POST -H "Authorization: Bearer $TOKEN" "localhost:8080/api/v1/modules/hello/broadcast?text=Salut"
 kubectl -n ksmc logs <service> | grep '\[hello\]'      # « [hello] reçu : Salut »

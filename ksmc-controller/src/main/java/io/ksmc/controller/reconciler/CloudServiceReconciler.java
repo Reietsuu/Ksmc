@@ -1,14 +1,14 @@
 package io.ksmc.controller.reconciler;
 
+import io.fabric8.kubernetes.api.model.HasMetadata;
+import io.fabric8.kubernetes.api.model.OwnerReference;
+import io.fabric8.kubernetes.api.model.OwnerReferenceBuilder;
 import io.fabric8.kubernetes.api.model.PersistentVolumeClaimBuilder;
 import io.fabric8.kubernetes.api.model.Pod;
 import io.fabric8.kubernetes.api.model.Quantity;
 import io.fabric8.kubernetes.api.model.SecretBuilder;
 import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientException;
-import io.fabric8.kubernetes.api.model.HasMetadata;
-import io.fabric8.kubernetes.api.model.OwnerReference;
-import io.fabric8.kubernetes.api.model.OwnerReferenceBuilder;
 import io.fabric8.kubernetes.client.utils.Serialization;
 import io.javaoperatorsdk.operator.api.config.informer.InformerEventSourceConfiguration;
 import io.javaoperatorsdk.operator.api.reconciler.Context;
@@ -19,20 +19,21 @@ import io.javaoperatorsdk.operator.processing.event.source.EventSource;
 import io.javaoperatorsdk.operator.processing.event.source.informer.InformerEventSource;
 import io.ksmc.api.model.CloudService;
 import io.ksmc.api.model.CloudServiceSpec;
-import io.ksmc.api.model.CloudServiceStatus;
 import io.ksmc.api.model.CloudServiceStatus.Phase;
+import io.ksmc.api.model.CloudServiceStatus;
 import io.ksmc.api.model.Ksmc;
 import io.ksmc.api.model.ServiceTemplate;
 import io.ksmc.api.model.TemplateRef;
 import io.ksmc.controller.bridge.BridgeHub;
 import io.ksmc.controller.messaging.CloudEvents;
 import io.ksmc.controller.messaging.Snapshots;
+import io.ksmc.controller.service.LastLog;
 import io.ksmc.controller.service.PhaseCalculator;
-import io.ksmc.wire.messaging.CloudEvent;
 import io.ksmc.controller.service.PodFactory;
 import io.ksmc.controller.service.ServiceFailureException;
 import io.ksmc.controller.service.ServiceSoftware;
 import io.ksmc.controller.template.Digests;
+import io.ksmc.wire.messaging.CloudEvent;
 import java.io.IOException;
 import java.security.SecureRandom;
 import java.time.Clock;
@@ -153,6 +154,10 @@ public final class CloudServiceReconciler implements Reconciler<CloudService> {
     private Duration handleTermination(CloudService svc, Pod pod, CloudServiceStatus status, PhaseCalculator.Result r) {
         if (status.lastExitAt == null) {
             status.lastExitAt = clock.instant().toString();
+            if (r.phase() == Phase.Failed) {
+                // Le Pod existe encore : on garde ses dernières lignes avant tout redémarrage ou remplacement.
+                LastLog.capture(client, svc, pod.getMetadata().getName(), r.reason(), clock.instant());
+            }
         }
         boolean restart = switch (svc.getSpec().restartPolicy) {
             case Always -> true;

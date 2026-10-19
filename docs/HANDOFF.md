@@ -2,10 +2,8 @@
 
 Dernière mise à jour : 2026-10-19
 
-- **Mergé dans `main`** : p01 → p07 (PR #1 à #7), CI verte, changes archivés.
-- **Suivant** : p08-rest-api sur `feat/p08-rest-api`.
-- **Provisoire (p06)** : API protégée par un jeton admin unique (Secret `ksmc-api-token`, `StaticTokenAuthenticator`) ;
-  p08 doit le remplacer par les comptes (interface `ApiAuthenticator`). Le dashboard (p10) doit fournir `mount(el, api)` avec `api.fetch(path)`.
+- **Mergé dans `main`** : p01 → p08 (PR #1 à #8), CI verte, changes archivés.
+- **Suivant** : p09-cli sur `feat/p09-cli` (la CLI découvre les commandes des modules via `GET /api/v1/modules/<id>/cli`).
 - **Limites connues** : `service.deleted` n'est publié que pour les services supprimés par leur task
   (pas de finalizer, pour ne jamais bloquer une suppression si le controller est absent).
 - **Sécurité à revoir** : tous les services partagent l'utilisateur NATS `service` ; un service peut publier les
@@ -31,6 +29,8 @@ Dernière mise à jour : 2026-10-19
 - jnats tire `bcprov-lts8on` : exclu dans controller (conflit fabric8 mock) et wrapper (inutile, mots de passe).
 - BungeeCord 26.x refuse de démarrer sans serveur ni avec `priorities: []` (ajoute « lobby ») : serveur factice `ksmc-placeholder`.
 - fabric8 `file().upload()` exige commons-compress et fermer le stdin d'un exec n'envoie pas EOF : l'e2e passe les petits fichiers en base64 dans la commande.
+- Javalin : les filtres `before` ne s'appliquent pas aux upgrades WebSocket → authentifier dans `wsBeforeUpgrade`.
+- E2E : `RestApiE2eTest` (@Order(1)) change le mot de passe admin initial en `e2e-admin-password` ; `ApiClient.admin()` gère les deux cas.
 - Paper `latest` (26.x) et Velocity 4.x exigent Java 25 : l'e2e charge les images runtime java21 et java25.
 - Tests des projets Java 8 : compilés en Java 17 → pas de `getFirst()`.
 - fabric8 7.9.0 est aligné sur JOSDK 5.6.2 : ne pas monter fabric8 seul.
