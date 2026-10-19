@@ -1,0 +1,11 @@
+name: KsmcHello
+main: com.example.hello.HelloPlugin
+version: 1.0.0
+description: Exemple d'utilisation de l'API Ksmc
+api-version: '1.13'
+# Le bridge fournit l'API Ksmc : il doit être chargé avant.
+depend: [KsmcBridge]
+commands:
+  cloud:
+    description: Liste les services du cloud ; « /cloud say <message> » l'envoie aux autres serveurs
+    usage: /cloud [say <message>]

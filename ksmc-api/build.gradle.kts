@@ -1,10 +1,15 @@
 plugins {
     id("ksmc.java21")
+    id("ksmc.publish")
 }
+
+description = "API des modules Ksmc (modèle CRD, SPI, contexte de module)"
 
 dependencies {
     api(libs.fabric8.client)
     api(libs.fabric8.generator.annotations)
+    // Types de messagerie exposés aux modules (ModuleContext).
+    api(project(":ksmc-wire"))
 }
 
 

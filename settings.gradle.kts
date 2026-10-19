@@ -44,6 +44,7 @@ include(
     "ksmc-wire",
     "ksmc-wrapper",
     "ksmc-messaging-nats",
+    "ksmc-plugin-api",
     "ksmc-bridge-common",
     "ksmc-bridge-velocity",
     "ksmc-bridge-bungee",

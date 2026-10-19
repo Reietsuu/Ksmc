@@ -1,0 +1,15 @@
+{{- range $id, $m := .Values.builtinModules }}
+---
+apiVersion: ksmc.io/v1alpha1
+kind: KsmcModule
+metadata:
+  name: {{ $id }}
+  namespace: {{ $.Release.Namespace }}
+  labels: {{- include "ksmc.labels" $ | nindent 4 }}
+spec:
+  source: {builtin: {{ $id | quote }}}
+  enabled: {{ if hasKey $m "enabled" }}{{ $m.enabled }}{{ else }}true{{ end }}
+  {{- with $m.config }}
+  config: {{- toYaml . | nindent 4 }}
+  {{- end }}
+{{- end }}

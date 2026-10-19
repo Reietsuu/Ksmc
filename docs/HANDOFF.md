@@ -2,8 +2,10 @@
 
 Dernière mise à jour : 2026-10-19
 
-- **Mergé dans `main`** : p01 → p05 (PR #1 à #5), CI verte, changes archivés.
-- **Suivant** : p06-module-system sur `feat/p06-module-system`.
+- **Mergé dans `main`** : p01 → p06 (PR #1 à #6), CI verte, changes archivés.
+- **Suivant** : p07-autoscaling sur `feat/p07-autoscaling`.
+- **Provisoire (p06)** : API protégée par un jeton admin unique (Secret `ksmc-api-token`, `StaticTokenAuthenticator`) ;
+  p08 doit le remplacer par les comptes (interface `ApiAuthenticator`). Le dashboard (p10) doit fournir `mount(el, api)` avec `api.fetch(path)`.
 - **Limites connues** : `service.deleted` n'est publié que pour les services supprimés par leur task
   (pas de finalizer, pour ne jamais bloquer une suppression si le controller est absent).
 - **À nettoyer** : warnings 404 du controller quand il patche le statut d'une ressource déjà supprimée
@@ -26,6 +28,7 @@ Dernière mise à jour : 2026-10-19
 - JetStream du chart : stockage fichier uniquement (pas de buckets KV en mémoire).
 - jnats tire `bcprov-lts8on` : exclu dans controller (conflit fabric8 mock) et wrapper (inutile, mots de passe).
 - BungeeCord 26.x refuse de démarrer sans serveur ni avec `priorities: []` (ajoute « lobby ») : serveur factice `ksmc-placeholder`.
+- fabric8 `file().upload()` exige commons-compress et fermer le stdin d'un exec n'envoie pas EOF : l'e2e passe les petits fichiers en base64 dans la commande.
 - Paper `latest` (26.x) et Velocity 4.x exigent Java 25 : l'e2e charge les images runtime java21 et java25.
 - Tests des projets Java 8 : compilés en Java 17 → pas de `getFirst()`.
 - fabric8 7.9.0 est aligné sur JOSDK 5.6.2 : ne pas monter fabric8 seul.

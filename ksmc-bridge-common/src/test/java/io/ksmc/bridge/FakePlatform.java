@@ -10,6 +10,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 final class FakePlatform implements Platform {
     final Map<String, String> servers = new ConcurrentHashMap<>();
     final List<String> calls = new CopyOnWriteArrayList<>();
+    /** Thread principal simulé (par défaut : exécution sur place). */
+    java.util.concurrent.Executor main = Runnable::run;
     final List<OnlinePlayer> players = new CopyOnWriteArrayList<>();
 
     public String name() {
@@ -61,5 +63,10 @@ final class FakePlatform implements Platform {
 
     public Double tps() {
         return 19.9;
+    }
+
+    @Override
+    public java.util.concurrent.Executor mainThread() {
+        return main;
     }
 }

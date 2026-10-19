@@ -8,6 +8,7 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.Executor;
 import net.md_5.bungee.api.ChatColor;
 import net.md_5.bungee.api.ProxyServer;
 import net.md_5.bungee.api.chat.BaseComponent;
@@ -216,5 +217,11 @@ public final class KsmcBungeeBridge extends Plugin implements Listener, Platform
     @SuppressWarnings("deprecation")
     private static BaseComponent[] text(String legacy) {
         return TextComponent.fromLegacyText(ChatColor.translateAlternateColorCodes('&', legacy == null ? "" : legacy));
+    }
+
+    /** BungeeCord n'a pas de thread principal : les rappels des plugins passent par son ordonnanceur. */
+    @Override
+    public Executor mainThread() {
+        return task -> getProxy().getScheduler().runAsync(this, task);
     }
 }

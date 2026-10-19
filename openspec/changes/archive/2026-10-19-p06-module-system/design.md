@@ -1,0 +1,78 @@
+# Design
+
+## Context
+
+Les SPI sont introduites progressivement en p02–p05 dans `ksmc-api`. Ce change les rassemble derrière un contexte de module.
+
+## Goals / Non-Goals
+
+**Goals :** écrire un module = un projet Gradle de 1 classe + 1 JSON ; API stable ; défaillances confinées.
+**Non-Goals :** sandbox de sécurité (un module a les droits du controller — documenté) ; modules conteneurs (réservé).
+
+## Decisions
+
+1. **Classloaders** : parent = classloader « API » ne laissant passer que `io.ksmc.api.*`, `io.ksmc.wire.*`, SLF4J, Jackson
+   annotations ; graphe de dépendances résolu par tri topologique ; versions SemVer.
+2. **Interface** `KsmcModule { void onEnable(ModuleContext ctx); default void onDisable(); default void onConfigChanged(JsonNode cfg) }`.
+   `ModuleContext` : `registry()` (enregistrement SPI avec désenregistrement automatique), `messaging()`, `events()`, `kv()`,
+   `kubernetes()` (client fabric8), `rest()` (routes Javalin préfixées + permissions), `cli()` (descripteurs), `dashboard()`
+   (bundle JS + entrée de menu), `config()`, `dataDirectory()`, `logger()`.
+3. **Commandes CLI déclaratives** : un module déclare `{name, args, httpMethod, path}` ; la CLI (p09) les découvre via
+   `GET /api/v1/modules/<id>/cli` → pas besoin de mettre à jour la CLI pour un nouveau module.
+4. **Dashboard** : un module fournit un bundle ES module servi sous `/modules/<id>/ui.js` exportant `mount(el, api)` ;
+   le dashboard (p10) l'ajoute au menu.
+5. **Plugin API** : `Ksmc.get()` (point d'entrée statique) retournant `KsmcPluginApi` ; futurs `CompletableFuture`
+   (Java 8) ; callbacks repostés sur le thread principal via un `Scheduler` fourni par l'adaptateur de plateforme.
+6. **Publication** : Gradle `maven-publish` vers GitHub Packages à chaque release + compatibilité JitPack (`jitpack.yml`).
+7. **Exemples** : `examples/module-hello` (route REST, commande CLI, page dashboard, écouteur d'événement) et
+   `examples/plugin-hello` (Bukkit : commande `/cloud` listant les services et envoyant un message de channel).
+
+8. **Choix d'implémentation (1.1)** :
+   - Les routes REST des modules utilisent des types propres (`RestRoutes.Request/Response`) et non ceux de Javalin :
+     l'API des modules ne dépend pas de la version de Javalin du controller (montée de version sans casser les modules).
+   - `ksmc-api` dépend de `ksmc-wire` (Java 8, sans dépendance) pour exposer `MessagingTransport`, `EventApi`, `KeyValueApi`.
+   - Version de l'API : `KsmcApiVersion.CURRENT` = 1.0.0 ; `apiVersion` absent du descripteur = `^<majeure courante>.0`.
+   - Plages de versions façon npm (`^`, `~`, `1.x`, comparateurs) implémentées dans `VersionRange` (pas de dépendance).
+   - SPI ajoutée : `ServicePodCustomizer`. Le module s'enregistre via `ExtensionRegistry` (scope par module).
+
+9. **Choix d'implémentation (1.2–1.3)** :
+   - Classloader parent des modules : JDK + `io.ksmc.api`, `io.ksmc.wire`, `org.slf4j`, `com.fasterxml.jackson`,
+     `io.fabric8` (types présents dans `ModuleContext`) ; ordre de recherche : API → JAR du module → JAR des dépendances
+     déclarées (non transitif).
+   - Le nom de la ressource `KsmcModule` est l'id du module (préfixe REST/CLI) ; un JAR d'un autre id → `InvalidDescriptor`.
+   - Pas de finalizer (comme les services) : un balayage toutes les 15 s désactive les modules dont la ressource a disparu.
+   - Rechargement d'une dépendance : ses dépendants sont désactivés puis réactivés par leur vérification périodique (30 s).
+   - `store` : clé relative à la racine du stockage du controller (ex. `modules/hello.jar`) ; `maven` : dépôt Maven
+     Central par défaut, intégrité vérifiée par le `.sha1` publié à côté du JAR.
+   - Modules intégrés : `builtinModules` dans les values → une ressource `KsmcModule` `source.builtin` par entrée,
+     JAR attendu dans `/opt/ksmc/modules/<id>.jar` de l'image.
+
+10. **Choix d'implémentation (1.4)** :
+    - Authentification provisoire jusqu'aux comptes de p08 : jeton administrateur unique (Secret `ksmc-api-token`
+      généré par le chart, en-tête `Authorization: Bearer`), derrière l'interface `ApiAuthenticator` que p08 remplacera.
+      Sans jeton : tout est refusé. Permissions avec joker (`*`, `hello.*`). Authentification vérifiée avant la recherche
+      de route (un anonyme ne peut pas sonder les routes existantes).
+    - Routes de module : `/api/v1/modules/<id>/<chemin>` ; `GET /api/v1/modules/<id>/cli` (descripteurs CLI) ;
+      `GET /api/v1/ui/modules` (pages du dashboard) ; `GET /modules/<id>/ui.js` (bundle, sans authentification).
+      Une erreur du module donne un 500 sans divulguer son message.
+    - SPI reliées via `ExtensionRegistry.bind` : `SoftwareResolver`, `TemplateSourceProvider`, `ScalingStrategy` ;
+      `ServicePodCustomizer` appliqué avant le `podTemplate` (le nom, le namespace et les labels d'identité restent
+      protégés ; une erreur est journalisée sans bloquer le service).
+    - `MessagingTransport` enregistré par un module : utilisé par les contextes de modules à la place de NATS.
+      Le remplacement pour les services (wrapper, bridges) est hors périmètre de ce change.
+
+11. **Choix d'implémentation (2.x–3.1)** :
+    - `ksmc-plugin-api` n'a aucune dépendance (Gson est relocalisé dans les bridges) : données JSON transmises en texte.
+      Embarqué non relocalisé dans chaque bridge ; un plugin déclare la dépendance au bridge (`depend: [KsmcBridge]`,
+      dépendance Velocity `ksmc-bridge`...).
+    - Les abonnements demandés avant la connexion à NATS sont différés puis appliqués à la connexion.
+    - Les gestionnaires de channels sont appelés sur un thread de messagerie (réponse immédiate) ; événements, KV et
+      futurs sur le thread principal (Bukkit : ordonnanceur, Folia : région globale, Fabric/NeoForge : file du serveur,
+      proxies : ordonnanceur du proxy).
+    - Publication : convention `ksmc.publish` (sources + javadoc, POM Apache-2.0), GitHub Packages à chaque tag `v*`,
+      `jitpack.yml` (JDK 21, seulement les trois bibliothèques).
+
+## Risks / Trade-offs
+
+- [Fuites de classloader au rechargement] → tests qui chargent/déchargent 20 fois et vérifient le nettoyage des enregistrements.
+- [API figée trop tôt] → annotation `@Experimental` pour les parties instables.

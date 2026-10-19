@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 import net.minecraft.network.chat.Component;
@@ -153,5 +154,18 @@ public final class MinecraftPlatform implements Platform {
         }
         long nanos = s.getAverageTickTimeNanos();
         return nanos <= 0 ? 20.0 : Math.min(20.0, Math.round(1_000_000_000.0 / nanos * 100.0) / 100.0);
+    }
+
+    /** Thread du serveur Minecraft (file de tâches du serveur) ; sur place tant que le serveur n'est pas démarré. */
+    @Override
+    public Executor mainThread() {
+        return task -> {
+            MinecraftServer s = server;
+            if (s == null || s.isSameThread()) {
+                task.run();
+            } else {
+                s.execute(task);
+            }
+        };
     }
 }
