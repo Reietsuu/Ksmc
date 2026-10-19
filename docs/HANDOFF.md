@@ -1,6 +1,6 @@
 # Handoff (état de reprise)
 
-Dernière mise à jour : 2026-10-15
+Dernière mise à jour : 2026-10-19
 
 - **Mergé dans `main`** : p01 (PR #1), p02 (PR #2), p03 (PR #3) — CI verte, changes archivés.
 - **Terminé, CI en cours** : p04-messaging sur `feat/p04-messaging` (PR #4) — merger quand vert puis archiver.
@@ -11,6 +11,10 @@ Dernière mise à jour : 2026-10-15
   (pas de finalizer, pour ne jamais bloquer une suppression si le controller est absent).
 
 ## Pièges connus de la machine de dev
+
+- **NE PAS lancer l'e2e complet en local** : les serveurs de l'utilisateur occupent ~17 Go sur 22 ;
+  le 2026-10-19 l'e2e a saturé la machine (load 256, RAM 0, mongodb unhealthy). E2E = GitHub Actions
+  uniquement ; en local, au plus un cluster kind pour un diagnostic court, supprimé juste après.
 
 - Port hôte 25565 occupé par un haproxy de l'utilisateur et :8080 par un autre service → ne jamais
   publier de port hôte par défaut ; `scripts/e2e-kind.sh` utilise un kubeconfig dédié `.tools/kubeconfig-ksmc`.
