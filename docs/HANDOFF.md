@@ -4,8 +4,6 @@ Dernière mise à jour : 2026-10-19
 
 - **Mergé dans `main`** : p01 → p07 (PR #1 à #7), CI verte, changes archivés.
 - **Suivant** : p08-rest-api sur `feat/p08-rest-api`.
-- **Provisoire (p06)** : API protégée par un jeton admin unique (Secret `ksmc-api-token`, `StaticTokenAuthenticator`) ;
-  p08 doit le remplacer par les comptes (interface `ApiAuthenticator`). Le dashboard (p10) doit fournir `mount(el, api)` avec `api.fetch(path)`.
 - **Limites connues** : `service.deleted` n'est publié que pour les services supprimés par leur task
   (pas de finalizer, pour ne jamais bloquer une suppression si le controller est absent).
 - **Sécurité à revoir** : tous les services partagent l'utilisateur NATS `service` ; un service peut publier les

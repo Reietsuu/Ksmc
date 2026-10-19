@@ -41,8 +41,10 @@ spec:
               value: {{ .Values.nats.enabled | ternary "controller" .Values.nats.externalAuth.controllerUser | quote }}
             - name: KSMC_NATS_PASSWORD
               valueFrom: {secretKeyRef: {name: ksmc-nats-auth, key: controller-password}}
-            - name: KSMC_API_TOKEN
-              valueFrom: {secretKeyRef: {name: ksmc-api-token, key: token}}
+            - name: KSMC_ADMIN_PASSWORD
+              valueFrom: {secretKeyRef: {name: ksmc-admin, key: password}}
+            - name: KSMC_JWT_KEY
+              valueFrom: {secretKeyRef: {name: ksmc-jwt, key: key}}
             - name: KSMC_NATS_SERVICE_USER
               value: {{ .Values.nats.enabled | ternary "service" .Values.nats.externalAuth.serviceUser | quote }}
             {{- end }}

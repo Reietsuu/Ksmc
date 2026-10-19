@@ -8,18 +8,13 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import io.fabric8.kubernetes.api.model.GenericKubernetesResource;
 import io.fabric8.kubernetes.api.model.Pod;
-import io.fabric8.kubernetes.client.LocalPortForward;
 import io.fabric8.kubernetes.client.utils.Serialization;
 import io.ksmc.api.model.CloudService;
 import io.ksmc.api.model.KsmcModule;
 import io.ksmc.api.model.KsmcModuleStatus;
 import io.ksmc.api.model.ServiceTask;
 import io.ksmc.api.model.ServiceTemplate;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.Duration;
@@ -38,17 +33,13 @@ class ModuleSystemE2eTest {
     static final Duration TIMEOUT = Duration.ofMinutes(6);
     static final Path MODULE_JAR = EXAMPLES.resolve("module-hello/build/libs/ksmc-module-hello.jar");
     static final Path PLUGIN_JAR = EXAMPLES.resolve("plugin-hello/build/libs/ksmc-plugin-hello.jar");
-    static LocalPortForward api;
-    static String token;
-    static final HttpClient HTTP = HttpClient.newHttpClient();
+    static ApiClient api;
 
     @BeforeAll
     static void setUp() {
         assertThat(MODULE_JAR).as("construire d'abord examples/module-hello").exists();
         assertThat(PLUGIN_JAR).as("construire d'abord examples/plugin-hello").exists();
-        api = CLIENT.services().inNamespace(NAMESPACE).withName("ksmc-controller").portForward(8080);
-        token = new String(Base64.getDecoder().decode(CLIENT.secrets().inNamespace(NAMESPACE).withName("ksmc-api-token")
-                .get().getData().get("token")), StandardCharsets.UTF_8);
+        api = new ApiClient();
     }
 
     @AfterAll
@@ -85,13 +76,8 @@ class ModuleSystemE2eTest {
         }
     }
 
-    static HttpResponse<String> call(String method, String path, boolean authenticated) throws Exception {
-        HttpRequest.Builder b = HttpRequest.newBuilder(URI.create("http://127.0.0.1:" + api.getLocalPort() + path))
-                .method(method, HttpRequest.BodyPublishers.noBody()).timeout(Duration.ofSeconds(20));
-        if (authenticated) {
-            b.header("Authorization", "Bearer " + token);
-        }
-        return HTTP.send(b.build(), HttpResponse.BodyHandlers.ofString());
+    static HttpResponse<String> call(String method, String path, boolean authenticated) {
+        return api.call(method, path, authenticated ? api.admin() : null, null);
     }
 
     static HttpResponse<String> get(String path) {
