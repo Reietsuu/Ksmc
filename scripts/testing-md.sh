@@ -20,6 +20,6 @@ script=$(mktemp)
 cd "$ROOT"
 code=0
 bash "$script" || code=$?
-jobs -p | xargs -r kill 2>/dev/null || true
+pkill -f "kubectl -n ksmc port-forward" || true
 rm -f "$script"
 exit $code
