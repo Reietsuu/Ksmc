@@ -21,9 +21,16 @@ public sealed interface ArtifactPlan {
      * Construction par un Job Kubernetes (BuildTools, installeurs). Le wrapper du Job télécharge {@code downloads}
      * (URL → nom de fichier) dans un dossier de travail, y exécute {@code java <javaArgs>}, puis téléverse le contenu
      * de {@code outputDir} en ZIP sur l'API interne ({@code PUT /internal/v1/artifacts/<cacheKey>}).
-     * Ce ZIP est ensuite extrait à la racine de chaque service.
+     * Ce ZIP est ensuite extrait à la racine de chaque service. {@code jdk} : le Job tourne sur l'image de build
+     * (JDK + git, ex. BuildTools qui compile Spigot) au lieu de l'image d'exécution (JRE).
      */
     record BuildJob(int javaVersion, Map<String, String> downloads, List<String> javaArgs, String outputDir,
-            String cacheKey) implements ArtifactPlan {
+            String cacheKey, boolean jdk) implements ArtifactPlan {
+
+        /** Job sur l'image d'exécution (JRE), suffisant pour les installeurs. */
+        public BuildJob(int javaVersion, Map<String, String> downloads, List<String> javaArgs, String outputDir,
+                String cacheKey) {
+            this(javaVersion, downloads, javaArgs, outputDir, cacheKey, false);
+        }
     }
 }

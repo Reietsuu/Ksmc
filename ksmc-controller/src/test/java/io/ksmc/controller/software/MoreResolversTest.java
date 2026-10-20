@@ -98,6 +98,7 @@ class MoreResolversTest {
         ResolvedSoftware res = r.resolve(d, "1.8.8", ctx);
         assertThat(res.launch()).containsExactly("-jar", "spigot-1.8.8.jar", "nogui");
         assertThat(((ArtifactPlan.BuildJob) res.plan()).javaArgs()).contains("--rev", "1.8.8");
+        assertThat(((ArtifactPlan.BuildJob) res.plan()).jdk()).as("BuildTools compile : image JDK").isTrue();
         assertThatThrownBy(() -> r.resolve(d, "1.99", ctx)).isInstanceOf(SoftwareResolver.VersionNotFoundException.class);
     }
 }
