@@ -1,12 +1,21 @@
 <configuration>
-  <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+  <!-- Format choisi par KSMC_LOG_FORMAT : TEXT (défaut) ou JSON (une ligne JSON par événement, MDC inclus).
+       La ressource réconciliée (MDC resource.kind/resource.name de JOSDK) apparaît dans les deux formats. -->
+  <appender name="TEXT" class="ch.qos.logback.core.ConsoleAppender">
     <encoder>
-      <pattern>%d{HH:mm:ss.SSS} %-5level [%thread] %logger{36} - %msg%n</pattern>
+      <pattern>%d{HH:mm:ss.SSS} %-5level [%thread] %logger{36} %replace([%X{resource.kind}/%X{resource.name}] ){'\[/\] ', ''}- %msg%n</pattern>
+    </encoder>
+  </appender>
+  <appender name="JSON" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder class="ch.qos.logback.classic.encoder.JsonEncoder">
+      <withSequenceNumber>false</withSequenceNumber>
+      <withNanoseconds>false</withNanoseconds>
+      <withContext>false</withContext>
     </encoder>
   </appender>
   <logger name="io.javaoperatorsdk" level="INFO"/>
   <logger name="org.eclipse.jetty" level="WARN"/>
   <root level="${KSMC_LOG_LEVEL:-INFO}">
-    <appender-ref ref="STDOUT"/>
+    <appender-ref ref="${KSMC_LOG_FORMAT:-TEXT}"/>
   </root>
 </configuration>

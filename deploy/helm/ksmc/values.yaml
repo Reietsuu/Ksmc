@@ -12,6 +12,8 @@ controller:
     limits: {memory: 768Mi}
   # Niveau de log : TRACE, DEBUG, INFO, WARN, ERROR
   logLevel: INFO
+  # Format des logs : TEXT ou JSON (une ligne JSON par événement, pour Loki/Elasticsearch...).
+  logFormat: TEXT
   extraEnv: []
   nodeSelector: {}
   tolerations: []

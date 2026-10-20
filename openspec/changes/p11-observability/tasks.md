@@ -8,5 +8,5 @@
 
 ## 2. Logs et validation
 
-- [ ] 2.1 Logs JSON optionnels, niveau à chaud via API ; tests
+- [x] 2.1 Logs JSON optionnels, niveau à chaud via API ; tests
 - [ ] 2.2 Scénario e2e : scrape `/metrics` du controller et d'un service ; `docs/OBSERVABILITY.md` ; vérifier en CI

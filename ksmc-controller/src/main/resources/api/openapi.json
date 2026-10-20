@@ -3092,6 +3092,65 @@
     }
    }
   },
+  "/api/v1/admin/loglevel": {
+   "get": {
+    "summary": "Niveaux de log définis (logger → niveau)",
+    "tags": [
+     "admin"
+    ],
+    "description": "Permission : `ksmc.admin.logs`.",
+    "responses": {
+     "200": {
+      "description": "OK"
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   },
+   "put": {
+    "summary": "Changer un niveau à chaud : {\"logger\": \"io.ksmc\", \"level\": \"DEBUG\"} (racine si logger absent, level null = hérité)",
+    "tags": [
+     "admin"
+    ],
+    "description": "Permission : `ksmc.admin.logs`.",
+    "requestBody": {
+     "required": true,
+     "content": {
+      "application/json": {
+       "schema": {
+        "type": "object",
+        "properties": {
+         "logger": {
+          "type": "string"
+         },
+         "level": {
+          "type": "string",
+          "enum": [
+           "TRACE",
+           "DEBUG",
+           "INFO",
+           "WARN",
+           "ERROR",
+           "OFF"
+          ],
+          "nullable": true
+         }
+        }
+       }
+      }
+     }
+    },
+    "responses": {
+     "200": {
+      "description": "OK"
+     },
+     "default": {
+      "$ref": "#/components/responses/Error"
+     }
+    }
+   }
+  },
   "/api/v1/modules/{id}/cli": {
    "get": {
     "summary": "Commandes CLI déclarées par un module",

@@ -28,6 +28,7 @@ import io.ksmc.controller.http.ConsoleApi;
 import io.ksmc.controller.http.EventsApi;
 import io.ksmc.controller.http.OpenApiDocs;
 import io.ksmc.controller.http.HttpServer;
+import io.ksmc.controller.http.LogLevelApi;
 import io.ksmc.controller.metrics.ControllerMetrics;
 import io.ksmc.controller.http.ModuleApi;
 import io.ksmc.controller.http.ResourceApi;
@@ -182,7 +183,7 @@ public final class KsmcController {
         ConsoleApi consoleApi = new ConsoleApi(client, config.namespace(), sessions,
                 ConsoleApi.kubernetes(client, config.namespace()), nats::sendCommand, audit);
         HttpServer http = new HttpServer(health, List.of(new ApiSupport(sessions), authApi, actionApi, resourceApi,
-                templateFiles, eventsApi, consoleApi, new OpenApiDocs(), internal, moduleApi), metrics)
+                templateFiles, eventsApi, consoleApi, new OpenApiDocs(), internal, moduleApi, new LogLevelApi(audit)), metrics)
                 .start(config.httpPort());
         LOG.info("HTTP prêt sur le port {}", http.port());
 

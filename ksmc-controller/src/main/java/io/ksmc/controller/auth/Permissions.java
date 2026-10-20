@@ -33,11 +33,13 @@ public final class Permissions {
     public static final String EVENT_READ = "ksmc.event.read";
     public static final String AUDIT_READ = "ksmc.audit.read";
     public static final String ACCOUNT_ADMIN = "ksmc.account.admin";
+    /** Niveau des logs du controller ({@code PUT /api/v1/admin/loglevel}). */
+    public static final String ADMIN_LOGS = "ksmc.admin.logs";
 
     /** Permissions intégrées, pour la liste {@code GET /api/v1/permissions}. */
     public static final List<String> BUILTIN = List.of(TASK_READ, TASK_WRITE, TASK_START, GROUP_READ, GROUP_WRITE,
             TEMPLATE_READ, TEMPLATE_WRITE, SERVICE_READ, SERVICE_WRITE, SERVICE_COMMAND, SERVICE_CONSOLE, SOFTWARE_READ,
-            SOFTWARE_WRITE, MODULE_READ, MODULE_WRITE, PLAYER_READ, PLAYER_ACTION, EVENT_READ, AUDIT_READ, ACCOUNT_ADMIN);
+            SOFTWARE_WRITE, MODULE_READ, MODULE_WRITE, PLAYER_READ, PLAYER_ACTION, EVENT_READ, AUDIT_READ, ACCOUNT_ADMIN, ADMIN_LOGS);
 
     public static final List<String> VIEWER = List.of(TASK_READ, GROUP_READ, TEMPLATE_READ, SERVICE_READ, SOFTWARE_READ,
             MODULE_READ, PLAYER_READ, EVENT_READ);

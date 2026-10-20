@@ -15,7 +15,10 @@
    `ManagementFactory`) et l'ajoute à son `ServiceReport` (joueurs, TPS) ; le wrapper s'abonne au sujet NATS du
    rapport de son propre service (déjà connecté pour la console) plutôt qu'à un socket local. Sans bridge (ou rapport
    de plus de 60 s) : seulement `ksmc_service_up`, `ksmc_service_uptime_seconds`, `ksmc_service_bridge_connected`.
-3. Logback avec encodeur JSON (`logstash-logback-encoder`) activable ; niveau via `PUT /api/v1/admin/loglevel`.
+3. Logs JSON avec le `JsonEncoder` intégré à Logback 1.6 (pas de `logstash-logback-encoder` : aucune dépendance
+   ajoutée), choisi par `KSMC_LOG_FORMAT` (`controller.logFormat` du chart). La ressource vient du MDC posé par JOSDK
+   (`resource.kind`, `resource.name`). Niveau via `GET/PUT /api/v1/admin/loglevel`, nouvelle permission
+   `ksmc.admin.logs` (rôle admin), action auditée, non persistée.
 4. Dashboard Grafana JSON versionné dans le chart (`deploy/helm/ksmc/grafana/ksmc.json`, Helm ne lit que les
    fichiers du chart), importable tel quel ; ConfigMap avec le label `grafana_dashboard: "1"` (sidecar Grafana).
    Le Service du controller porte `app.kubernetes.io/component: controller` pour le sélecteur du ServiceMonitor.
