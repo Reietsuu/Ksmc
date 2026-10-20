@@ -1,15 +1,12 @@
 # Handoff (état de reprise)
 
-Dernière mise à jour : 2026-10-20 (p11)
+Dernière mise à jour : 2026-10-20 (v0.1.0)
 
 - **Mergé dans `main`** : p01 → p09 (PR #1 à #9), CI verte, changes archivés.
-- **p10-dashboard** (PR #10) et **p11-observability** (PR #11, basée sur p10) : terminés, CI verte, changes archivés.
-  Merge refusé à l'agent par les permissions : l'utilisateur merge #10 puis #11 (`gh pr merge N --merge`).
-- **En cours** : p12-acceptance sur `feat/p12-acceptance` (PR #12, basée sur p11). Fait et vérifié en CI : 1.1 recette
-  réseau complet (bot protocole 1.8, `BotClient`), 1.2 montée de version (`scripts/e2e-upgrade.sh`, job `upgrade`),
-  2.1 `docs/TESTING.md` (blocs `bash test` exécutés par `scripts/testing-md.sh` en fin d'e2e), 2.2 ROADMAP/README.
-  Reste : 1.3 (e2e local, interdit sur cette machine : décision du propriétaire), 2.3 tag `v0.1.0` après merge
-  de #10, #11, #12 par le propriétaire, puis archivage p12.
+- **v0.1.0 publiée** (2026-10-20) : p01 → p12 mergés (PR #1 à #12), tous les changes archivés. Release GitHub
+  (chart, CRDs, CLI, bridges, exemples, SHA256SUMS), images ghcr `0.1.0` (controller, cli, runtime java8/17/21/25
+  + variantes `-jdk`), artefacts Maven `0.1.0` (GitHub Packages).
+- Reste ouvert : p12 1.3 (e2e complet en local) non exécuté, décision du propriétaire. Suite : docs/ROADMAP.md.
 - Dashboard : `./gradlew build` exécute `npm ci`/`npm run build`/`npm test` (sous-projet `:dashboard`, npm du système).
   Essai navigateur local possible sans cluster : `vite preview` + Playwright avec `page.route`/`page.routeWebSocket`.
 - **Limites connues** : `service.deleted` n'est publié que pour les services supprimés par leur task
