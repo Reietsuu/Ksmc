@@ -1,10 +1,11 @@
 # Handoff (état de reprise)
 
-Dernière mise à jour : 2026-10-20
+Dernière mise à jour : 2026-10-20 (p11)
 
 - **Mergé dans `main`** : p01 → p09 (PR #1 à #9), CI verte, changes archivés.
-- **p10-dashboard** : toutes les tâches faites, e2e vert (run 39378147038, Playwright 6/6) ; PR #10 à merger puis archiver.
-  Captures de `docs/DASHBOARD.md` = artefact `dashboard-playwright` de ce run.
+- **p10-dashboard** (PR #10) et **p11-observability** (PR #11, basée sur p10) : terminés, CI verte, changes archivés.
+  Merge refusé à l'agent par les permissions : l'utilisateur merge #10 puis #11 (`gh pr merge N --merge`).
+- **En cours** : p12-acceptance sur `feat/p12-acceptance` (basée sur p11).
 - Dashboard : `./gradlew build` exécute `npm ci`/`npm run build`/`npm test` (sous-projet `:dashboard`, npm du système).
   Essai navigateur local possible sans cluster : `vite preview` + Playwright avec `page.route`/`page.routeWebSocket`.
 - **Limites connues** : `service.deleted` n'est publié que pour les services supprimés par leur task
