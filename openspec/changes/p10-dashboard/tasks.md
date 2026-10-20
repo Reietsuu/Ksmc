@@ -14,5 +14,5 @@
 
 ## 3. Validation
 
-- [ ] 3.1 Responsive 375 px et thème sombre ; parcours Playwright (login, création task, console, éditeur de template, page module hello) dans le job e2e ; vérifier en CI
-- [ ] 3.2 Documenter le dashboard (captures) dans `docs/DASHBOARD.md` ; vérifier que les captures proviennent du run Playwright
+- [x] 3.1 Responsive 375 px et thème sombre ; parcours Playwright (login, création task, console, éditeur de template, page module hello) dans le job e2e ; vérifier en CI
+- [x] 3.2 Documenter le dashboard (captures) dans `docs/DASHBOARD.md` ; vérifier que les captures proviennent du run Playwright
