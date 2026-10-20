@@ -98,3 +98,7 @@ step "Navigateur des parcours du dashboard (Playwright)"
 
 step "Scénarios e2e"
 KSMC_NAMESPACE="$NAMESPACE" ./gradlew -q :ksmc-e2e:test -Pe2e --rerun-tasks
+
+step "Procédure de test manuelle (docs/TESTING.md)"
+# Mot de passe admin déjà changé par les scénarios (ApiClient.ADMIN_PASSWORD).
+KSMC_PASSWORD=e2e-admin-password scripts/testing-md.sh
