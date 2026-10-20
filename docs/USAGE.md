@@ -1,6 +1,7 @@
 # Utiliser Ksmc
 
-Toutes les ressources se gèrent avec `kubectl` (et bientôt l'API REST, la CLI `ksmc` et le dashboard).
+Toutes les ressources se gèrent avec `kubectl`, l'API REST ([API.md](API.md)), la CLI `ksmc` ([CLI.md](CLI.md)) et le
+dashboard web ([DASHBOARD.md](DASHBOARD.md)).
 Les exemples complets sont dans [`examples/`](../examples).
 
 > ⚖️ **EULA Minecraft** : les serveurs ne démarrent que si l'opérateur accepte l'EULA
