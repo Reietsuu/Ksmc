@@ -51,3 +51,14 @@ distributions {
 configurations.all {
     exclude(group = "org.bouncycastle", module = "bcprov-lts8on")
 }
+
+// Dashboard web servi sur / (ressources classpath /dashboard).
+val dashboard by configurations.creating {
+    isCanBeConsumed = false
+}
+dependencies {
+    dashboard(project(mapOf("path" to ":dashboard", "configuration" to "dist")))
+}
+tasks.processResources {
+    from(dashboard) { into("dashboard") }
+}

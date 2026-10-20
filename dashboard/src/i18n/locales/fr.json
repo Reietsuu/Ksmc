@@ -1,0 +1,52 @@
+{
+  "common": {
+    "loading": "Chargement…",
+    "notFound": "Page introuvable",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "create": "Créer",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "refresh": "Actualiser",
+    "name": "Nom",
+    "actions": "Actions",
+    "none": "Aucun élément",
+    "confirmDelete": "Supprimer {{name}} ?",
+    "error": "Erreur : {{message}}",
+    "saved": "Enregistré"
+  },
+  "nav": {
+    "menu": "Menu",
+    "overview": "Vue d'ensemble",
+    "tasks": "Tasks",
+    "groups": "Groupes",
+    "services": "Services",
+    "templates": "Templates",
+    "players": "Joueurs",
+    "software": "Logiciels",
+    "modules": "Modules",
+    "accounts": "Utilisateurs et jetons",
+    "audit": "Audit",
+    "modulePages": "Modules"
+  },
+  "auth": {
+    "title": "Connexion à Ksmc",
+    "username": "Utilisateur",
+    "password": "Mot de passe",
+    "submit": "Se connecter",
+    "invalid": "Identifiants invalides",
+    "logout": "Déconnexion",
+    "changePassword": "Changer le mot de passe",
+    "mustChange": "Vous devez choisir un nouveau mot de passe avant de continuer.",
+    "currentPassword": "Mot de passe actuel",
+    "newPassword": "Nouveau mot de passe"
+  },
+  "theme": {
+    "dark": "Thème sombre",
+    "light": "Thème clair"
+  },
+  "events": {
+    "connected": "Temps réel connecté",
+    "disconnected": "Temps réel déconnecté"
+  }
+}

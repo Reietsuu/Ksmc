@@ -2,8 +2,8 @@
 
 ## 1. Socle
 
-- [ ] 1.1 Projet Vite/React/TS, routing, i18n, thème, client API généré depuis OpenAPI, intégration Gradle et image controller ; vérifier `npm run build` et `./gradlew build`
-- [ ] 1.2 Login, gestion de session, garde de permissions, flux d'événements temps réel ; tests Vitest
+- [x] 1.1 Projet Vite/React/TS, routing, i18n, thème, client API généré depuis OpenAPI, intégration Gradle et image controller ; vérifier `npm run build` et `./gradlew build`
+- [x] 1.2 Login, gestion de session, garde de permissions, flux d'événements temps réel ; tests Vitest
 
 ## 2. Pages
 
