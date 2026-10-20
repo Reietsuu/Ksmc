@@ -160,7 +160,8 @@ curl -sf $API/api/v1/openapi.json | contient '"openapi"'
 ## 9. Observabilité
 
 ```bash test
-curl -s $API/metrics | contient '^ksmc_services{phase="Running",task="t-lobby"} 1.0'
+attendre 60 sh -c "curl -s $API/metrics | grep '^ksmc_services{phase=\"Running\",task=\"t-lobby\"} 1.0' >/dev/null" \
+  || { curl -s $API/metrics | grep '^ksmc_services{.*t-lobby'; false; }
 POD=$(kubectl -n $NS get mcsvc t-lobby-1 -o jsonpath='{.status.podName}')
 kubectl -n $NS port-forward "pod/$POD" 18090:8090 >/dev/null 2>&1 &
 attendre 60 sh -c "curl -s localhost:18090/metrics | grep -q '^ksmc_service_tps'"
