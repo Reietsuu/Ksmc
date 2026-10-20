@@ -142,5 +142,60 @@
     "close": "Fermer",
     "binary": "Fichier binaire : téléchargez-le pour le consulter.",
     "external": "Template externe ({{source}}) : fichiers gérés hors de Ksmc."
+  },
+  "software": {
+    "new": "Nouveau logiciel",
+    "family": "Famille",
+    "resolver": "Résolution"
+  },
+  "modules": {
+    "install": "Installer un module",
+    "state": "État",
+    "enable": "Activer",
+    "disable": "Désactiver",
+    "noPage": "Aucune page pour le module {{module}}",
+    "phase": {
+      "Enabled": "Actif",
+      "Disabled": "Désactivé",
+      "Failed": "Échec",
+      "Pending": "En attente"
+    }
+  },
+  "players": {
+    "name": "Joueur",
+    "server": "Serveur",
+    "proxy": "Proxy",
+    "since": "Connecté depuis",
+    "send": "Envoyer",
+    "message": "Message",
+    "kick": "Expulser",
+    "none": "Aucun joueur connecté",
+    "sendPrompt": "Service de destination pour {{name}}",
+    "messagePrompt": "Message à envoyer à {{name}}",
+    "kickPrompt": "Raison de l'expulsion de {{name}} (facultatif)"
+  },
+  "audit": {
+    "time": "Date",
+    "user": "Utilisateur",
+    "action": "Action",
+    "target": "Cible",
+    "result": "Résultat"
+  },
+  "accounts": {
+    "tokens": "Mes jetons d'API",
+    "tokenName": "Nom du jeton",
+    "expiresInDays": "Expire dans (jours)",
+    "createToken": "Créer un jeton",
+    "tokenOnce": "Copiez ce jeton maintenant : il ne sera plus affiché.",
+    "expires": "Expiration",
+    "never": "Jamais",
+    "revoke": "Révoquer",
+    "confirmRevoke": "Révoquer le jeton {{name}} ?",
+    "users": "Utilisateurs",
+    "role": "Rôle",
+    "createUser": "Créer l'utilisateur",
+    "mustChange": "mot de passe à changer",
+    "resetPassword": "Réinitialiser le mot de passe",
+    "newPasswordPrompt": "Nouveau mot de passe temporaire pour {{name}}"
   }
 }
