@@ -1,4 +1,5 @@
 # Module exemple (construit depuis examples/module-hello, publié dans les releases).
+# sha256 : remplacer par la valeur de ksmc-module-hello.jar dans le fichier SHA256SUMS de la release.
 apiVersion: ksmc.io/v1alpha1
 kind: KsmcModule
 metadata:
