@@ -26,3 +26,11 @@ vi.mock('../components/CodeEditor', async () => {
       }),
   };
 });
+
+// xterm.js a besoin d'un canvas : rendu texte des lignes à la place.
+vi.mock('../components/XTerm', async () => {
+  const { createElement } = await import('react');
+  return {
+    default: ({ lines }: { lines: string[] }) => createElement('pre', { 'data-testid': 'xterm' }, lines.join('\n')),
+  };
+});

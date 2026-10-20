@@ -100,6 +100,27 @@
     "targets": "Environnements ciblés"
   },
   "services": {
-    "phase": "Phase"
+    "phase": "Phase",
+    "search": "Rechercher",
+    "task": "Task",
+    "all": "Toutes",
+    "address": "Adresse",
+    "pod": "Pod",
+    "started": "Démarré",
+    "restarts": "Redémarrages",
+    "message": "Message",
+    "start": "Démarrer",
+    "stop": "Arrêter",
+    "restart": "Redémarrer",
+    "definition": "Définition"
+  },
+  "console": {
+    "title": "Console",
+    "command": "Commande",
+    "placeholder": "Tapez une commande (ex. list)",
+    "readOnly": "Lecture seule",
+    "send": "Envoyer",
+    "connected": "Connecté",
+    "disconnected": "Déconnecté"
   }
 }
