@@ -35,10 +35,17 @@ public final class HttpServer implements AutoCloseable {
                 config.routes.get("/metrics", ctx -> ctx.contentType("text/plain; version=0.0.4; charset=utf-8")
                         .result(metrics.scrape()));
                 config.requestLogger.http((ctx, ms) -> {
-                    String route = ctx.endpoint() == null ? "unmatched" : ctx.endpoint().path;
-                    if (route.startsWith("/api/")) {
-                        metrics.apiRequest(ctx.method().name(), route, ctx.statusCode(), ms);
+                    if (!ctx.path().startsWith("/api/")) {
+                        return;
                     }
+                    // endpoint() lève une exception quand aucune route ne correspond (404, fichiers statiques).
+                    String route;
+                    try {
+                        route = ctx.endpoint().path;
+                    } catch (RuntimeException e) {
+                        route = "unmatched";
+                    }
+                    metrics.apiRequest(ctx.method().name(), route, ctx.statusCode(), ms);
                 });
             }
             extraRoutes.forEach(r -> r.register(config.routes));
