@@ -43,6 +43,9 @@ public interface ModuleContext {
     /** Configuration actuelle ({@code spec.config}), objet vide si absente. */
     JsonNode config();
 
+    /** Métriques Prometheus du module ({@code ksmc_module_<id>_...} sur {@code /metrics} du controller). */
+    ModuleMetrics metrics();
+
     /** Dossier persistant propre au module. */
     Path dataDirectory();
 

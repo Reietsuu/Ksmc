@@ -241,6 +241,10 @@ class ModuleHostTest {
             throw new UnsupportedOperationException();
         }
 
+        public io.ksmc.api.module.ModuleMetrics metrics() {
+            throw new UnsupportedOperationException();
+        }
+
         public Logger logger() {
             return LoggerFactory.getLogger("module." + descriptor.id);
         }

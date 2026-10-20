@@ -19,6 +19,8 @@ dependencies {
     implementation(libs.cron.utils)
     // Hachage des mots de passe (argon2id).
     implementation(libs.password4j)
+    // Métriques Prometheus (/metrics).
+    implementation(libs.micrometer.prometheus)
     testImplementation(libs.fabric8.server.mock)
     testImplementation(libs.testcontainers)
 }

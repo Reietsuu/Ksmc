@@ -42,10 +42,21 @@ public final class DefaultModuleContext implements ModuleContext {
     private final Supplier<? extends MessagingTransport> messaging;
     private final Path dataRoot;
     private final Logger logger;
+    private final io.micrometer.core.instrument.MeterRegistry meterRegistry;
+    private io.ksmc.api.module.ModuleMetrics metrics;
 
     public DefaultModuleContext(ModuleDescriptor descriptor, Registry registry, Supplier<JsonNode> config,
             ClassLoader classLoader, KubernetesClient kubernetes, String namespace,
             Supplier<? extends MessagingTransport> messaging, Path dataRoot) {
+        this(descriptor, registry, config, classLoader, kubernetes, namespace, messaging, dataRoot,
+                new io.micrometer.core.instrument.simple.SimpleMeterRegistry());
+    }
+
+    public DefaultModuleContext(ModuleDescriptor descriptor, Registry registry, Supplier<JsonNode> config,
+            ClassLoader classLoader, KubernetesClient kubernetes, String namespace,
+            Supplier<? extends MessagingTransport> messaging, Path dataRoot,
+            io.micrometer.core.instrument.MeterRegistry meterRegistry) {
+        this.meterRegistry = meterRegistry;
         this.descriptor = descriptor;
         this.registry = registry;
         this.config = config;
@@ -60,6 +71,14 @@ public final class DefaultModuleContext implements ModuleContext {
     @Override
     public ModuleDescriptor descriptor() {
         return descriptor;
+    }
+
+    @Override
+    public synchronized io.ksmc.api.module.ModuleMetrics metrics() {
+        if (metrics == null) {
+            metrics = new io.ksmc.controller.metrics.ModuleMetricsImpl(meterRegistry, descriptor.id, registry);
+        }
+        return metrics;
     }
 
     @Override

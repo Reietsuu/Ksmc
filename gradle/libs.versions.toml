@@ -5,6 +5,7 @@ password4j = "1.8.2"
 cron-utils = "9.2.1"
 fabric8 = "7.9.0"
 josdk = "5.6.2"
+micrometer = "1.16.7"
 javalin = "7.2.3"
 jnats = "2.26.4"
 junit = "6.1.3"
@@ -21,6 +22,7 @@ bungeecord = "1.21-R0.4"
 spigot = "1.8.8-R0.1-SNAPSHOT"
 
 [libraries]
+micrometer-prometheus = { module = "io.micrometer:micrometer-registry-prometheus", version.ref = "micrometer" }
 jackson-databind = { module = "com.fasterxml.jackson.core:jackson-databind", version.ref = "jackson" }
 jackson-yaml = { module = "com.fasterxml.jackson.dataformat:jackson-dataformat-yaml", version.ref = "jackson" }
 jline = { module = "org.jline:jline", version.ref = "jline" }

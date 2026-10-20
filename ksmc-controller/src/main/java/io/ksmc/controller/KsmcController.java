@@ -4,6 +4,9 @@ import io.fabric8.kubernetes.client.KubernetesClient;
 import io.fabric8.kubernetes.client.KubernetesClientBuilder;
 import io.javaoperatorsdk.operator.Operator;
 import io.javaoperatorsdk.operator.api.reconciler.Reconciler;
+import io.ksmc.api.model.CloudService;
+import io.ksmc.api.model.KsmcModule;
+import io.ksmc.api.model.ServiceTask;
 import io.ksmc.api.module.ExtensionRegistry;
 import io.ksmc.api.spi.AuditSink;
 import io.ksmc.api.spi.ScalingStrategy;
@@ -25,6 +28,7 @@ import io.ksmc.controller.http.ConsoleApi;
 import io.ksmc.controller.http.EventsApi;
 import io.ksmc.controller.http.OpenApiDocs;
 import io.ksmc.controller.http.HttpServer;
+import io.ksmc.controller.metrics.ControllerMetrics;
 import io.ksmc.controller.http.ModuleApi;
 import io.ksmc.controller.http.ResourceApi;
 import io.ksmc.controller.http.SessionAuthenticator;
@@ -108,10 +112,25 @@ public final class KsmcController {
         });
         nats.connectAsync();
 
-        Operator operator = new Operator(o -> o.withKubernetesClient(client).withUseSSAToPatchPrimaryResource(false));
+        ControllerMetrics metrics = new ControllerMetrics(new ControllerMetrics.ClusterView() {
+            public List<CloudService> services() {
+                return client.resources(CloudService.class).inNamespace(config.namespace()).list().getItems();
+            }
+
+            public List<ServiceTask> tasks() {
+                return client.resources(ServiceTask.class).inNamespace(config.namespace()).list().getItems();
+            }
+
+            public List<KsmcModule> modules() {
+                return client.resources(KsmcModule.class).inNamespace(config.namespace()).list().getItems();
+            }
+        }, clock);
+        Operator operator = new Operator(o -> o.withKubernetesClient(client).withUseSSAToPatchPrimaryResource(false)
+                .withMetrics(metrics));
         register(operator, config, new SoftwareDefinitionReconciler(catalog));
         register(operator, config, new CloudServiceReconciler(client, software,
-                new PodFactory(config, () -> extensions.all(ServicePodCustomizer.class)), events, nats, bridges, clock));
+                new PodFactory(config, () -> extensions.all(ServicePodCustomizer.class)), events, nats, bridges, clock)
+                .withStartObserver(metrics::serviceStarted));
         register(operator, config, new ServiceTaskReconciler(client, scaling, events, nats, bridges, clock));
         register(operator, config, new ServiceGroupReconciler());
 
@@ -123,7 +142,7 @@ public final class KsmcController {
                             // Transport fourni par un module (ex. Redis) prioritaire sur NATS pour les modules.
                             List<MessagingTransport> transports = extensions.all(MessagingTransport.class);
                             return transports.isEmpty() ? nats.messaging() : transports.getFirst();
-                        }, dataDir.resolve("module-data")));
+                        }, dataDir.resolve("module-data"), metrics.registry()));
         ModuleSources moduleSources = new ModuleSources(storage, artifacts, httpClient, dataDir.resolve("module-jars"),
                 Path.of(config.builtinModulesDir()));
         KsmcModuleReconciler moduleReconciler = new KsmcModuleReconciler(client, config.namespace(), modules, moduleSources);
@@ -163,7 +182,8 @@ public final class KsmcController {
         ConsoleApi consoleApi = new ConsoleApi(client, config.namespace(), sessions,
                 ConsoleApi.kubernetes(client, config.namespace()), nats::sendCommand, audit);
         HttpServer http = new HttpServer(health, List.of(new ApiSupport(sessions), authApi, actionApi, resourceApi,
-                templateFiles, eventsApi, consoleApi, new OpenApiDocs(), internal, moduleApi)).start(config.httpPort());
+                templateFiles, eventsApi, consoleApi, new OpenApiDocs(), internal, moduleApi), metrics)
+                .start(config.httpPort());
         LOG.info("HTTP prêt sur le port {}", http.port());
 
         Runtime.getRuntime().addShutdownHook(new Thread(() -> {
