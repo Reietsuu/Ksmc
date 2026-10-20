@@ -63,11 +63,17 @@ if [[ "$SKIP_BUILD" == false ]]; then
   ./gradlew -q :ksmc-controller:installDist :ksmc-wrapper:jar
   docker build -q -f docker/controller.Dockerfile -t "ghcr.io/reietsuu/ksmc-controller:$TAG" . >/dev/null
   kind load docker-image --name "$CLUSTER" "ghcr.io/reietsuu/ksmc-controller:$TAG"
-  # Variantes Java des images runtime utilisées par les scénarios (KSMC_E2E_JAVA, défaut : "21 25").
-  for java in ${KSMC_E2E_JAVA:-21 25}; do
+  # Variantes Java des images runtime utilisées par les scénarios (KSMC_E2E_JAVA, défaut : "8 21 25").
+  for java in ${KSMC_E2E_JAVA:-8 21 25}; do
     docker build -q -f docker/runtime.Dockerfile --build-arg JAVA_VERSION="$java" \
       -t "ghcr.io/reietsuu/ksmc-runtime:$TAG-java$java" . >/dev/null
     kind load docker-image --name "$CLUSTER" "ghcr.io/reietsuu/ksmc-runtime:$TAG-java$java"
+  done
+  # Image de build (JDK + git) des Jobs BuildTools : Spigot 1.8.8 de la recette réseau.
+  for java in ${KSMC_E2E_BUILD_JAVA:-8}; do
+    docker build -q -f docker/runtime.Dockerfile --build-arg JAVA_VERSION="$java" --build-arg JAVA_FLAVOR=jdk \
+      -t "ghcr.io/reietsuu/ksmc-runtime:$TAG-java$java-jdk" . >/dev/null
+    kind load docker-image --name "$CLUSTER" "ghcr.io/reietsuu/ksmc-runtime:$TAG-java$java-jdk"
   done
 fi
 
