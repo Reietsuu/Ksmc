@@ -4,6 +4,7 @@ import io.javalin.Javalin;
 import io.javalin.http.Context;
 import io.javalin.http.staticfiles.Location;
 import io.ksmc.controller.health.HealthRegistry;
+import io.ksmc.controller.metrics.ControllerMetrics;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
@@ -24,7 +25,29 @@ public final class HttpServer implements AutoCloseable {
     }
 
     public HttpServer(HealthRegistry health, List<HttpRoutes> extraRoutes) {
+        this(health, extraRoutes, null);
+    }
+
+    /** Avec {@code metrics} : {@code GET /metrics} (format Prometheus, sans authentification) et durée des requêtes. */
+    public HttpServer(HealthRegistry health, List<HttpRoutes> extraRoutes, ControllerMetrics metrics) {
         this.app = Javalin.create(config -> {
+            if (metrics != null) {
+                config.routes.get("/metrics", ctx -> ctx.contentType("text/plain; version=0.0.4; charset=utf-8")
+                        .result(metrics.scrape()));
+                config.requestLogger.http((ctx, ms) -> {
+                    if (!ctx.path().startsWith("/api/")) {
+                        return;
+                    }
+                    // endpoint() lève une exception quand aucune route ne correspond (404, fichiers statiques).
+                    String route;
+                    try {
+                        route = ctx.endpoint().path;
+                    } catch (RuntimeException e) {
+                        route = "unmatched";
+                    }
+                    metrics.apiRequest(ctx.method().name(), route, ctx.statusCode(), ms);
+                });
+            }
             extraRoutes.forEach(r -> r.register(config.routes));
             config.startup.showJavalinBanner = false;
             if (HttpServer.class.getResource(DASHBOARD + "/index.html") != null) {

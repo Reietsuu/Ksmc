@@ -18,7 +18,7 @@ import java.util.Map;
  * Module d'exemple. Configuration ({@code KsmcModule.spec.config}) : {@code greeting} (défaut « Hello »).
  *
  * <ul>
- *   <li>{@code GET /api/v1/modules/hello/hello} (permission {@code hello.read}) : message de salutation ;</li>
+ *   <li>{@code GET /api/v1/modules/hello/hello} (permission {@code hello.read}) : message de salutation (compte {@code ksmc_module_hello_greetings_total}) ;</li>
  *   <li>{@code POST /api/v1/modules/hello/broadcast?text=...} ({@code hello.write}) : envoie {@code text} sur le
  *       channel {@code hello} à tous les serveurs (reçu par {@code examples/plugin-hello}) ;</li>
  *   <li>commande CLI {@code ksmc hello broadcast <text>}, page « Hello » du dashboard ;</li>
@@ -32,8 +32,11 @@ public final class HelloModule implements KsmcModule {
     @Override
     public void onEnable(ModuleContext ctx) {
         onConfigChanged(ctx.config());
+        // Métrique ksmc_module_hello_greetings_total sur /metrics du controller.
+        io.ksmc.api.module.ModuleMetrics.Counter greetings = ctx.metrics().counter("greetings");
 
         ctx.rest().get("hello", "hello.read", req -> {
+            greetings.increment();
             Map<String, Object> body = new HashMap<>();
             body.put("message", greeting + ", " + req.user() + " !");
             body.put("services", ctx.kubernetes().resources(io.ksmc.api.model.CloudService.class)

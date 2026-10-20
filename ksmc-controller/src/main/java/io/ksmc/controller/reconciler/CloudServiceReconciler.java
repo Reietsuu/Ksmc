@@ -63,6 +63,13 @@ public final class CloudServiceReconciler implements Reconciler<CloudService> {
     private final BridgeHub bridges;
     private final Clock clock;
     private final Set<String> secretsEnsured = ConcurrentHashMap.newKeySet();
+    private java.util.function.BiConsumer<String, java.time.Duration> startObserver = (task, d) -> { };
+
+    /** Reçoit la durée de démarrage (conteneur lancé → prêt) de chaque service, par task (métriques). */
+    public CloudServiceReconciler withStartObserver(java.util.function.BiConsumer<String, java.time.Duration> observer) {
+        this.startObserver = observer;
+        return this;
+    }
 
     public CloudServiceReconciler(KubernetesClient client, ServiceSoftware software, PodFactory pods,
             EventRecorder events, CloudEvents cloudEvents, BridgeHub bridges, Clock clock) {
@@ -143,6 +150,10 @@ public final class CloudServiceReconciler implements Reconciler<CloudService> {
                 ? pod.getStatus().getPodIP() + ":" + PodFactory.MINECRAFT_PORT : null;
         if (r.ready() && status.readyAt == null) {
             status.readyAt = clock.instant().toString();
+            if (status.startedAt != null) {
+                startObserver.accept(svc.getSpec().task, java.time.Duration.between(
+                        java.time.Instant.parse(status.startedAt), clock.instant()));
+            }
         }
         if (r.terminated()) {
             return handleTermination(svc, pod, status, r);

@@ -88,10 +88,7 @@ class RestApiE2eTest {
         ServiceTask task = CLIENT.resources(ServiceTask.class).inNamespace(NAMESPACE).withName("e2er-lobby").get();
         assertThat(task).isNotNull();
 
-        CLIENT.resources(ServiceTask.class).inNamespace(NAMESPACE).withName("e2er-lobby").edit(t -> {
-            t.getSpec().maxServiceCount = 7;
-            return t;
-        });
+        E2eSupport.editTask("e2er-lobby", t -> t.getSpec().maxServiceCount = 7);
         HttpResponse<String> read = api.call("GET", "/api/v1/tasks/e2er-lobby", api.admin(), null);
         assertThat(json(read).at("/spec/maxServiceCount").asInt()).isEqualTo(7);
     }

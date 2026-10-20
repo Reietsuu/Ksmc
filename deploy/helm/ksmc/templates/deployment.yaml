@@ -60,6 +60,8 @@ spec:
               value: {{ .Values.minecraft.acceptEula | quote }}
             - name: KSMC_LOG_LEVEL
               value: {{ .Values.controller.logLevel | quote }}
+            - name: KSMC_LOG_FORMAT
+              value: {{ .Values.controller.logFormat | default "TEXT" | upper | quote }}
             {{- with .Values.controller.extraEnv }}
             {{- toYaml . | nindent 12 }}
             {{- end }}

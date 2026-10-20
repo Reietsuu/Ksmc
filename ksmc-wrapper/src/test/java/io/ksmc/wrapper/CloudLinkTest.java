@@ -63,4 +63,27 @@ class CloudLinkTest {
             }
         }
     }
+
+    @Test
+    void bridgeReportsOfThisServiceAreForwarded() throws Exception {
+        List<io.ksmc.wire.bridge.ServiceReport> reports = new CopyOnWriteArrayList<>();
+        WrapperEnv env = new WrapperEnv("http://x", null, "prod", "lobby-3", null, 0, null, "lobby", "server", url, null, null);
+        try (CloudLink link = new CloudLink(env, c -> { }, reports::add)) {
+            link.connect();
+            try (Connection bridge = Nats.connect(url)) {
+                bridge.publish(io.ksmc.wire.bridge.BridgeSubjects.report("prod", "lobby-4"),
+                        "{\"service\":\"lobby-4\",\"tps\":12.0}".getBytes(StandardCharsets.UTF_8));
+                bridge.publish(io.ksmc.wire.bridge.BridgeSubjects.report("prod", "lobby-3"),
+                        "{\"service\":\"lobby-3\",\"tps\":19.5,\"onlinePlayers\":2}".getBytes(StandardCharsets.UTF_8));
+                bridge.flush(Duration.ofSeconds(3));
+            }
+            long deadline = System.currentTimeMillis() + 3000;
+            while (reports.isEmpty() && System.currentTimeMillis() < deadline) {
+                Thread.sleep(20);
+            }
+            assertThat(reports).hasSize(1);
+            assertThat(reports.get(0).tps).isEqualTo(19.5);
+            assertThat(reports.get(0).onlinePlayers).isEqualTo(2);
+        }
+    }
 }

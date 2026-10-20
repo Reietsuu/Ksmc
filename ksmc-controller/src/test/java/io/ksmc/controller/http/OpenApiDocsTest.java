@@ -50,6 +50,7 @@ class OpenApiDocsTest {
                 new EventsApi(auth, () -> null, audit),
                 new ConsoleApi(client, "test", auth, ConsoleApi.kubernetes(client, "test"), commands, audit),
                 new OpenApiDocs(),
+                new LogLevelApi(audit),
                 new ModuleApi(extensions, auth)), audit);
     }
 

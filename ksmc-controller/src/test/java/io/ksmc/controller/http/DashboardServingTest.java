@@ -20,7 +20,21 @@ class DashboardServingTest {
 
     @BeforeEach
     void start() {
-        server = new HttpServer(new HealthRegistry()).start(0);
+        // Avec métriques : le journal des requêtes ne doit pas gêner les fichiers statiques.
+        server = new HttpServer(new HealthRegistry(), java.util.List.of(), new io.ksmc.controller.metrics.ControllerMetrics(
+                new io.ksmc.controller.metrics.ControllerMetrics.ClusterView() {
+                    public java.util.List<io.ksmc.api.model.CloudService> services() {
+                        return java.util.List.of();
+                    }
+
+                    public java.util.List<io.ksmc.api.model.ServiceTask> tasks() {
+                        return java.util.List.of();
+                    }
+
+                    public java.util.List<io.ksmc.api.model.KsmcModule> modules() {
+                        return java.util.List.of();
+                    }
+                }, java.time.Clock.systemUTC())).start(0);
     }
 
     @AfterEach
