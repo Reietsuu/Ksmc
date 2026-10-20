@@ -35,6 +35,8 @@ export NS=ksmc API=http://localhost:18080
 attendre() { local t=$1; shift; for _ in $(seq "$t"); do "$@" >/dev/null 2>&1 && return 0; sleep 1; done; echo "ÉCHEC : $*" >&2; return 1; }
 phase() { kubectl -n $NS get mcsvc "$1" -o jsonpath='{.status.phase}' 2>/dev/null; }
 en_ligne() { [ "$(phase "$1")" = Running ]; }
+# contient <motif> : comme grep -q, mais lit toute l'entrée (grep -q coupe le tube et fait échouer curl)
+contient() { grep "$@" >/dev/null; }
 kubectl -n $NS port-forward svc/ksmc-controller 18080:8080 >/dev/null 2>&1 &
 attendre 30 curl -sf $API/healthz
 ```
@@ -107,7 +109,7 @@ En interactif : `ksmc service console t-lobby-1` (Ctrl+D pour quitter).
 ksmc task start t-lobby -n 1
 attendre 600 en_ligne t-lobby-2
 ksmc task maintenance t-lobby on
-kubectl -n $NS get mctask t-lobby -o jsonpath='{.spec.maintenance}' | grep -qx true
+kubectl -n $NS get mctask t-lobby -o jsonpath='{.spec.maintenance}' | contient -x true
 ksmc task maintenance t-lobby off
 ksmc service stop t-lobby-2
 attendre 120 sh -c "! kubectl -n $NS get mcsvc t-lobby-2"
@@ -121,8 +123,8 @@ arrêté disparaît (le minimum de 1 est respecté par `t-lobby-1`).
 ```bash test
 printf 'motd=Ksmc test\n' > /tmp/ksmc-server.properties
 ksmc template put t/lobby server.properties /tmp/ksmc-server.properties
-ksmc template ls t/lobby | grep -q server.properties
-ksmc template cat t/lobby server.properties | grep -qx 'motd=Ksmc test'
+ksmc template ls t/lobby | contient server.properties
+ksmc template cat t/lobby server.properties | contient -x 'motd=Ksmc test'
 ```
 
 **Attendu** : le fichier est listé et relu à l'identique. Un template se rattache à une task par une ressource
@@ -138,7 +140,7 @@ kubectl -n $NS exec "$(kubectl -n $NS get mcsvc t-static-1 -o jsonpath='{.status
 ksmc service restart t-static-1
 sleep 10 && attendre 600 en_ligne t-static-1
 kubectl -n $NS exec "$(kubectl -n $NS get mcsvc t-static-1 -o jsonpath='{.status.podName}')" -c server -- \
-  cat /server/marqueur.txt | grep -qx conserve
+  cat /server/marqueur.txt | contient -x conserve
 ```
 
 **Attendu** : après le redémarrage, le service garde son nom et le fichier `marqueur.txt` (volume persistant).
@@ -147,9 +149,9 @@ kubectl -n $NS exec "$(kubectl -n $NS get mcsvc t-static-1 -o jsonpath='{.status
 
 ```bash test
 TOKEN=$(ksmc token create test-manuel --days 1)
-curl -sf -H "Authorization: Bearer $TOKEN" $API/api/v1/tasks | grep -q '"t-lobby"'
-curl -s -o /dev/null -w '%{http_code}\n' $API/api/v1/tasks | grep -qx 401
-curl -sf $API/api/v1/openapi.json | grep -q '"openapi"'
+curl -sf -H "Authorization: Bearer $TOKEN" $API/api/v1/tasks | contient '"t-lobby"'
+curl -s -o /dev/null -w '%{http_code}\n' $API/api/v1/tasks | contient -x 401
+curl -sf $API/api/v1/openapi.json | contient '"openapi"'
 ```
 
 **Attendu** : la liste des tasks (JSON) avec un jeton d'API, `401` sans jeton ; la description OpenAPI est publique
@@ -158,12 +160,12 @@ curl -sf $API/api/v1/openapi.json | grep -q '"openapi"'
 ## 9. Observabilité
 
 ```bash test
-curl -s $API/metrics | grep -q '^ksmc_services{phase="Running",task="t-lobby"} 1.0'
+curl -s $API/metrics | contient '^ksmc_services{phase="Running",task="t-lobby"} 1.0'
 POD=$(kubectl -n $NS get mcsvc t-lobby-1 -o jsonpath='{.status.podName}')
 kubectl -n $NS port-forward "pod/$POD" 18090:8090 >/dev/null 2>&1 &
 attendre 60 sh -c "curl -s localhost:18090/metrics | grep -q '^ksmc_service_tps'"
 curl -s -X PUT -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
-  -d '{"logger":"io.ksmc","level":"DEBUG"}' $API/api/v1/admin/loglevel | grep -q '"effective":"DEBUG"'
+  -d '{"logger":"io.ksmc","level":"DEBUG"}' $API/api/v1/admin/loglevel | contient '"effective":"DEBUG"'
 ```
 
 **Attendu** : `ksmc_services` vaut 1 pour `t-lobby` en `Running` ; le service expose `ksmc_service_tps` (bridge
