@@ -10,6 +10,10 @@
    collecte (au plus toutes les 5 s) ; les réconciliations passent par l'interface `Metrics` de JOSDK ; les requêtes
    API sont étiquetées par route déclarée (pas le chemin concret) pour borner la cardinalité. `/metrics` est servi
    sans authentification sur le port HTTP du controller (8080), comme `/healthz`.
-2. Wrapper (Java 8) : exposition Prometheus texte écrite à la main (pas de dépendance), données JVM via JMX, TPS reçu du bridge par socket local.
+2. Wrapper (Java 8) : exposition Prometheus texte écrite à la main (pas de dépendance) sur `/metrics` du port de
+   santé 8090. Le serveur tourne dans une JVM enfant : c'est le bridge qui mesure la JVM du serveur (tas, GC, via
+   `ManagementFactory`) et l'ajoute à son `ServiceReport` (joueurs, TPS) ; le wrapper s'abonne au sujet NATS du
+   rapport de son propre service (déjà connecté pour la console) plutôt qu'à un socket local. Sans bridge (ou rapport
+   de plus de 60 s) : seulement `ksmc_service_up`, `ksmc_service_uptime_seconds`, `ksmc_service_bridge_connected`.
 3. Logback avec encodeur JSON (`logstash-logback-encoder`) activable ; niveau via `PUT /api/v1/admin/loglevel`.
 4. Dashboard Grafana JSON versionné dans `deploy/grafana/`.

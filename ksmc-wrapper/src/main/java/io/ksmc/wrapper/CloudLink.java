@@ -2,6 +2,9 @@ package io.ksmc.wrapper;
 
 import io.ksmc.messaging.nats.NatsMessaging;
 import io.ksmc.messaging.nats.Subjects;
+import io.ksmc.wire.Wire;
+import io.ksmc.wire.bridge.BridgeSubjects;
+import io.ksmc.wire.bridge.ServiceReport;
 import io.ksmc.wire.messaging.Identity;
 import io.nats.client.Connection;
 import io.nats.client.Dispatcher;
@@ -17,14 +20,25 @@ final class CloudLink implements AutoCloseable {
         void send(String command) throws IOException;
     }
 
+    /** Reçoit les rapports du bridge de ce service (métriques). */
+    interface ReportSink {
+        void report(ServiceReport report);
+    }
+
     private final WrapperEnv env;
     private final CommandSink sink;
+    private final ReportSink reports;
     private volatile NatsMessaging messaging;
     private volatile boolean closed;
 
     CloudLink(WrapperEnv env, CommandSink sink) {
+        this(env, sink, null);
+    }
+
+    CloudLink(WrapperEnv env, CommandSink sink, ReportSink reports) {
         this.env = env;
         this.sink = sink;
+        this.reports = reports;
     }
 
     void startAsync() {
@@ -64,6 +78,16 @@ final class CloudLink implements AutoCloseable {
                 }
             });
             d.subscribe(Subjects.command(env.namespace, env.service));
+            if (reports != null) {
+                Dispatcher r = c.createDispatcher(msg -> {
+                    try {
+                        reports.report(Wire.fromJson(new String(msg.getData(), IoUtil.UTF8), ServiceReport.class));
+                    } catch (RuntimeException e) {
+                        Log.warn("rapport du bridge illisible : " + e.getMessage());
+                    }
+                });
+                r.subscribe(BridgeSubjects.report(env.namespace, env.service));
+            }
             c.flush(java.time.Duration.ofSeconds(5));
             messaging = m;
             Log.info("connecté à la messagerie du cloud");

@@ -8,7 +8,10 @@ import java.net.InetSocketAddress;
 import java.util.concurrent.Callable;
 import java.util.concurrent.Executors;
 
-/** Sondes HTTP du service : {@code /live} (process vivant) et {@code /ready} (répond au Server List Ping). */
+/**
+ * Sondes HTTP du service : {@code /live} (process vivant), {@code /ready} (répond au Server List Ping) et
+ * {@code /metrics} (format Prometheus, voir {@link ServiceMetrics}).
+ */
 final class HealthServer {
     private final HttpServer server;
     private volatile long readyCheckedAt;
@@ -16,6 +19,11 @@ final class HealthServer {
     private volatile String lastStatus;
 
     HealthServer(int port, final Callable<Boolean> alive, final int minecraftPort) throws IOException {
+        this(port, alive, minecraftPort, null);
+    }
+
+    HealthServer(int port, final Callable<Boolean> alive, final int minecraftPort, final ServiceMetrics metrics)
+            throws IOException {
         server = HttpServer.create(new InetSocketAddress(port), 0);
         server.setExecutor(Executors.newFixedThreadPool(2));
         server.createContext("/live", new com.sun.net.httpserver.HttpHandler() {
@@ -29,6 +37,19 @@ final class HealthServer {
                 respond(ex, ok ? 200 : 503, ok ? "alive" : "process not running");
             }
         });
+        if (metrics != null) {
+            server.createContext("/metrics", new com.sun.net.httpserver.HttpHandler() {
+                public void handle(HttpExchange ex) throws IOException {
+                    boolean ok;
+                    try {
+                        ok = alive.call();
+                    } catch (Exception e) {
+                        ok = false;
+                    }
+                    respond(ex, 200, metrics.render(ok, System.currentTimeMillis()));
+                }
+            });
+        }
         server.createContext("/ready", new com.sun.net.httpserver.HttpHandler() {
             public void handle(HttpExchange ex) throws IOException {
                 boolean ok = ready(minecraftPort);
@@ -70,7 +91,8 @@ final class HealthServer {
     private static void respond(HttpExchange ex, int status, String body) throws IOException {
         byte[] bytes = (body == null ? "" : body).getBytes(IoUtil.UTF8);
         ex.getResponseHeaders().add("Content-Type", status == 200 && body != null && body.startsWith("{")
-                ? "application/json" : "text/plain");
+                ? "application/json" : body != null && body.startsWith("# HELP")
+                ? "text/plain; version=0.0.4; charset=utf-8" : "text/plain");
         ex.sendResponseHeaders(status, bytes.length);
         OutputStream out = ex.getResponseBody();
         out.write(bytes);

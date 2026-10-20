@@ -297,6 +297,23 @@ public final class KsmcBridge implements AutoCloseable {
         return new LinkedHashMap<String, String>(customProperties);
     }
 
+    /** Mémoire et GC de la JVM du serveur (le wrapper les expose sur /metrics). */
+    static void jvm(ServiceReport r) {
+        java.lang.management.MemoryUsage heap = java.lang.management.ManagementFactory.getMemoryMXBean()
+                .getHeapMemoryUsage();
+        r.heapUsedBytes = heap.getUsed();
+        r.heapMaxBytes = heap.getMax() >= 0 ? heap.getMax() : null;
+        long count = 0;
+        long time = 0;
+        for (java.lang.management.GarbageCollectorMXBean gc
+                : java.lang.management.ManagementFactory.getGarbageCollectorMXBeans()) {
+            count += Math.max(0, gc.getCollectionCount());
+            time += Math.max(0, gc.getCollectionTime());
+        }
+        r.gcCount = count;
+        r.gcTimeMillis = time;
+    }
+
     void report() {
         NatsMessaging m = messaging;
         if (m == null) {
@@ -309,6 +326,7 @@ public final class KsmcBridge implements AutoCloseable {
             r.maxPlayers = platform.maxPlayers();
             r.motd = motdOverride != null ? motdOverride : platform.motd();
             r.tps = platform.tps();
+            jvm(r);
             r.state = state;
             r.properties = new LinkedHashMap<String, String>(customProperties);
             m.connection().publish(BridgeSubjects.report(env.namespace, env.service), Wire.toJson(r).getBytes(UTF8));

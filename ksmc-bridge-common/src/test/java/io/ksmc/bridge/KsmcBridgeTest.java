@@ -144,6 +144,8 @@ class KsmcBridgeTest {
         b.setProperty("map", "Desert");
         await(() -> reports.stream().anyMatch(r -> "INGAME".equals(r.state) && "Desert".equals(r.properties.get("map"))));
         assertThat(reports.get(reports.size() - 1).tps).isEqualTo(19.9);
+        assertThat(reports.get(reports.size() - 1).heapUsedBytes).isPositive();
+        assertThat(reports.get(reports.size() - 1).gcCount).isNotNull();
 
         PlayerAction kick = PlayerAction.of(PlayerAction.Type.KICK, "Steve");
         kick.text = "Bye";

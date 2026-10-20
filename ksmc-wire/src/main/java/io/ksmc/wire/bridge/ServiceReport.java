@@ -11,6 +11,11 @@ public class ServiceReport {
     public String motd;
     public String state;
     public Double tps;
+    /** JVM du serveur (mesurée par le bridge) : tas utilisé et maximal (octets), collectes GC et leur durée cumulée. */
+    public Long heapUsedBytes;
+    public Long heapMaxBytes;
+    public Long gcCount;
+    public Long gcTimeMillis;
     public Map<String, String> properties = new LinkedHashMap<String, String>();
     public long timestamp = System.currentTimeMillis();
 }

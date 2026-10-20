@@ -39,11 +39,13 @@ final class Runner {
         process = pb.start();
         stdin = new OutputStreamWriter(process.getOutputStream(), IoUtil.UTF8);
 
+        final ServiceMetrics metrics = new ServiceMetrics(env.namespace, env.service, env.task,
+                System.currentTimeMillis());
         HealthServer health = new HealthServer(env.healthPort, new Callable<Boolean>() {
             public Boolean call() {
                 return process.isAlive();
             }
-        }, manifest.network.port);
+        }, manifest.network.port, metrics);
         health.start();
         startStdinRelay();
         final CloudLink link = new CloudLink(env, new CloudLink.CommandSink() {
@@ -53,6 +55,10 @@ final class Runner {
                 } else {
                     sendCommand(command);
                 }
+            }
+        }, new CloudLink.ReportSink() {
+            public void report(io.ksmc.wire.bridge.ServiceReport report) {
+                metrics.update(report, System.currentTimeMillis());
             }
         });
         link.startAsync();
