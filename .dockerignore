@@ -2,3 +2,4 @@
 !ksmc-controller/build/install/
 !ksmc-wrapper/build/libs/
 !docker/
+!ksmc-cli/build/install/

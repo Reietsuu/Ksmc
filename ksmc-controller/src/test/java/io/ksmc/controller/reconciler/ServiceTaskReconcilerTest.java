@@ -225,6 +225,33 @@ class ServiceTaskReconcilerTest {
     }
 
     @Test
+    void maintenanceIsAppliedInPlaceWithoutReplacingServices() {
+        ServiceTask t = run(task("lobby", "minServiceCount: 2"));
+        List.of("lobby-1", "lobby-2").forEach(n -> setPhase(n, Phase.Running, 0));
+        java.util.Set<String> uids = new java.util.HashSet<>();
+        services().forEach(s -> uids.add(s.getMetadata().getUid()));
+        client.resources(ServiceTask.class).inNamespace("test").withName("lobby").edit(x -> {
+            x.getSpec().maintenance = true;
+            return x;
+        });
+
+        t = run(t);
+
+        List<CloudService> svcs = services();
+        assertThat(svcs).hasSize(2).allMatch(s -> uids.contains(s.getMetadata().getUid()))
+                .allMatch(s -> "true".equals(s.getSpec().properties.get("ksmc.maintenance")));
+        assertThat(t.getStatus().conditions).noneMatch(c -> "Rolling".equals(c.getReason()));
+
+        client.resources(ServiceTask.class).inNamespace("test").withName("lobby").edit(x -> {
+            x.getSpec().maintenance = false;
+            return x;
+        });
+        run(t);
+        assertThat(services()).hasSize(2).allMatch(s -> uids.contains(s.getMetadata().getUid()))
+                .noneMatch(s -> "true".equals(s.getSpec().properties.get("ksmc.maintenance")));
+    }
+
+    @Test
     void missingGroupBlocksCreation() {
         ServiceTask t = run(task("lobby", "groups: [absent]"));
 

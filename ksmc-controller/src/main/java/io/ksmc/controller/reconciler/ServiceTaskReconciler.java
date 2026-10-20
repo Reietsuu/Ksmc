@@ -427,6 +427,7 @@ public final class ServiceTaskReconciler implements Reconciler<ServiceTask> {
             ServiceTaskStatus status, long generation, Instant now) {
         ServiceTaskSpec.UpdateStrategy strategy = task.getSpec().updateStrategy == null
                 ? new ServiceTaskSpec.UpdateStrategy() : task.getSpec().updateStrategy;
+        applyHotProperties(effective, active);
         List<CloudService> outdated = active.stream().filter(s -> !effective.hash().equals(hash(s))).toList();
         if (outdated.isEmpty()) {
             Conditions.set(status, generation, PROGRESSING, true, "UpToDate", null);
@@ -460,6 +461,38 @@ public final class ServiceTaskReconciler implements Reconciler<ServiceTask> {
             }
         }
         return Duration.ofSeconds(5);
+    }
+
+    /** Propage les réglages à chaud (maintenance) aux services existants, sans les redémarrer. */
+    private void applyHotProperties(EffectiveConfig effective, List<CloudService> active) {
+        for (CloudService svc : active) {
+            Map<String, String> wanted = new LinkedHashMap<>();
+            for (String key : EffectiveConfig.HOT_PROPERTIES) {
+                String target = effective.serviceSpec().properties.get(key);
+                String current = svc.getSpec().properties == null ? null : svc.getSpec().properties.get(key);
+                if (!java.util.Objects.equals(target, current)) {
+                    wanted.put(key, target);
+                }
+            }
+            if (wanted.isEmpty()) {
+                continue;
+            }
+            com.fasterxml.jackson.databind.node.ObjectNode patch =
+                    com.fasterxml.jackson.databind.node.JsonNodeFactory.instance.objectNode();
+            com.fasterxml.jackson.databind.node.ObjectNode props = patch.putObject("spec").putObject("properties");
+            wanted.forEach(props::put); // null : propriété retirée (JSON merge patch)
+            client.resources(CloudService.class).inNamespace(svc.getMetadata().getNamespace())
+                    .withName(svc.getMetadata().getName())
+                    .patch(io.fabric8.kubernetes.client.dsl.base.PatchContext.of(
+                            io.fabric8.kubernetes.client.dsl.base.PatchType.JSON_MERGE), patch.toString());
+            wanted.forEach((k, v) -> {
+                if (v == null) {
+                    svc.getSpec().properties.remove(k);
+                } else {
+                    svc.getSpec().properties.put(k, v);
+                }
+            });
+        }
     }
 
     /** Remplace un service obsolète : dynamique supprimé (recréé ensuite), statique mis à jour et redémarré. */

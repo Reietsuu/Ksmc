@@ -72,6 +72,7 @@ jobs:
     strategy:
       matrix:
         java: ["8", "17", "21", "25"]
+        flavor: ["jre", "jdk"]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -85,7 +86,7 @@ jobs:
         uses: docker/metadata-action@v5
         with:
           images: ghcr.io/reietsuu/ksmc-runtime
-          flavor: suffix=-java${{ matrix.java }}
+          flavor: suffix=-java${{ matrix.java }}${{ matrix.flavor == 'jdk' && '-jdk' || '' }}
           tags: |
             type=sha
             type=edge,branch=main
@@ -94,7 +95,9 @@ jobs:
         with:
           context: .
           file: docker/runtime.Dockerfile
-          build-args: JAVA_VERSION=${{ matrix.java }}
+          build-args: |
+            JAVA_VERSION=${{ matrix.java }}
+            JAVA_FLAVOR=${{ matrix.flavor }}
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}

@@ -86,6 +86,10 @@ class EffectiveConfigTest {
 
         assertThat(a).isEqualTo(b);
         assertThat(a).isNotEqualTo(c);
+        // Maintenance : réglage à chaud, hors du hash (pas de mise à jour progressive), mais présent dans la spec.
+        EffectiveConfig m = EffectiveConfig.resolve(task("minServiceCount: 2\nmaintenance: true"), groups);
+        assertThat(m.hash()).isEqualTo(a);
+        assertThat(m.serviceSpec().properties).containsEntry("ksmc.maintenance", "true");
     }
 
     @Test

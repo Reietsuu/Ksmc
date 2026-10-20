@@ -28,6 +28,8 @@ import java.util.Set;
  */
 public record EffectiveConfig(List<String> groups, CloudServiceSpec serviceSpec, String hash) {
     private static final ObjectMapper JSON = new ObjectMapper();
+    /** Propriétés modifiables sans redémarrer les services (hors du hash de configuration). */
+    public static final List<String> HOT_PROPERTIES = List.of("ksmc.maintenance");
 
     /** Un groupe référencé par la task n'existe pas. */
     public static final class GroupNotFoundException extends Exception {
@@ -83,7 +85,15 @@ public record EffectiveConfig(List<String> groups, CloudServiceSpec serviceSpec,
         }
         spec.forcedHosts.forEach((host, target) ->
                 out.properties.put("ksmc.forced-host." + host.toLowerCase(java.util.Locale.ROOT), target));
-        String hash = Digests.sha256(JSON.valueToTree(out).toString()).substring(0, 16);
+        // Les réglages à chaud (maintenance) sont appliqués aux services existants sans les recréer.
+        com.fasterxml.jackson.databind.node.ObjectNode hashed = JSON.valueToTree(out);
+        if (hashed.get("properties") instanceof com.fasterxml.jackson.databind.node.ObjectNode props) {
+            HOT_PROPERTIES.forEach(props::remove);
+            if (props.isEmpty()) {
+                hashed.remove("properties"); // même JSON que sans la propriété (champ vide omis)
+            }
+        }
+        String hash = Digests.sha256(hashed.toString()).substring(0, 16);
         return new EffectiveConfig(new ArrayList<>(order), out, hash);
     }
 

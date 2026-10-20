@@ -53,7 +53,7 @@ public final class BuildToolsResolver implements SoftwareResolver {
                 Map.of(Resolvers.param(def, "buildtools", BUILDTOOLS), "BuildTools.jar"),
                 List.of("-jar", "BuildTools.jar", "--rev", version, "--compile", compile.toUpperCase(),
                         "--output-dir", "out", "--final-name", jar),
-                "out", "buildtools/" + compile.toLowerCase() + "/" + version + "/server.zip");
+                "out", "buildtools/" + compile.toLowerCase() + "/" + version + "/server.zip", true);
         return new ResolvedSoftware(version, null, plan, java, List.of("-jar", jar, "nogui"));
     }
 }

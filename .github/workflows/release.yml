@@ -28,6 +28,14 @@ jobs:
           ./gradlew -PksmcVersion="${GITHUB_REF_NAME#v}" :ksmc-cli:distZip
           mkdir -p dist
           cp ksmc-cli/build/distributions/ksmc-*.zip dist/ksmc-cli-"${GITHUB_REF_NAME#v}".zip
+      - name: Bridges et exemples
+        run: |
+          V="${GITHUB_REF_NAME#v}"
+          ./gradlew -PksmcVersion="$V" :ksmc-controller:installDist
+          cp ksmc-controller/build/install/ksmc-controller/bridges/*.jar dist/
+          ./gradlew -q -p examples/module-hello build -PksmcVersion="$V"
+          ./gradlew -q -p examples/plugin-hello build -PksmcVersion="$V"
+          cp examples/module-hello/build/libs/ksmc-module-hello.jar examples/plugin-hello/build/libs/*.jar dist/
       - name: Chart Helm
         run: |
           scripts/tools.sh
@@ -36,6 +44,8 @@ jobs:
           helm dependency update deploy/helm/ksmc
           helm package deploy/helm/ksmc --version "$V" --app-version "$V" -d dist/
           cp deploy/helm/ksmc/crds/*.yml dist/
+      - name: Sommes de contrôle
+        run: (cd dist && sha256sum * > SHA256SUMS)
       - name: Release GitHub
         env: {GH_TOKEN: "${{ github.token }}"}
         run: gh release create "$GITHUB_REF_NAME" dist/* --generate-notes --verify-tag

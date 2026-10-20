@@ -52,7 +52,7 @@ jobs:
     name: E2E (kind)
     needs: build
     runs-on: ubuntu-latest
-    timeout-minutes: 45
+    timeout-minutes: 75
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-java@v4
@@ -69,3 +69,17 @@ jobs:
             dashboard/e2e/screenshots/
             dashboard/test-results/
           if-no-files-found: ignore
+
+  upgrade:
+    name: Montée de version du chart (kind)
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v4
+        with: {fetch-depth: 0}
+      - uses: actions/setup-java@v4
+        with: {distribution: temurin, java-version: "25"}
+      - uses: gradle/actions/setup-gradle@v4
+      - name: Version précédente → version courante
+        run: scripts/e2e-upgrade.sh

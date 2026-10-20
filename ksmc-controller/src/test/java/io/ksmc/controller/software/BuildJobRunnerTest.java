@@ -43,6 +43,12 @@ class BuildJobRunnerTest {
         assertThat(jobs).hasSize(1);
         var container = jobs.getFirst().getSpec().getTemplate().getSpec().getContainers().getFirst();
         assertThat(container.getImage()).isEqualTo("ghcr.io/reietsuu/ksmc-runtime:0.1.0-java17");
+        ArtifactPlan.BuildJob jdk = new ArtifactPlan.BuildJob(8, plan.downloads(), plan.javaArgs(), plan.outputDir(),
+                "buildtools/spigot/1.8.8/server.zip", true);
+        runner.ensure("test", jdk);
+        assertThat(client.batch().v1().jobs().inNamespace("test").withName(BuildJobRunner.jobName(jdk)).get().getSpec()
+                .getTemplate().getSpec().getContainers().getFirst().getImage())
+                .isEqualTo("ghcr.io/reietsuu/ksmc-runtime:0.1.0-java8-jdk");
         assertThat(container.getEnv()).anySatisfy(e -> {
             assertThat(e.getName()).isEqualTo("KSMC_BUILD");
             assertThat(e.getValue()).contains("buildtools/spigot/1.20.4/server.zip").contains("--rev");

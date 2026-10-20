@@ -48,6 +48,11 @@ public record ControllerConfig(
         return runtimeImage + ":" + runtimeTag + "-java" + javaVersion;
     }
 
+    /** Image des Jobs qui compilent (BuildTools) : même wrapper, avec JDK et git. */
+    public String buildImageFor(int javaVersion) {
+        return runtimeImageFor(javaVersion) + "-jdk";
+    }
+
     private static String currentNamespace() {
         try {
             return Files.readString(SA_NAMESPACE).trim();
