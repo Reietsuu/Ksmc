@@ -122,5 +122,25 @@
     "send": "Envoyer",
     "connected": "Connecté",
     "disconnected": "Déconnecté"
+  },
+  "templates": {
+    "new": "Nouveau template",
+    "source": "Source",
+    "location": "Emplacement",
+    "files": "Fichiers",
+    "file": "Fichier",
+    "size": "Taille",
+    "directory": "Dossier cible",
+    "newFile": "Nouveau fichier",
+    "newFilePrompt": "Chemin du nouveau fichier",
+    "upload": "Téléverser des fichiers",
+    "uploadArchive": "Téléverser une archive",
+    "downloadArchive": "Télécharger (zip)",
+    "download": "Télécharger",
+    "uploaded": "{{count}} fichier(s) téléversé(s)",
+    "empty": "Template vide",
+    "close": "Fermer",
+    "binary": "Fichier binaire : téléchargez-le pour le consulter.",
+    "external": "Template externe ({{source}}) : fichiers gérés hors de Ksmc."
   }
 }
