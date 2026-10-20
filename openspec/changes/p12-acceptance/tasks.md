@@ -2,7 +2,7 @@
 
 ## 1. Suite complète
 
-- [ ] 1.1 Scénario e2e « réseau complet » (Velocity + Bungee, Paper, Spigot 1.8.8, Fabric, NeoForge, joueur bot traversant le réseau) ; vérifier en CI
+- [x] 1.1 Scénario e2e « réseau complet » (Velocity + Bungee, Paper, Spigot 1.8.8, Fabric, NeoForge, joueur bot traversant le réseau) ; vérifier en CI
 - [ ] 1.2 Scénario de mise à jour du chart (version précédente → courante) sans perte des services statiques ; vérifier en CI
 - [ ] 1.3 Exécuter `scripts/e2e-kind.sh` en local une fois et corriger les écarts avec la CI ; vérifier code de sortie 0
 
