@@ -64,7 +64,7 @@ export KSMC_PASSWORD=${KSMC_PASSWORD:-motdepasse-de-test}
 INITIAL=$(kubectl -n $NS get secret ksmc-admin -o jsonpath='{.data.password}' | base64 -d)
 ksmc login $API -u admin -p "$INITIAL" --new-password "$KSMC_PASSWORD" --name test \
   || ksmc login $API -u admin -p "$KSMC_PASSWORD" --name test
-ksmc me
+ksmc user me
 ```
 
 **Attendu** : `connecté à … (contexte test)` puis `admin` avec la permission `*`.
@@ -188,7 +188,7 @@ kubectl -n ksmc port-forward svc/t-proxy 25565
 ```
 
 Se connecter avec un client Minecraft (version du lobby) à `localhost:25565`.
-**Attendu** : arrivée sur `t-lobby-1` ; `ksmc player list` vous affiche ; `ksmc player send <pseudo> t-lobby-2`
+**Attendu** : arrivée sur `t-lobby-1` ; `ksmc player list` vous affiche ; `ksmc player send <pseudo> -s t-lobby-2`
 (après `ksmc task start t-lobby`) vous déplace ; `ksmc player kick <pseudo>` vous déconnecte.
 
 ## 12. Modules (manuel)
