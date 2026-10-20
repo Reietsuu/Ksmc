@@ -15,4 +15,9 @@
 7. Session : jetons dans `localStorage`, renouvellement automatique sur 401 ; WebSocket authentifiés par `?access_token=`.
 8. Dépendances npm (justification) : react/react-dom, react-router-dom, @tanstack/react-query, i18next/react-i18next,
    openapi-fetch + openapi-typescript (client typé), @xterm/xterm (+ addon-fit), monaco-editor + @monaco-editor/react
-   (Monaco empaqueté localement, pas de CDN), yaml (éditeur YAML). Tests : vitest, jsdom, @testing-library/*.
+   (Monaco empaqueté localement, pas de CDN), yaml (éditeur YAML). Tests : vitest, jsdom, @testing-library/*,
+   @playwright/test (parcours navigateur).
+9. Parcours Playwright (`dashboard/e2e`) lancés par `DashboardE2eTest` (dernier scénario du job e2e) : le test Java
+   prépare les données (service Velocity, template storage, module hello), exécute `npx playwright test` contre la
+   redirection de port du controller puis vérifie les effets côté cluster. Captures dans `dashboard/e2e/screenshots`,
+   publiées comme artefact CI `dashboard-playwright`. La console utilise `glist` (Velocity démarre plus vite que Paper).

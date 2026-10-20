@@ -8,7 +8,8 @@
     "dev": "vite",
     "build": "npm run gen:api --silent && tsc -b && vite build --logLevel warn",
     "test": "vitest run --reporter=dot",
-    "lint": "tsc -b --noEmit"
+    "lint": "tsc -b --noEmit",
+    "e2e": "playwright test"
   },
   "dependencies": {
     "@monaco-editor/react": "4.6.0",
@@ -25,6 +26,7 @@
     "yaml": "2.6.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.49.1",
     "@testing-library/dom": "10.4.0",
     "@testing-library/jest-dom": "6.6.3",
     "@testing-library/react": "16.1.0",

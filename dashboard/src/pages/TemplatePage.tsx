@@ -125,7 +125,7 @@ export function FileBrowser({ storagePath }: { storagePath: string }) {
         </table>
       </Loading>
       {open && (
-        <div className="card stack">
+        <div className="card stack" data-testid="file-editor">
           <div className="row between">
             <strong>{open.path}{open.text !== null && open.text !== open.original ? ' •' : ''}</strong>
             <div className="row">

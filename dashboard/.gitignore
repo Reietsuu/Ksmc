@@ -4,3 +4,4 @@ src/api/schema.d.ts
 test-results/
 playwright-report/
 *.tsbuildinfo
+e2e/screenshots/
