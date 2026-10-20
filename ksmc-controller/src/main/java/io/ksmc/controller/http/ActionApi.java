@@ -6,6 +6,7 @@ import io.javalin.config.RoutesConfig;
 import io.javalin.http.Context;
 import io.ksmc.api.model.CloudService;
 import io.ksmc.api.model.CloudServiceSpec;
+import io.ksmc.api.model.Ksmc;
 import io.ksmc.api.model.ServiceTask;
 import io.ksmc.api.model.ServiceTaskSpec;
 import io.ksmc.controller.auth.Permissions;
@@ -135,14 +136,34 @@ public final class ActionApi implements HttpRoutes {
     private void desiredState(Context ctx, CloudServiceSpec.DesiredState state) {
         ApiAuthenticator.Principal p = ApiSupport.require(ctx, Permissions.SERVICE_WRITE);
         String name = ctx.pathParam("name");
-        service(name);
+        CloudService svc = service(name);
         client.resources(CloudService.class).inNamespace(namespace).withName(name).edit(s -> {
             s.getSpec().desiredState = state;
             return s;
         });
+        String task = svc.getSpec().task != null ? svc.getSpec().task
+                : svc.getMetadata().getLabels() == null ? null : svc.getMetadata().getLabels().get(Ksmc.LABEL_TASK);
+        if (state == CloudServiceSpec.DesiredState.Stopped && !svc.getSpec().staticService && task != null) {
+            releaseExtraService(task);
+        }
         String verb = state == CloudServiceSpec.DesiredState.Stopped ? "stop" : "start";
         audit.record(p.name(), "services." + verb, name, "ok", null);
         ctx.status(202).json(Map.of("service", name, "desiredState", state.name()));
+    }
+
+    /**
+     * Arrêt manuel d'un service dynamique : il consomme d'abord un service supplémentaire demandé par « start »
+     * ({@code spec.extraServices}), qui n'est donc pas recréé ; sous le minimum, le service est remplacé.
+     */
+    private void releaseExtraService(String taskName) {
+        ServiceTask task = client.resources(ServiceTask.class).inNamespace(namespace).withName(taskName).get();
+        if (task == null || task.getSpec().extraServices <= 0) {
+            return;
+        }
+        client.resources(ServiceTask.class).inNamespace(namespace).withName(taskName).edit(t -> {
+            t.getSpec().extraServices = Math.max(0, t.getSpec().extraServices - 1);
+            return t;
+        });
     }
 
     /** Redémarrage : le Pod est arrêté proprement et recréé par le controller. */

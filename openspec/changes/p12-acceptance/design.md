@@ -27,5 +27,9 @@
    (« les services restent démarrés »). Les propriétés à chaud (`EffectiveConfig.HOT_PROPERTIES`) sont exclues du
    hash et propagées aux services existants par JSON merge patch ; le bridge lit sa maintenance dans le registre
    (mis à jour par le controller) au lieu des seules propriétés de démarrage.
-7. **Release** : le tag `v0.1.0` est posé sur `main` après merge des PR #10 à #12 (merge réservé au propriétaire) ;
+7. **Arrêt d'un service démarré à la main** (défaut révélé par TESTING.md) : `task start` augmente
+   `spec.extraServices` ; arrêter ensuite ce service le faisait recréer (la cible incluait toujours le supplément),
+   contrairement à la spec (remplacement seulement sous le minimum). `POST /services/<nom>/stop` d'un service
+   dynamique décrémente désormais `extraServices` s'il est positif.
+8. **Release** : le tag `v0.1.0` est posé sur `main` après merge des PR #10 à #12 (merge réservé au propriétaire) ;
    le workflow `release.yml` publie images, chart, CLI, bridges et artefacts Maven.

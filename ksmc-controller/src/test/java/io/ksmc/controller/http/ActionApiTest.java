@@ -81,6 +81,19 @@ class ActionApiTest {
     }
 
     @Test
+    void stoppingAManuallyStartedServiceReleasesTheExtraSlot() {
+        api.call("POST", "/api/v1/tasks/game/start", api.operator, Map.of("count", 1));
+        assertThat(task().getSpec().extraServices).isEqualTo(1);
+        service("game-2");
+
+        assertThat(api.call("POST", "/api/v1/services/game-2/stop", api.operator, null).statusCode()).isEqualTo(202);
+        assertThat(task().getSpec().extraServices).as("pas de remplaçant").isZero();
+        // Sous le minimum (plus de supplément) : le compteur reste à 0, le service sera remplacé par la task.
+        api.call("POST", "/api/v1/services/game-2/stop", api.operator, null);
+        assertThat(task().getSpec().extraServices).isZero();
+    }
+
+    @Test
     void maintenanceStopStartAndRestart() {
         assertThat(api.call("POST", "/api/v1/tasks/game/maintenance", api.operator, Map.of("enabled", true)).statusCode())
                 .isEqualTo(200);
