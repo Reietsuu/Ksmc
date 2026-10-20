@@ -26,6 +26,26 @@ final class E2eSupport {
         }
     }
 
+    /**
+     * Modifie une ServiceTask en réessayant si le controller l'a mise à jour entre-temps (conflit 409 :
+     * le statut change pendant les réconciliations).
+     */
+    static void editTask(String name, java.util.function.Consumer<io.ksmc.api.model.ServiceTask> change) {
+        for (int attempt = 1; ; attempt++) {
+            try {
+                CLIENT.resources(io.ksmc.api.model.ServiceTask.class).inNamespace(NAMESPACE).withName(name).edit(t -> {
+                    change.accept(t);
+                    return t;
+                });
+                return;
+            } catch (io.fabric8.kubernetes.client.KubernetesClientException e) {
+                if (e.getCode() != 409 || attempt >= 10) {
+                    throw e;
+                }
+            }
+        }
+    }
+
     /** Exécute une commande shell dans le conteneur {@code server} d'un Pod et renvoie sa sortie. */
     static String exec(String pod, String command) {
         java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();

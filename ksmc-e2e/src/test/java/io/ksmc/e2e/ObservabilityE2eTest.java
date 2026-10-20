@@ -107,11 +107,8 @@ class ObservabilityE2eTest {
         assertThat(r.statusCode()).as(r.body()).isEqualTo(200);
         try {
             // Provoque des réconciliations.
-            CLIENT.resources(ServiceTask.class).inNamespace(NAMESPACE).withName("e2eo-lobby")
-                    .edit(t -> {
-                        t.getMetadata().getLabels().put("e2e-touch", String.valueOf(System.nanoTime()));
-                        return t;
-                    });
+            E2eSupport.editTask("e2eo-lobby",
+                    t -> t.getMetadata().getLabels().put("e2e-touch", String.valueOf(System.nanoTime())));
             await("logs DEBUG du controller", Duration.ofSeconds(60), () -> CLIENT.pods().inNamespace(NAMESPACE)
                     .withName(pod).inContainer("controller").sinceTime(since.toString()).getLog().contains(" DEBUG "));
         } finally {
