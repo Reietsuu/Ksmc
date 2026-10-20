@@ -182,7 +182,16 @@ public final class KsmcBridge implements AutoCloseable {
     }
 
     public boolean allowedToJoin(String playerName, Router.Permissions perms) {
-        return Router.allowedDuringMaintenance(env.properties(), playerName, perms);
+        return Router.allowedDuringMaintenance(ownProperties(), playerName, perms);
+    }
+
+    /**
+     * Propriétés actuelles de ce service : celles du registre (mises à jour à chaud par le controller, ex.
+     * maintenance), sinon celles reçues au démarrage.
+     */
+    Map<String, String> ownProperties() {
+        ServiceInfo self = registry.get(env.service);
+        return self != null && self.properties != null && !self.properties.isEmpty() ? self.properties : env.properties();
     }
 
     public String maintenanceMessage() {

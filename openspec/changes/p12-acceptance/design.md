@@ -22,5 +22,10 @@
 5. **1.3 (e2e local)** : non exécuté par l'agent — consigne du propriétaire après la saturation de la machine de
    développement le 2026-10-19 (e2e uniquement sur GitHub Actions). Le script local est identique à celui de la CI ;
    à lancer par le propriétaire s'il le souhaite sur une machine dédiée.
-6. **Release** : le tag `v0.1.0` est posé sur `main` après merge des PR #10 à #12 (merge réservé au propriétaire) ;
+6. **Maintenance à chaud** (défaut révélé par TESTING.md) : basculer `maintenance` remplaçait tous les services
+   (la propriété `ksmc.maintenance` entrait dans le hash de configuration), contrairement à la spec task-orchestration
+   (« les services restent démarrés »). Les propriétés à chaud (`EffectiveConfig.HOT_PROPERTIES`) sont exclues du
+   hash et propagées aux services existants par JSON merge patch ; le bridge lit sa maintenance dans le registre
+   (mis à jour par le controller) au lieu des seules propriétés de démarrage.
+7. **Release** : le tag `v0.1.0` est posé sur `main` après merge des PR #10 à #12 (merge réservé au propriétaire) ;
    le workflow `release.yml` publie images, chart, CLI, bridges et artefacts Maven.
