@@ -54,3 +54,12 @@ jobs:
       - uses: gradle/actions/setup-gradle@v4
       - name: Suite e2e
         run: scripts/e2e-kind.sh
+      - name: Captures et traces du dashboard
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: dashboard-playwright
+          path: |
+            dashboard/e2e/screenshots/
+            dashboard/test-results/
+          if-no-files-found: ignore

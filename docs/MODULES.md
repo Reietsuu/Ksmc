@@ -151,8 +151,11 @@ ctx.dashboardPage(new DashboardPage("Hello", "hand", "web/hello.js"));
   liste celles des modules actifs.
 - CLI : `GET /api/v1/modules/<id>/cli` liste les commandes ; `{arg}` dans le chemin est remplacé par l'argument
   du même nom, les autres arguments passent en paramètres de requête.
-- Dashboard *(expérimental)* : le bundle est un module ES exportant `mount(element, api)`, servi sous
-  `/modules/<id>/ui.js` ; `GET /api/v1/ui/modules` liste les pages.
+- Dashboard : le bundle est un module ES exportant `mount(element, api)`, servi sous `/modules/<id>/ui.js` ;
+  `GET /api/v1/ui/modules` liste les pages, ajoutées au menu sans reconstruire le dashboard. `api.fetch(chemin, init)`
+  appelle `/api/v1/modules/<id>/<chemin>` avec la session de l'utilisateur, `api.fetchApi('/api/v1/...')` le reste
+  de l'API. `mount` peut renvoyer une fonction de nettoyage (ou le module exporter `unmount(element)`).
+  Voir [DASHBOARD.md](DASHBOARD.md).
 
 ### 6. Construire et installer
 

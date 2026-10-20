@@ -54,4 +54,5 @@ include(
     "ksmc-controller",
     "ksmc-cli",
     "ksmc-e2e",
+    "dashboard",
 )

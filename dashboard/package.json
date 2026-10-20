@@ -1,0 +1,43 @@
+{
+  "name": "ksmc-dashboard",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "gen:api": "openapi-typescript ../ksmc-controller/src/main/resources/api/openapi.json -o src/api/schema.d.ts",
+    "dev": "vite",
+    "build": "npm run gen:api --silent && tsc -b && vite build --logLevel warn",
+    "test": "vitest run --reporter=dot",
+    "lint": "tsc -b --noEmit",
+    "e2e": "playwright test"
+  },
+  "dependencies": {
+    "@monaco-editor/react": "4.6.0",
+    "@tanstack/react-query": "5.62.7",
+    "@xterm/addon-fit": "0.10.0",
+    "@xterm/xterm": "5.5.0",
+    "i18next": "23.16.8",
+    "monaco-editor": "0.52.2",
+    "openapi-fetch": "0.13.3",
+    "react": "18.3.1",
+    "react-dom": "18.3.1",
+    "react-i18next": "15.1.4",
+    "react-router-dom": "6.28.0",
+    "yaml": "2.6.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.1",
+    "@testing-library/dom": "10.4.0",
+    "@testing-library/jest-dom": "6.6.3",
+    "@testing-library/react": "16.1.0",
+    "@testing-library/user-event": "14.5.2",
+    "@types/react": "18.3.12",
+    "@types/react-dom": "18.3.1",
+    "@vitejs/plugin-react": "4.3.4",
+    "jsdom": "25.0.1",
+    "openapi-typescript": "7.4.4",
+    "typescript": "5.6.3",
+    "vite": "5.4.11",
+    "vitest": "2.1.8"
+  }
+}

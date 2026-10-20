@@ -1,9 +1,12 @@
 # Handoff (état de reprise)
 
-Dernière mise à jour : 2026-10-19
+Dernière mise à jour : 2026-10-20
 
 - **Mergé dans `main`** : p01 → p09 (PR #1 à #9), CI verte, changes archivés.
-- **Suivant** : p10-dashboard sur `feat/p10-dashboard` (pages des modules : `GET /api/v1/ui/modules`, bundle `mount(el, api)` avec `api.fetch`).
+- **p10-dashboard** : toutes les tâches faites, e2e vert (run 39378147038, Playwright 6/6) ; PR #10 à merger puis archiver.
+  Captures de `docs/DASHBOARD.md` = artefact `dashboard-playwright` de ce run.
+- Dashboard : `./gradlew build` exécute `npm ci`/`npm run build`/`npm test` (sous-projet `:dashboard`, npm du système).
+  Essai navigateur local possible sans cluster : `vite preview` + Playwright avec `page.route`/`page.routeWebSocket`.
 - **Limites connues** : `service.deleted` n'est publié que pour les services supprimés par leur task
   (pas de finalizer, pour ne jamais bloquer une suppression si le controller est absent).
 - **Sécurité à revoir** : tous les services partagent l'utilisateur NATS `service` ; un service peut publier les
@@ -23,6 +26,7 @@ Dernière mise à jour : 2026-10-19
 - Toujours `export KUBECONFIG=$PWD/.tools/kubeconfig-ksmc` ; supprimer le cluster kind après usage.
 - Helm 4 : `--skip-crds` après `kubectl apply --server-side -f deploy/helm/ksmc/crds/` (sinon conflit SSA).
 - `gh` 2.46 : pas de `--json` sur `gh pr checks` → `gh run list -b <branche>`.
+- Ne pas utiliser `pkill -f <motif>` / `pgrep -f` dans une commande qui contient le motif : tue le shell de l'outil.
 - Les tâches longues (e2e) doivent être lancées avec l'arrière-plan de l'outil, pas `&` (tuées sinon).
 - Avant d'attendre un `exit=` dans `e2e.log`, SUPPRIMER le log : sinon on lit le résultat de l'exécution précédente.
 - JetStream du chart : stockage fichier uniquement (pas de buckets KV en mémoire).

@@ -87,5 +87,8 @@ step "Exemples (module et plugin)"
 ./gradlew -q -p examples/plugin-hello build
 ./gradlew -q :ksmc-cli:installDist
 
+step "Navigateur des parcours du dashboard (Playwright)"
+(cd dashboard && npm ci --no-audit --no-fund --loglevel=error && npx playwright install --with-deps chromium >/dev/null)
+
 step "Scénarios e2e"
 KSMC_NAMESPACE="$NAMESPACE" ./gradlew -q :ksmc-e2e:test -Pe2e --rerun-tasks

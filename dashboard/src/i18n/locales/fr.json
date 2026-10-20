@@ -1,0 +1,201 @@
+{
+  "common": {
+    "loading": "Chargement…",
+    "notFound": "Page introuvable",
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "create": "Créer",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "refresh": "Actualiser",
+    "name": "Nom",
+    "actions": "Actions",
+    "none": "Aucun élément",
+    "confirmDelete": "Supprimer {{name}} ?",
+    "error": "Erreur : {{message}}",
+    "saved": "Enregistré"
+  },
+  "nav": {
+    "menu": "Menu",
+    "overview": "Vue d'ensemble",
+    "tasks": "Tasks",
+    "groups": "Groupes",
+    "services": "Services",
+    "templates": "Templates",
+    "players": "Joueurs",
+    "software": "Logiciels",
+    "modules": "Modules",
+    "accounts": "Utilisateurs et jetons",
+    "audit": "Audit",
+    "modulePages": "Modules"
+  },
+  "auth": {
+    "title": "Connexion à Ksmc",
+    "username": "Utilisateur",
+    "password": "Mot de passe",
+    "submit": "Se connecter",
+    "invalid": "Identifiants invalides",
+    "logout": "Déconnexion",
+    "changePassword": "Changer le mot de passe",
+    "mustChange": "Vous devez choisir un nouveau mot de passe avant de continuer.",
+    "currentPassword": "Mot de passe actuel",
+    "newPassword": "Nouveau mot de passe"
+  },
+  "theme": {
+    "dark": "Thème sombre",
+    "light": "Thème clair"
+  },
+  "events": {
+    "connected": "Temps réel connecté",
+    "disconnected": "Temps réel déconnecté"
+  },
+  "editor": {
+    "form": "Formulaire"
+  },
+  "phase": {
+    "Running": "En ligne",
+    "Starting": "Démarrage",
+    "Preparing": "Préparation",
+    "Pending": "En attente",
+    "Stopping": "Arrêt",
+    "Stopped": "Arrêté",
+    "Failed": "Échec"
+  },
+  "overview": {
+    "players": "Joueurs connectés",
+    "services": "Services",
+    "tasks": "Tasks",
+    "byPhase": "Services par phase",
+    "events": "Derniers événements",
+    "noEvents": "Aucun événement depuis l'ouverture de la page"
+  },
+  "tasks": {
+    "new": "Nouvelle task",
+    "form": "Formulaire de task",
+    "environment": "Environnement",
+    "software": "Logiciel",
+    "version": "Version",
+    "memory": "Mémoire (Mo)",
+    "min": "Minimum de services",
+    "max": "Maximum de services",
+    "templates": "Templates (séparés par des virgules)",
+    "maintenance": "Maintenance",
+    "services": "Services prêts",
+    "players": "Joueurs",
+    "stateLabel": "État",
+    "range": "Services min–max",
+    "count": "Nombre de services",
+    "start": "Démarrer",
+    "maintenanceOn": "Mettre en maintenance",
+    "maintenanceOff": "Sortir de maintenance",
+    "state": {
+      "ok": "Normal",
+      "maintenance": "Maintenance",
+      "disabled": "Désactivée",
+      "degraded": "Dégradée"
+    }
+  },
+  "groups": {
+    "new": "Nouveau groupe",
+    "targets": "Environnements ciblés"
+  },
+  "services": {
+    "phase": "Phase",
+    "search": "Rechercher",
+    "task": "Task",
+    "all": "Toutes",
+    "address": "Adresse",
+    "pod": "Pod",
+    "started": "Démarré",
+    "restarts": "Redémarrages",
+    "message": "Message",
+    "start": "Démarrer",
+    "stop": "Arrêter",
+    "restart": "Redémarrer",
+    "definition": "Définition"
+  },
+  "console": {
+    "title": "Console",
+    "command": "Commande",
+    "placeholder": "Tapez une commande (ex. list)",
+    "readOnly": "Lecture seule",
+    "send": "Envoyer",
+    "connected": "Connecté",
+    "disconnected": "Déconnecté"
+  },
+  "templates": {
+    "new": "Nouveau template",
+    "source": "Source",
+    "location": "Emplacement",
+    "files": "Fichiers",
+    "file": "Fichier",
+    "size": "Taille",
+    "directory": "Dossier cible",
+    "newFile": "Nouveau fichier",
+    "newFilePrompt": "Chemin du nouveau fichier",
+    "upload": "Téléverser des fichiers",
+    "uploadArchive": "Téléverser une archive",
+    "downloadArchive": "Télécharger (zip)",
+    "download": "Télécharger",
+    "uploaded": "{{count}} fichier(s) téléversé(s)",
+    "empty": "Template vide",
+    "close": "Fermer",
+    "binary": "Fichier binaire : téléchargez-le pour le consulter.",
+    "external": "Template externe ({{source}}) : fichiers gérés hors de Ksmc."
+  },
+  "software": {
+    "new": "Nouveau logiciel",
+    "family": "Famille",
+    "resolver": "Résolution"
+  },
+  "modules": {
+    "install": "Installer un module",
+    "state": "État",
+    "enable": "Activer",
+    "disable": "Désactiver",
+    "noPage": "Aucune page pour le module {{module}}",
+    "phase": {
+      "Enabled": "Actif",
+      "Disabled": "Désactivé",
+      "Failed": "Échec",
+      "Pending": "En attente"
+    }
+  },
+  "players": {
+    "name": "Joueur",
+    "server": "Serveur",
+    "proxy": "Proxy",
+    "since": "Connecté depuis",
+    "send": "Envoyer",
+    "message": "Message",
+    "kick": "Expulser",
+    "none": "Aucun joueur connecté",
+    "sendPrompt": "Service de destination pour {{name}}",
+    "messagePrompt": "Message à envoyer à {{name}}",
+    "kickPrompt": "Raison de l'expulsion de {{name}} (facultatif)"
+  },
+  "audit": {
+    "time": "Date",
+    "user": "Utilisateur",
+    "action": "Action",
+    "target": "Cible",
+    "result": "Résultat"
+  },
+  "accounts": {
+    "tokens": "Mes jetons d'API",
+    "tokenName": "Nom du jeton",
+    "expiresInDays": "Expire dans (jours)",
+    "createToken": "Créer un jeton",
+    "tokenOnce": "Copiez ce jeton maintenant : il ne sera plus affiché.",
+    "expires": "Expiration",
+    "never": "Jamais",
+    "revoke": "Révoquer",
+    "confirmRevoke": "Révoquer le jeton {{name}} ?",
+    "users": "Utilisateurs",
+    "role": "Rôle",
+    "createUser": "Créer l'utilisateur",
+    "mustChange": "mot de passe à changer",
+    "resetPassword": "Réinitialiser le mot de passe",
+    "newPasswordPrompt": "Nouveau mot de passe temporaire pour {{name}}"
+  }
+}
