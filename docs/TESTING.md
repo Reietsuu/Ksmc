@@ -37,7 +37,9 @@ phase() { kubectl -n $NS get mcsvc "$1" -o jsonpath='{.status.phase}' 2>/dev/nul
 en_ligne() { [ "$(phase "$1")" = Running ]; }
 # contient <motif> : comme grep -q, mais lit toute l'entrée (grep -q coupe le tube et fait échouer curl)
 contient() { grep "$@" >/dev/null; }
-kubectl -n $NS port-forward svc/ksmc-controller 18080:8080 >/dev/null 2>&1 &
+# redirection en arrière-plan, relançable (arrête l'ancienne ; le sous-shell évite le message « [1] PID »)
+pkill -f 'port-forward svc/ksmc-controller 18080' || true
+(kubectl -n $NS port-forward svc/ksmc-controller 18080:8080 >/dev/null 2>&1 &)
 attendre 30 curl -sf $API/healthz
 ```
 
@@ -163,7 +165,8 @@ curl -sf $API/api/v1/openapi.json | contient '"openapi"'
 attendre 60 sh -c "curl -s $API/metrics | grep '^ksmc_services{phase=\"Running\",task=\"t-lobby\"} 1.0' >/dev/null" \
   || { curl -s $API/metrics | grep '^ksmc_services{.*t-lobby'; false; }
 POD=$(kubectl -n $NS get mcsvc t-lobby-1 -o jsonpath='{.status.podName}')
-kubectl -n $NS port-forward "pod/$POD" 18090:8090 >/dev/null 2>&1 &
+pkill -f 'port-forward pod/.* 18090:8090' || true
+(kubectl -n $NS port-forward "pod/$POD" 18090:8090 >/dev/null 2>&1 &)
 attendre 60 sh -c "curl -s localhost:18090/metrics | grep -q '^ksmc_service_tps'"
 curl -s -X PUT -H "Authorization: Bearer $TOKEN" -H 'Content-Type: application/json' \
   -d '{"logger":"io.ksmc","level":"DEBUG"}' $API/api/v1/admin/loglevel | contient '"effective":"DEBUG"'
@@ -215,7 +218,7 @@ attendre 300 sh -c "! kubectl -n $NS get mcsvc -o name | grep -q '/t-'"
 kubectl -n $NS delete pvc -l ksmc.io/service=t-static-1 --ignore-not-found
 ksmc template rm t/lobby server.properties
 ksmc token list | awk '$2 == "test-manuel" {print $1}' | xargs -r -n1 ksmc token revoke
-kill %1 %2 2>/dev/null || true
+pkill -f "kubectl -n $NS port-forward" || true
 ```
 
 **Attendu** : tous les services `t-…` disparaissent. Pour tout supprimer : `kind delete cluster --name ksmc-test`.
