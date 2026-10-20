@@ -19,6 +19,9 @@ spec:
         - {protocol: TCP, port: 25565}
     - from:
         - podSelector: {}
+        {{- if or .Values.metrics.serviceMonitor.enabled .Values.metrics.scrapeNamespaceSelector }}
+        - namespaceSelector: {{- toYaml .Values.metrics.scrapeNamespaceSelector | nindent 12 }}
+        {{- end }}
       ports:
         - {protocol: TCP, port: 8090}
 {{- end }}

@@ -53,6 +53,28 @@ builtinModules: {}
 networkPolicy:
   enabled: false
 
+# Observabilité (Prometheus Operator / Grafana). Voir docs/OBSERVABILITY.md.
+metrics:
+  # ServiceMonitor du controller (/metrics, port http) et PodMonitor des services (/metrics, port health 8090).
+  serviceMonitor:
+    enabled: false
+    interval: 30s
+    # Labels attendus par le sélecteur de Prometheus (ex. release: kube-prometheus-stack).
+    labels: {}
+  # Alertes : controller indisponible, task dégradée, service en crash, services en échec, TPS bas.
+  prometheusRule:
+    enabled: false
+    labels: {}
+    lowTps: 15
+  # ConfigMap du tableau de bord (chargé par le sidecar Grafana grâce au label).
+  grafanaDashboard:
+    enabled: false
+    labels:
+      grafana_dashboard: "1"
+    annotations: {}
+  # Avec networkPolicy.enabled : namespaces autorisés à joindre le port 8090 des serveurs (Prometheus).
+  scrapeNamespaceSelector: {}
+
 service:
   type: ClusterIP
   port: 8080

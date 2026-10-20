@@ -16,4 +16,6 @@
    rapport de son propre service (déjà connecté pour la console) plutôt qu'à un socket local. Sans bridge (ou rapport
    de plus de 60 s) : seulement `ksmc_service_up`, `ksmc_service_uptime_seconds`, `ksmc_service_bridge_connected`.
 3. Logback avec encodeur JSON (`logstash-logback-encoder`) activable ; niveau via `PUT /api/v1/admin/loglevel`.
-4. Dashboard Grafana JSON versionné dans `deploy/grafana/`.
+4. Dashboard Grafana JSON versionné dans le chart (`deploy/helm/ksmc/grafana/ksmc.json`, Helm ne lit que les
+   fichiers du chart), importable tel quel ; ConfigMap avec le label `grafana_dashboard: "1"` (sidecar Grafana).
+   Le Service du controller porte `app.kubernetes.io/component: controller` pour le sélecteur du ServiceMonitor.

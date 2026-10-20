@@ -41,6 +41,12 @@ jobs:
           export PATH="$PWD/.tools/bin:$PATH"
           helm dependency update deploy/helm/ksmc
           helm lint deploy/helm/ksmc
+          helm lint deploy/helm/ksmc --set metrics.serviceMonitor.enabled=true \
+            --set metrics.prometheusRule.enabled=true --set metrics.grafanaDashboard.enabled=true \
+            --set networkPolicy.enabled=true
+          helm template ksmc deploy/helm/ksmc --set metrics.serviceMonitor.enabled=true \
+            --set metrics.prometheusRule.enabled=true --set metrics.grafanaDashboard.enabled=true \
+            | grep -E "^kind: (ServiceMonitor|PodMonitor|PrometheusRule)$" | sort | uniq -c
 
   e2e:
     name: E2E (kind)

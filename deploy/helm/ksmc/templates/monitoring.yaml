@@ -1,0 +1,105 @@
+{{- if .Values.metrics.serviceMonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "ksmc.fullname" . }}-controller
+  labels:
+    {{- include "ksmc.labels" . | nindent 4 }}
+    {{- with .Values.metrics.serviceMonitor.labels }}{{ toYaml . | nindent 4 }}{{ end }}
+spec:
+  selector:
+    matchLabels: {{- include "ksmc.controllerSelector" . | nindent 6 }}
+  namespaceSelector:
+    matchNames: [{{ .Release.Namespace }}]
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: {{ .Values.metrics.serviceMonitor.interval }}
+---
+# Services de jeu : Pods créés par le controller (label ksmc.io/service), port « health ».
+apiVersion: monitoring.coreos.com/v1
+kind: PodMonitor
+metadata:
+  name: {{ include "ksmc.fullname" . }}-services
+  labels:
+    {{- include "ksmc.labels" . | nindent 4 }}
+    {{- with .Values.metrics.serviceMonitor.labels }}{{ toYaml . | nindent 4 }}{{ end }}
+spec:
+  selector:
+    matchExpressions:
+      - {key: ksmc.io/service, operator: Exists}
+    matchLabels:
+      app.kubernetes.io/managed-by: ksmc
+  namespaceSelector:
+    matchNames: [{{ .Release.Namespace }}]
+  podMetricsEndpoints:
+    - port: health
+      path: /metrics
+      interval: {{ .Values.metrics.serviceMonitor.interval }}
+{{- end }}
+{{- if .Values.metrics.prometheusRule.enabled }}
+{{- $ns := .Release.Namespace }}
+{{- $job := printf "%s-controller" (include "ksmc.fullname" .) }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ include "ksmc.fullname" . }}
+  labels:
+    {{- include "ksmc.labels" . | nindent 4 }}
+    {{- with .Values.metrics.prometheusRule.labels }}{{ toYaml . | nindent 4 }}{{ end }}
+spec:
+  groups:
+    - name: ksmc
+      rules:
+        - alert: KsmcControllerDown
+          expr: up{job="{{ $job }}",namespace="{{ $ns }}"} == 0 or absent(up{job="{{ $job }}",namespace="{{ $ns }}"})
+          for: 5m
+          labels: {severity: critical}
+          annotations:
+            summary: Le controller Ksmc est indisponible
+            description: Aucune donnée du controller {{ $job }} depuis 5 minutes ; plus aucun service ne démarre.
+        - alert: KsmcTaskDegraded
+          expr: ksmc_task_degraded{namespace="{{ $ns }}"} == 1
+          for: 5m
+          labels: {severity: warning}
+          annotations:
+            summary: "Task {{ "{{ $labels.task }}" }} dégradée"
+            description: Les services de la task échouent en boucle (condition Degraded) ; voir kubectl describe mctask.
+        - alert: KsmcServiceCrashLooping
+          expr: increase(ksmc_service_restarts{namespace="{{ $ns }}"}[15m]) > 3
+          labels: {severity: warning}
+          annotations:
+            summary: "Service {{ "{{ $labels.service }}" }} en crash"
+            description: "Plus de 3 redémarrages du conteneur en 15 minutes."
+        - alert: KsmcServicesFailed
+          expr: sum by (task) (ksmc_services{namespace="{{ $ns }}",phase="Failed"}) > 0
+          for: 10m
+          labels: {severity: warning}
+          annotations:
+            summary: "Services en échec dans la task {{ "{{ $labels.task }}" }}"
+            description: "{{ "{{ $value }}" }} service(s) en phase Failed depuis 10 minutes."
+        - alert: KsmcLowTps
+          expr: ksmc_service_tps{namespace="{{ $ns }}"} < {{ .Values.metrics.prometheusRule.lowTps }}
+          for: 5m
+          labels: {severity: warning}
+          annotations:
+            summary: "TPS bas sur {{ "{{ $labels.service }}" }}"
+            description: "{{ "{{ $value }}" }} TPS depuis 5 minutes."
+{{- end }}
+{{- if .Values.metrics.grafanaDashboard.enabled }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "ksmc.fullname" . }}-grafana-dashboard
+  labels:
+    {{- include "ksmc.labels" . | nindent 4 }}
+    {{- with .Values.metrics.grafanaDashboard.labels }}{{ toYaml . | nindent 4 }}{{ end }}
+  {{- with .Values.metrics.grafanaDashboard.annotations }}
+  annotations: {{- toYaml . | nindent 4 }}
+  {{- end }}
+data:
+  ksmc.json: |-
+    {{- .Files.Get "grafana/ksmc.json" | nindent 4 }}
+{{- end }}
