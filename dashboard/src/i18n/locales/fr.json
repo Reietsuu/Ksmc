@@ -48,5 +48,58 @@
   "events": {
     "connected": "Temps réel connecté",
     "disconnected": "Temps réel déconnecté"
+  },
+  "editor": {
+    "form": "Formulaire"
+  },
+  "phase": {
+    "Running": "En ligne",
+    "Starting": "Démarrage",
+    "Preparing": "Préparation",
+    "Pending": "En attente",
+    "Stopping": "Arrêt",
+    "Stopped": "Arrêté",
+    "Failed": "Échec"
+  },
+  "overview": {
+    "players": "Joueurs connectés",
+    "services": "Services",
+    "tasks": "Tasks",
+    "byPhase": "Services par phase",
+    "events": "Derniers événements",
+    "noEvents": "Aucun événement depuis l'ouverture de la page"
+  },
+  "tasks": {
+    "new": "Nouvelle task",
+    "form": "Formulaire de task",
+    "environment": "Environnement",
+    "software": "Logiciel",
+    "version": "Version",
+    "memory": "Mémoire (Mo)",
+    "min": "Minimum de services",
+    "max": "Maximum de services",
+    "templates": "Templates (séparés par des virgules)",
+    "maintenance": "Maintenance",
+    "services": "Services prêts",
+    "players": "Joueurs",
+    "stateLabel": "État",
+    "range": "Services min–max",
+    "count": "Nombre de services",
+    "start": "Démarrer",
+    "maintenanceOn": "Mettre en maintenance",
+    "maintenanceOff": "Sortir de maintenance",
+    "state": {
+      "ok": "Normal",
+      "maintenance": "Maintenance",
+      "disabled": "Désactivée",
+      "degraded": "Dégradée"
+    }
+  },
+  "groups": {
+    "new": "Nouveau groupe",
+    "targets": "Environnements ciblés"
+  },
+  "services": {
+    "phase": "Phase"
   }
 }

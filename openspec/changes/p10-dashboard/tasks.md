@@ -7,7 +7,7 @@
 
 ## 2. Pages
 
-- [ ] 2.1 Vue d'ensemble, tasks et groupes (formulaires + éditeur YAML) ; tests Vitest
+- [x] 2.1 Vue d'ensemble, tasks et groupes (formulaires + éditeur YAML) ; tests Vitest
 - [ ] 2.2 Services (liste, détail, console xterm) ; tests Vitest
 - [ ] 2.3 Templates (explorateur, éditeur Monaco, upload/download) ; tests Vitest
 - [ ] 2.4 Joueurs, logiciels, modules (dont pages de modules dynamiques), utilisateurs/jetons, audit ; tests Vitest
