@@ -29,6 +29,7 @@ import io.ksmc.bridge.NetworkCommands;
 import io.ksmc.bridge.Platform;
 import io.ksmc.bridge.Router;
 import io.ksmc.bridge.TransferPlan;
+import io.ksmc.bridge.Watchdog;
 import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -37,6 +38,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.kyori.adventure.title.Title;
@@ -51,6 +55,8 @@ public final class KsmcVelocityBridge implements Platform {
     private final ProxyServer proxy;
     private final Logger logger;
     private KsmcBridge bridge;
+    private Watchdog watchdog;
+    private ScheduledExecutorService heartbeats;
 
     @Inject
     public KsmcVelocityBridge(ProxyServer proxy, Logger logger) {
@@ -63,6 +69,38 @@ public final class KsmcVelocityBridge implements Platform {
         bridge = new KsmcBridge(BridgeEnv.fromSystem(), this);
         bridge.start();
         registerCommands();
+        startWatchdog();
+    }
+
+    /** Battements du planificateur (1 s) et du bus d'événements (5 s), surveillés par un thread du bridge. */
+    private void startWatchdog() {
+        Watchdog dog = bridge.watchdog();
+        if (dog == null) {
+            return;
+        }
+        watchdog = dog;
+        proxy.getScheduler().buildTask(this, dog::beatScheduler).repeat(1, TimeUnit.SECONDS).schedule();
+        heartbeats = Executors.newSingleThreadScheduledExecutor(r -> {
+            Thread t = new Thread(r, "ksmc-heartbeat");
+            t.setDaemon(true);
+            return t;
+        });
+        heartbeats.scheduleAtFixedRate(() -> proxy.getEventManager().fire(new KsmcHeartbeatEvent())
+                .thenRun(dog::beatEvents), 0, 5, TimeUnit.SECONDS);
+        dog.start(reason -> logger.error("[ksmc] proxy figé : {}", reason));
+    }
+
+    /** Arrêt normal : plus de surveillance (un drainage long n'est pas un gel). */
+    private void stopWatchdog() {
+        if (watchdog != null) {
+            watchdog.stop();
+            heartbeats.shutdownNow();
+        }
+    }
+
+    @Subscribe
+    public void onHeartbeat(KsmcHeartbeatEvent event) {
+        // traversée du bus : rien à faire
     }
 
     /** Commandes réseau : {@code /ksmc <commande>} et, sauf {@code ksmc.commands.replace-builtin: false}, en direct. */
@@ -92,6 +130,7 @@ public final class KsmcVelocityBridge implements Platform {
     /** Avant que Velocity ne déconnecte les joueurs : transfert vers un autre proxy de la task, sinon expulsion. */
     @Subscribe
     public void onPreShutdown(ProxyPreShutdownEvent event) {
+        stopWatchdog();
         if (bridge == null || !bridge.env().isManaged()) {
             return;
         }
@@ -122,6 +161,7 @@ public final class KsmcVelocityBridge implements Platform {
 
     @Subscribe
     public void onShutdown(ProxyShutdownEvent event) {
+        stopWatchdog();
         if (bridge != null) {
             bridge.close();
         }

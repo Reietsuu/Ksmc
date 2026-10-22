@@ -5,8 +5,8 @@ Prérequis : p13-multiproxy mergé dans `main` (rebaser `feat/p14-proxy-watchdog
 ## 1. Détection
 
 - [x] 1.1 `Watchdog` (commun) : battements `scheduler`/`events`, horloge injectable, seuil `ksmc.watchdog.timeout-seconds`, désactivation, pas de contrôle avant le premier battement ; tests unitaires ; vérifier `./gradlew :ksmc-bridge-common:test -q`
-- [ ] 1.2 Velocity : tâche `Scheduler` (1 s) et `KsmcHeartbeatEvent` via `EventManager.fire()` (5 s), démarrage du thread du chien de garde ; vérifier `./gradlew :ksmc-bridge-velocity:build -q`
-- [ ] 1.3 Commit + push (`feat(bridge): proxy watchdog detection`)
+- [x] 1.2 Velocity : tâche `Scheduler` (1 s) et `KsmcHeartbeatEvent` via `EventManager.fire()` (5 s), démarrage du thread du chien de garde ; vérifier `./gradlew :ksmc-bridge-velocity:build -q`
+- [x] 1.3 Commit + push (`feat(bridge): proxy watchdog detection`)
 
 ## 2. Réaction
 
