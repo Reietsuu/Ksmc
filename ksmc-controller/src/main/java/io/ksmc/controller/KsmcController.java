@@ -126,6 +126,7 @@ public final class KsmcController {
                 return client.resources(KsmcModule.class).inNamespace(config.namespace()).list().getItems();
             }
         }, clock);
+        bridges.onFrozen(metrics::serviceFrozen);
         Operator operator = new Operator(o -> o.withKubernetesClient(client).withUseSSAToPatchPrimaryResource(false)
                 .withMetrics(metrics));
         register(operator, config, new SoftwareDefinitionReconciler(catalog));

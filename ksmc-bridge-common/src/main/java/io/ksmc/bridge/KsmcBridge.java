@@ -422,6 +422,7 @@ public final class KsmcBridge implements AutoCloseable {
             r.tps = platform.tps();
             jvm(r);
             r.state = state;
+            r.frozen = frozenReason;
             r.properties = new LinkedHashMap<String, String>(customProperties);
             m.connection().publish(BridgeSubjects.report(env.namespace, env.service), Wire.toJson(r).getBytes(UTF8));
         } catch (RuntimeException e) {

@@ -16,6 +16,8 @@ public class ServiceReport {
     public Long heapMaxBytes;
     public Long gcCount;
     public Long gcTimeMillis;
+    /** Raison du gel détecté par le chien de garde du proxy, {@code null} sinon. */
+    public String frozen;
     public Map<String, String> properties = new LinkedHashMap<String, String>();
     public long timestamp = System.currentTimeMillis();
 }

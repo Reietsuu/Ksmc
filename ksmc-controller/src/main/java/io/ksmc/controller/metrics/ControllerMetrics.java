@@ -151,6 +151,13 @@ public final class ControllerMetrics implements Metrics {
                 .register(registry).record(duration);
     }
 
+    /** Proxy déclaré figé par son chien de garde. */
+    public void serviceFrozen(String task) {
+        io.micrometer.core.instrument.Counter.builder("ksmc.service.frozen")
+                .description("Proxies déclarés figés par leur chien de garde")
+                .tag("task", Objects.requireNonNullElse(task, "")).register(registry).increment();
+    }
+
     /** Requête HTTP traitée ({@code route} = chemin déclaré, pas le chemin concret). */
     public void apiRequest(String method, String route, int status, float millis) {
         Timer.builder("ksmc.api.requests").description("Requêtes de l'API REST")
