@@ -201,6 +201,44 @@ class KsmcBridgeTest {
     }
 
     @Test
+    void drainingTransfersModernPlayersAndReleasesTheirSession() throws Exception {
+        publishService(proxySvc("proxy-1"));
+        publishService(proxySvc("proxy-2"));
+        List<String> events = new CopyOnWriteArrayList<>();
+        controller.connection().createDispatcher(m -> events.add(m.getSubject())).subscribe(BridgeSubjects.playerEvents("prod"));
+        KsmcBridge p1 = bridge("proxy-1", "proxy", new FakePlatform(), "ksmc.transfer.delay-ms", "0");
+        await(() -> p1.registry().get("proxy-2") != null);
+        p1.admitPlayer("uuid-1", "Steve", 770);
+        p1.playerLogin("uuid-1", "Steve", 770);
+        p1.admitPlayer("uuid-2", "Old", 47);
+        p1.playerLogin("uuid-2", "Old", 47);
+        await(() -> events.size() == 2);
+
+        List<TransferPlan.Step> steps = p1.drain(List.of(new TransferPlan.Candidate("uuid-1", 770, "play.example.com", 25565),
+                new TransferPlan.Candidate("uuid-2", 47, "play.example.com", 25565)));
+        assertThat(steps).extracting(TransferPlan.Step::isTransfer).containsExactly(true, false);
+        assertThat(controller.keyValue(BridgeSubjects.PLAYERS_BUCKET).get("uuid-1")).isNull();
+        // la déconnexion qui suit le transfert ne publie rien ; celle du joueur expulsé, si
+        p1.playerDisconnect("uuid-1");
+        p1.playerDisconnect("uuid-2");
+        await(() -> events.size() == 3);
+        Thread.sleep(200);
+        assertThat(events).containsExactly("ksmc.prod.pev.login", "ksmc.prod.pev.login", "ksmc.prod.pev.disconnect");
+    }
+
+    @Test
+    void lastProxyKicksEveryone() throws Exception {
+        publishService(proxySvc("proxy-1"));
+        ServiceInfo stopped = proxySvc("proxy-2");
+        stopped.phase = "Stopped";
+        publishService(stopped);
+        KsmcBridge p1 = bridge("proxy-1", "proxy", new FakePlatform());
+        await(() -> p1.registry().get("proxy-2") != null && !p1.registry().get("proxy-2").isRunning());
+        assertThat(p1.drain(List.of(new TransferPlan.Candidate("uuid-1", 770, "play.example.com", 25565))))
+                .extracting(TransferPlan.Step::isTransfer).containsExactly(false);
+    }
+
+    @Test
     void serverReportsStateAndExecutesActions() throws Exception {
         List<ServiceReport> reports = new CopyOnWriteArrayList<>();
         controller.connection().createDispatcher(m -> reports.add(

@@ -420,6 +420,60 @@ public final class KsmcBridge implements AutoCloseable {
         }
     }
 
+    // ---- Arrêt : transfert des joueurs -----------------------------------------------------------
+
+    /**
+     * Prépare l'arrêt de ce proxy : attend que le Pod quitte le Service ({@code ksmc.transfer.delay-ms}), puis
+     * renvoie pour chaque joueur un transfert ou une expulsion, à exécuter par la plateforme. Les joueurs
+     * transférés quittent le registre local sans événement {@code disconnect} (ils restent sur le réseau) et leur
+     * session est libérée pour le proxy qui les reçoit.
+     */
+    public List<TransferPlan.Step> drain(List<TransferPlan.Candidate> candidates) {
+        Map<String, String> props = ownProperties();
+        boolean other = otherProxyRunning();
+        List<TransferPlan.Step> steps = TransferPlan.plan(candidates, other, props);
+        boolean transfers = false;
+        for (TransferPlan.Step s : steps) {
+            transfers |= s.isTransfer();
+        }
+        if (transfers) {
+            long delay = 1500;
+            try {
+                delay = Long.parseLong(env.property("ksmc.transfer.delay-ms", "1500"));
+            } catch (NumberFormatException ignored) {
+                // défaut
+            }
+            sleep(Math.max(0, delay));
+        }
+        NatsMessaging m = messaging;
+        for (TransferPlan.Step s : steps) {
+            if (!s.isTransfer()) {
+                continue;
+            }
+            players.remove(s.uuid);
+            if (m != null) {
+                try {
+                    if (env.service.equals(sessionLock(m).holder(s.uuid))) {
+                        m.keyValue(BridgeSubjects.PLAYERS_BUCKET).delete(s.uuid);
+                    }
+                } catch (RuntimeException e) {
+                    platform.log("[ksmc] session de " + s.uuid + " non libérée : " + e.getMessage());
+                }
+            }
+        }
+        return steps;
+    }
+
+    /** Vrai si un autre proxy {@code Running} de la même task peut recevoir les joueurs. */
+    boolean otherProxyRunning() {
+        for (ServiceInfo s : registry.byTask(env.task)) {
+            if (!env.service.equals(s.name) && "proxy".equals(s.environment) && s.isRunning()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     // ---- Commandes réseau ------------------------------------------------------------------------
 
     /** Commandes réseau de ce proxy ({@code /glist}, {@code /find}, {@code /send}, {@code /alert}). */
