@@ -28,7 +28,7 @@
 
 - [x] 4.1 `networkPlayers()` : portée `ksmc.player-count.scope` (`network` | `task`) ; tests unitaires ; vérifier `./gradlew :ksmc-bridge-common:test -q`
 - [ ] 4.2 E2E : deux tasks proxy (NodePort distincts), maintenance sur une seule, lobby partagé, compteur limité à la task ; vérifier en CI
-- [ ] 4.3 Docs : exemple `examples/` à deux tasks proxy + section dans la page proxies ; vérifier `kubectl apply --dry-run=client -f examples/<fichier>`
+- [x] 4.3 Docs : exemple `examples/` à deux tasks proxy + section dans la page proxies ; vérifier `kubectl apply --dry-run=client -f examples/<fichier>`
 - [ ] 4.4 Commit + push (`feat(proxy): multiple proxy tasks with per-task player count`)
 
 ## Workflow follow-up

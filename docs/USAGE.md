@@ -219,6 +219,12 @@ du Pod), ses joueurs sont envoyés vers un autre proxy `Running` de la même tas
 
 Ksmc active `accepts-transfers` dans `velocity.toml` pour que les proxies acceptent les joueurs transférés.
 
+**Plusieurs tasks proxy.** Chaque task proxy a son propre Service (exposition), ses forced hosts, sa maintenance
+et son maximum de joueurs ; toutes partagent les serveurs et le registre des joueurs, et la session unique vaut
+pour tout le réseau. Le ping affiche les joueurs de tout le réseau, ou seulement ceux de la task avec
+`ksmc.player-count.scope: task`. Le transfert à l'arrêt reste à l'intérieur d'une task.
+Exemple : [`examples/07-multiproxy.yaml`](../examples/07-multiproxy.yaml).
+
 ### Bridges
 
 Ksmc ajoute automatiquement un bridge à chaque service (`spec.bridge.enabled: false` pour le désactiver) :
