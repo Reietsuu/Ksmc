@@ -19,11 +19,10 @@ existantes (rapport NATS → wrapper) ; cardinalité bornée ; ajouts compatible
 
 1. **API** : `Ksmc.api().metrics(String plugin)` renvoie un `Metrics` lié à ce plugin (identifiant validé
    `[a-z][a-z0-9_]*`, préfixe `ksmc_plugin_<plugin>_`). Méthodes calquées sur `ModuleMetrics` :
-   `counter(name, tags...)`, `gauge(name, Supplier<? extends Number>, tags...)` (en Java 8 :
-   `java.util.concurrent.Callable<? extends Number>` pour rester sans dépendance fonctionnelle ambiguë → on garde
-   `Callable`), `timer(name, tags...)` avec `record(long nanos)` et `record(Duration)` absent (Java 8 a `Duration`,
-   on le garde). Un même nom + étiquettes renvoie la même instance. Identifiant explicite plutôt que deviné : les
-   plateformes n'offrent pas toutes une façon fiable de retrouver le plugin appelant.
+   `counter(name, tags...)`, `gauge(name, Supplier<? extends Number>, tags...)` et `timer(name, tags...)` avec
+   `record(Duration)` et `record(long, TimeUnit)` (tout existe en Java 8, aucune dépendance). Un même nom avec les
+   mêmes étiquettes renvoie la même instance. Identifiant explicite plutôt que deviné : les plateformes n'offrent
+   pas toutes une façon fiable de retrouver le plugin appelant.
 2. **Transport : dans le rapport existant.** `ServiceReport.metrics` = liste d'échantillons
    `{name, type (counter|gauge|timer), tags, value | count+sum}` remplie par le bridge à chaque rapport (5 s) ; les
    jauges sont lues à ce moment (dans un `try`, une jauge qui lève est ignorée et loguée une fois). Taille du
