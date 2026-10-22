@@ -19,7 +19,7 @@ Dernière mise à jour : 2026-10-22 (p13-multiproxy en cours)
   (pas de finalizer, pour ne jamais bloquer une suppression si le controller est absent).
 - **Sécurité à revoir** : tous les services partagent l'utilisateur NATS `service` ; un service peut publier les
   rapports (joueurs, état) d'un autre service. Envisager des permissions NATS par service (p08/p11).
-- **Instable** : `scripts/e2e-upgrade.sh` a échoué une fois (« métriques absentes après mise à jour », 2026-10-22)
+- **Corrigé** : `scripts/e2e-upgrade.sh` échouait parfois (« métriques absentes après mise à jour », 2026-10-22)
   sans lien avec le change ; la vérification lit `/metrics` 20 s après le redémarrage du controller.
 - E2E Velocity : le limiteur de connexions (3 s par IP) refuse deux connexions rapprochées via port-forward.
 - **À nettoyer** : warnings 404 du controller quand il patche le statut d'une ressource déjà supprimée
