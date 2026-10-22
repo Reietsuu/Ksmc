@@ -24,6 +24,7 @@ import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.api.proxy.server.ServerInfo;
 import com.velocitypowered.api.proxy.server.ServerPing;
 import io.ksmc.bridge.BridgeEnv;
+import io.ksmc.bridge.FreezeResponse;
 import io.ksmc.bridge.KsmcBridge;
 import io.ksmc.bridge.NetworkCommands;
 import io.ksmc.bridge.Platform;
@@ -87,7 +88,23 @@ public final class KsmcVelocityBridge implements Platform {
         });
         heartbeats.scheduleAtFixedRate(() -> proxy.getEventManager().fire(new KsmcHeartbeatEvent())
                 .thenRun(dog::beatEvents), 0, 5, TimeUnit.SECONDS);
-        dog.start(reason -> logger.error("[ksmc] proxy figé : {}", reason));
+        dog.start(reason -> new FreezeResponse(bridge, new FreezeResponse.Actions() {
+            public List<TransferPlan.Candidate> candidates() {
+                return drainCandidates();
+            }
+
+            public void execute(TransferPlan.Step step) {
+                KsmcVelocityBridge.this.execute(step);
+            }
+
+            public void sleep(long millis) throws InterruptedException {
+                Thread.sleep(millis);
+            }
+
+            public void halt(int code) {
+                Runtime.getRuntime().halt(code);
+            }
+        }).run(reason));
     }
 
     /** Arrêt normal : plus de surveillance (un drainage long n'est pas un gel). */
@@ -134,29 +151,38 @@ public final class KsmcVelocityBridge implements Platform {
         if (bridge == null || !bridge.env().isManaged()) {
             return;
         }
+        List<TransferPlan.Candidate> candidates = drainCandidates();
+        if (candidates.isEmpty()) {
+            return;
+        }
+        int transferred = 0;
+        for (TransferPlan.Step step : bridge.drain(candidates)) {
+            execute(step);
+            transferred += step.isTransfer() ? 1 : 0;
+        }
+        logger.info("[ksmc] arrêt : {} joueur(s) transféré(s), {} déconnecté(s)", transferred, candidates.size() - transferred);
+    }
+
+    private List<TransferPlan.Candidate> drainCandidates() {
         List<TransferPlan.Candidate> candidates = new ArrayList<>();
         for (Player p : proxy.getAllPlayers()) {
             InetSocketAddress host = p.getVirtualHost().orElse(null);
             candidates.add(new TransferPlan.Candidate(p.getUniqueId().toString(), p.getProtocolVersion().getProtocol(),
                     host == null ? null : host.getHostString(), host == null ? 0 : host.getPort()));
         }
-        if (candidates.isEmpty()) {
+        return candidates;
+    }
+
+    private void execute(TransferPlan.Step step) {
+        Optional<Player> p = proxy.getPlayer(UUID.fromString(step.uuid));
+        if (p.isEmpty()) {
             return;
         }
-        int transferred = 0;
-        for (TransferPlan.Step step : bridge.drain(candidates)) {
-            Optional<Player> p = proxy.getPlayer(UUID.fromString(step.uuid));
-            if (p.isEmpty()) {
-                continue;
-            }
-            if (step.isTransfer()) {
-                p.get().transferToHost(InetSocketAddress.createUnresolved(step.host, step.port));
-                transferred++;
-            } else {
-                p.get().disconnect(text(step.message));
-            }
+        if (step.isTransfer()) {
+            p.get().transferToHost(InetSocketAddress.createUnresolved(step.host, step.port));
+        } else {
+            p.get().disconnect(text(step.message));
         }
-        logger.info("[ksmc] arrêt : {} joueur(s) transféré(s), {} déconnecté(s)", transferred, candidates.size() - transferred);
     }
 
     @Subscribe

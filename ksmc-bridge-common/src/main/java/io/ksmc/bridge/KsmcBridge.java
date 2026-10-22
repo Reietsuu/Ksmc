@@ -52,6 +52,7 @@ public final class KsmcBridge implements AutoCloseable {
     private volatile String motdOverride;
     private volatile PluginApi pluginApi;
     private volatile boolean closed;
+    private volatile String frozenReason;
 
     public KsmcBridge(BridgeEnv env, Platform platform) {
         this.env = env;
@@ -449,6 +450,16 @@ public final class KsmcBridge implements AutoCloseable {
                 return System.currentTimeMillis();
             }
         });
+    }
+
+    void log(String message) {
+        platform.log(message);
+    }
+
+    /** Annonce le gel au cloud (rapport immédiat, champ {@code frozen}). */
+    public void reportFrozen(String reason) {
+        frozenReason = reason;
+        report();
     }
 
     /** Signale au wrapper (fichier {@code .ksmc/frozen} du dossier du serveur) que ce proxy est figé. */
