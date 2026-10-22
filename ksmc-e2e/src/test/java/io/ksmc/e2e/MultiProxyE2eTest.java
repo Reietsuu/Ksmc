@@ -136,6 +136,70 @@ class MultiProxyE2eTest {
         assertThat(joinVia("e2em-proxy-2", "Bob")).isEqualTo("en jeu");
     }
 
+    static void proxyTask(String name, String extra) {
+        task("""
+                apiVersion: ksmc.io/v1alpha1
+                kind: ServiceTask
+                metadata: {name: %s, labels: {e2e: multiproxy}}
+                spec:
+                  environment: proxy
+                  software: {name: velocity, version: latest}
+                  memoryMb: 512
+                  minServiceCount: 1
+                  bridge: {forwarding: legacy}
+                  expose: {type: NodePort, maxPlayers: 50}
+                %s
+                """.formatted(name, extra.indent(2)));
+    }
+
+    static int pingOnline(String service) {
+        try (LocalPortForward fwd = CLIENT.services().inNamespace(NAMESPACE).withName(service).portForward(25565)) {
+            return com.google.gson.JsonParser.parseString(ServerListPing.ping("127.0.0.1", fwd.getLocalPort()))
+                    .getAsJsonObject().getAsJsonObject("players").get("online").getAsInt();
+        } catch (java.io.IOException e) {
+            return -1;
+        }
+    }
+
+    @Test
+    @org.junit.jupiter.api.Order(10)
+    void proxyTasksHaveIndependentSettingsAndShareServers() throws Exception {
+        proxyTask("e2em-eu", "maintenance: true\nproperties: {ksmc.online-mode: \"false\", ksmc.maintenance.message: e2e-maintenance}");
+        proxyTask("e2em-us", "properties: {ksmc.online-mode: \"false\", ksmc.player-count.scope: task}");
+        await("proxies eu et us Running", TIMEOUT, () -> running("e2em-eu-1") && running("e2em-us-1"));
+        await("lobby partagé enregistré", Duration.ofSeconds(60), () -> logs("e2em-us-1").contains("serveur ajouté : e2em-lobby-1")
+                && logs("e2em-eu-1").contains("serveur ajouté : e2em-lobby-1"));
+
+        // Une exposition par task, qui ne mène qu'à ses proxies.
+        for (String t : new String[] {"e2em-eu", "e2em-us"}) {
+            io.fabric8.kubernetes.api.model.Service svc = CLIENT.services().inNamespace(NAMESPACE).withName(t).get();
+            assertThat(svc.getSpec().getType()).isEqualTo("NodePort");
+            assertThat(svc.getSpec().getSelector()).containsEntry("ksmc.io/task", t);
+        }
+
+        // Maintenance de eu seulement.
+        try (LocalPortForward eu = CLIENT.services().inNamespace(NAMESPACE).withName("e2em-eu").portForward(25565);
+                BotClient refused = BotClient.connect("127.0.0.1", eu.getLocalPort(), "Frank")) {
+            await("Frank refusé par eu", Duration.ofSeconds(60), () -> refused.disconnectReason() != null);
+            assertThat(refused.disconnectReason()).contains("e2e-maintenance");
+        }
+        try (LocalPortForward us = CLIENT.services().inNamespace(NAMESPACE).withName("e2em-us").portForward(25565);
+                BotClient grace = BotClient.connect("127.0.0.1", us.getLocalPort(), "Grace")) {
+            await("Grace en jeu via us", Duration.ofSeconds(60), () -> {
+                if (grace.disconnectReason() != null) {
+                    throw new AssertionError(grace + BridgeNetworkingE2eTest.diagnostics("e2em-us-1"));
+                }
+                return grace.playing();
+            });
+            // Compteur limité à la task : us voit Grace (1 joueur) quels que soient les autres proxies.
+            await("ping de us à 1 joueur", Duration.ofSeconds(30), () -> pingOnline("e2em-us") == 1);
+            // Les sessions bloquent aussi entre tasks : Grace ne peut pas entrer en plus via e2em-proxy-1.
+            assertThat(joinVia("e2em-proxy-1", "Grace")).contains("déjà connecté");
+        }
+        CLIENT.resources(ServiceTask.class).inNamespace(NAMESPACE).withName("e2em-eu").delete();
+        CLIENT.resources(ServiceTask.class).inNamespace(NAMESPACE).withName("e2em-us").delete();
+    }
+
     /** Dernier scénario : arrête e2em-proxy-2 (remplacé ensuite par la task). */
     @Test
     @org.junit.jupiter.api.Order(Integer.MAX_VALUE)
