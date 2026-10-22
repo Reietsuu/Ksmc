@@ -428,6 +428,29 @@ public final class KsmcBridge implements AutoCloseable {
         }
     }
 
+    // ---- Chien de garde -------------------------------------------------------------------------
+
+    /**
+     * Chien de garde de ce proxy ({@code ksmc.watchdog.timeout-seconds}, défaut 30), ou {@code null} hors d'un
+     * proxy géré ou avec {@code ksmc.watchdog.enabled: false}.
+     */
+    public Watchdog watchdog() {
+        if (!env.isProxy() || !env.isManaged() || "false".equals(env.property("ksmc.watchdog.enabled", "true"))) {
+            return null;
+        }
+        long timeout = 30;
+        try {
+            timeout = Long.parseLong(env.property("ksmc.watchdog.timeout-seconds", "30"));
+        } catch (NumberFormatException ignored) {
+            // défaut
+        }
+        return new Watchdog(Math.max(5, timeout) * 1000, new Watchdog.Clock() {
+            public long millis() {
+                return System.currentTimeMillis();
+            }
+        });
+    }
+
     // ---- Arrêt : transfert des joueurs -----------------------------------------------------------
 
     /**
