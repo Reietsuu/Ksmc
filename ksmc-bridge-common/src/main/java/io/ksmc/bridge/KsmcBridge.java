@@ -214,6 +214,46 @@ public final class KsmcBridge implements AutoCloseable {
 
     // ---- Proxies : joueurs -----------------------------------------------------------------------
 
+    /**
+     * Admission d'un joueur (avant {@link #playerLogin}) : prend sa session réseau unique. Renvoie {@code null} si
+     * la connexion est acceptée, sinon le message de refus. Cloud injoignable : acceptée (on ne bloque pas le jeu).
+     */
+    public String admitPlayer(String uuid, String name, int protocolVersion) {
+        NatsMessaging m = messaging;
+        if (m == null) {
+            return null;
+        }
+        PlayerInfo p = new PlayerInfo();
+        p.uuid = uuid;
+        p.name = name;
+        p.proxy = env.service;
+        p.connectedAt = System.currentTimeMillis();
+        p.protocolVersion = protocolVersion;
+        try {
+            SessionLock.Result r = sessionLock(m).acquire(p, ownProperties().get("ksmc.duplicate-login"));
+            if (r.outcome == SessionLock.Outcome.ACCEPTED) {
+                return null;
+            }
+            return duplicateLoginMessage();
+        } catch (RuntimeException e) {
+            platform.log("[ksmc] session de " + name + " non vérifiée : " + e.getMessage());
+            return null;
+        }
+    }
+
+    private SessionLock sessionLock(NatsMessaging m) {
+        return new SessionLock(m.keyValue(BridgeSubjects.PLAYERS_BUCKET), new SessionLock.Liveness() {
+            public boolean isRunning(String name) {
+                ServiceInfo s = registry.get(name);
+                return s != null && "proxy".equals(s.environment) && s.isRunning();
+            }
+        });
+    }
+
+    public String duplicateLoginMessage() {
+        return env.property("ksmc.duplicate-login.message", "Tu es déjà connecté au réseau.");
+    }
+
     public void playerLogin(String uuid, String name, int protocolVersion) {
         PlayerInfo p = new PlayerInfo();
         p.uuid = uuid;

@@ -131,6 +131,27 @@ class KsmcBridgeTest {
         assertThat(controller.keyValue(BridgeSubjects.PLAYERS_BUCKET).get("uuid-1")).isNull();
     }
 
+    static ServiceInfo proxySvc(String name) {
+        ServiceInfo s = RouterTest.svc(name, "proxy", 0, false, 0);
+        s.environment = "proxy";
+        return s;
+    }
+
+    @Test
+    void playerHasASingleSessionAcrossProxies() throws Exception {
+        publishService(proxySvc("proxy-1"));
+        publishService(proxySvc("proxy-2"));
+        KsmcBridge p1 = bridge("proxy-1", "proxy", new FakePlatform());
+        KsmcBridge p2 = bridge("proxy-2", "proxy", new FakePlatform());
+        await(() -> p1.registry().get("proxy-2") != null && p2.registry().get("proxy-1") != null);
+
+        assertThat(p1.admitPlayer("uuid-1", "Steve", 770)).isNull();
+        p1.playerLogin("uuid-1", "Steve", 770);
+        assertThat(p2.admitPlayer("uuid-1", "Steve", 770)).isEqualTo("Tu es déjà connecté au réseau.");
+        p1.playerDisconnect("uuid-1");
+        assertThat(p2.admitPlayer("uuid-1", "Steve", 770)).isNull();
+    }
+
     @Test
     void serverReportsStateAndExecutesActions() throws Exception {
         List<ServiceReport> reports = new CopyOnWriteArrayList<>();
