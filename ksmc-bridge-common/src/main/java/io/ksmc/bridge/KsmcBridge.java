@@ -205,9 +205,13 @@ public final class KsmcBridge implements AutoCloseable {
         return env.property("ksmc.no-fallback.message", "Aucun serveur disponible, réessaie dans un instant.");
     }
 
-    /** Joueurs affichés au ping : tout le réseau (au moins ceux de ce proxy). */
+    /**
+     * Joueurs affichés au ping : tout le réseau, ou les proxies de cette task avec
+     * {@code ksmc.player-count.scope: task} (au moins ceux de ce proxy).
+     */
     public int networkPlayers() {
-        return Math.max(registry.networkPlayers(), platform.onlinePlayers().size());
+        boolean task = "task".equals(ownProperties().get("ksmc.player-count.scope"));
+        return Math.max(task ? registry.proxyPlayers(env.task) : registry.networkPlayers(), platform.onlinePlayers().size());
     }
 
     public int networkMaxPlayers() {

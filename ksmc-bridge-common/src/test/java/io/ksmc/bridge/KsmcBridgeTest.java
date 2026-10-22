@@ -239,6 +239,23 @@ class KsmcBridgeTest {
     }
 
     @Test
+    void pingCountCanBeLimitedToTheTask() throws Exception {
+        ServiceInfo eu = proxySvc("proxy-eu-1");
+        eu.task = "proxy-eu";
+        eu.onlinePlayers = 10;
+        ServiceInfo us = proxySvc("proxy-us-1");
+        us.task = "proxy-us";
+        us.onlinePlayers = 5;
+        publishService(eu);
+        publishService(us);
+        KsmcBridge euBridge = bridge("proxy-eu-1", "proxy", new FakePlatform());
+        KsmcBridge usBridge = bridge("proxy-us-1", "proxy", new FakePlatform(), "ksmc.player-count.scope", "task");
+        await(() -> euBridge.registry().get("proxy-us-1") != null && usBridge.registry().get("proxy-eu-1") != null);
+        assertThat(euBridge.networkPlayers()).isGreaterThanOrEqualTo(15);
+        assertThat(usBridge.networkPlayers()).isEqualTo(5);
+    }
+
+    @Test
     void serverReportsStateAndExecutesActions() throws Exception {
         List<ServiceReport> reports = new CopyOnWriteArrayList<>();
         controller.connection().createDispatcher(m -> reports.add(
