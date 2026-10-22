@@ -127,6 +127,9 @@ class KsmcBridgeTest {
                 PlayerInfo.class);
         assertThat(p.server).isEqualTo("lobby-1");
         assertThat(p.proxy).isEqualTo("proxy-1");
+        assertThat(b.networkPlayerList()).extracting(i -> i.name).containsExactly("Steve");
+        assertThat(b.commands().execute(RouterTest.ALL, "find", new String[] {"steve"}))
+                .containsExactly("&eSteve &7est sur &flobby-1 &7(proxy proxy-1)");
 
         b.playerDisconnect("uuid-1");
         await(() -> events.size() == 3);

@@ -420,15 +420,75 @@ public final class KsmcBridge implements AutoCloseable {
         }
     }
 
-    // ---- Annonces réseau -------------------------------------------------------------------------
+    // ---- Commandes réseau ------------------------------------------------------------------------
 
-    /** Annonce {@code text} à tous les joueurs de tous les proxies du namespace (ce proxy compris). */
-    public void broadcast(String text) {
+    /** Commandes réseau de ce proxy ({@code /glist}, {@code /find}, {@code /send}, {@code /alert}). */
+    public NetworkCommands commands() {
+        return new NetworkCommands(new NetworkCommands.Network() {
+            public List<PlayerInfo> players() {
+                return networkPlayerList();
+            }
+
+            public java.util.Collection<ServiceInfo> services() {
+                return registry.all();
+            }
+
+            public String act(String proxy, PlayerAction action) {
+                if (env.service.equals(proxy)) {
+                    return execute(action);
+                }
+                try {
+                    io.nats.client.Message reply = connected().connection().request(
+                            BridgeSubjects.playerRpc(env.namespace, proxy), Wire.toJson(action).getBytes(UTF8),
+                            java.time.Duration.ofSeconds(5));
+                    return reply == null || reply.isStatusMessage() ? "error: proxy " + proxy + " did not answer"
+                            : new String(reply.getData(), UTF8);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    return "error: interrupted";
+                }
+            }
+
+            public void broadcast(String text) {
+                KsmcBridge.this.broadcast(text);
+            }
+        }, env.property("ksmc.alert.prefix", "&c[Annonce] &f"));
+    }
+
+    private NatsMessaging connected() {
         NatsMessaging m = messaging;
         if (m == null) {
             throw new IllegalStateException("cloud injoignable");
         }
-        m.connection().publish(BridgeSubjects.broadcast(env.namespace), text.getBytes(UTF8));
+        return m;
+    }
+
+    /** Joueurs en ligne sur tout le réseau (bucket {@code players}). */
+    List<PlayerInfo> networkPlayerList() {
+        NatsMessaging m = connected();
+        List<PlayerInfo> out = new ArrayList<PlayerInfo>();
+        try {
+            io.nats.client.KeyValue kv = m.connection().keyValue(
+                    io.ksmc.messaging.nats.Subjects.bucket(env.namespace, BridgeSubjects.PLAYERS_BUCKET));
+            for (String key : kv.keys()) {
+                io.nats.client.api.KeyValueEntry e = kv.get(key);
+                if (e != null && e.getValue() != null) {
+                    out.add(Wire.fromJson(new String(e.getValue(), UTF8), PlayerInfo.class));
+                }
+            }
+        } catch (Exception e) {
+            if (e.getMessage() == null || !e.getMessage().contains("no keys")) {
+                throw new IllegalStateException("registre des joueurs indisponible : " + e.getMessage(), e);
+            }
+        }
+        return out;
+    }
+
+    // ---- Annonces réseau -------------------------------------------------------------------------
+
+    /** Annonce {@code text} à tous les joueurs de tous les proxies du namespace (ce proxy compris). */
+    public void broadcast(String text) {
+        connected().connection().publish(BridgeSubjects.broadcast(env.namespace), text.getBytes(UTF8));
     }
 
     private void subscribeBroadcasts() {
