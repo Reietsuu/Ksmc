@@ -206,6 +206,12 @@ Se connecter avec un client Minecraft (version du lobby) à `localhost:25565`.
 **Attendu** : arrivée sur `t-lobby-1` ; `ksmc player list` vous affiche ; `ksmc player send <pseudo> -s t-lobby-2`
 (après `ksmc task start t-lobby`) vous déplace ; `ksmc player kick <pseudo>` vous déconnecte.
 
+Plusieurs proxies (client 1.20.5+) : `kubectl -n ksmc patch mctask t-proxy --type merge -p '{"spec":{"minServiceCount":2}}'`,
+puis, connecté via le Service, `ksmc service stop <proxy où vous êtes>`.
+**Attendu** : bref écran de chargement puis retour en jeu via l'autre proxy (`ksmc player list` montre le nouveau
+proxy) ; `/glist` sur un proxy compte les joueurs des deux ; une seconde connexion du même compte est refusée
+(« Tu es déjà connecté au réseau. »).
+
 ## 12. Modules (manuel)
 
 ```bash

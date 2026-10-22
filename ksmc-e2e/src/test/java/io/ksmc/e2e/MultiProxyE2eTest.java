@@ -26,8 +26,10 @@ import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.Test;
 
 /** Scénarios du change p13 : réseau à plusieurs proxies Velocity. */
+@org.junit.jupiter.api.TestMethodOrder(org.junit.jupiter.api.MethodOrderer.OrderAnnotation.class)
 class MultiProxyE2eTest {
     static final Duration TIMEOUT = Duration.ofMinutes(8);
+    static final Duration START = Duration.ofMinutes(20);
     static LocalPortForward natsForward;
     static NatsMessaging controller;
 
@@ -45,10 +47,25 @@ class MultiProxyE2eTest {
                   software: {name: velocity, version: latest}
                   memoryMb: 512
                   minServiceCount: 2
-                  properties: {ksmc.online-mode: "false"}
+                  bridge: {forwarding: legacy}
+                  properties: {ksmc.online-mode: "false", ksmc.transfer.fallback-message: "e2e-reconnecte-toi"}
                   expose: {type: ClusterIP}
                 """);
+        // Lobby 1.8.8 (BuildTools, en cache pour la recette réseau) : le bot parle le protocole 1.8.
+        task("""
+                apiVersion: ksmc.io/v1alpha1
+                kind: ServiceTask
+                metadata: {name: e2em-lobby, labels: {e2e: multiproxy}}
+                spec:
+                  environment: server
+                  software: {name: spigot, version: "1.8.8"}
+                  memoryMb: 768
+                  minServiceCount: 1
+                  bridge: {forwarding: legacy}
+                  fallback: {enabled: true, priority: 10}
+                """);
         await("deux proxies Running", TIMEOUT, () -> running("e2em-proxy-1") && running("e2em-proxy-2"));
+        await("lobby Running", START, () -> running("e2em-lobby-1"));
         await("bridges connectés", Duration.ofSeconds(60), () -> logs("e2em-proxy-1").contains("connecté au cloud")
                 && logs("e2em-proxy-2").contains("connecté au cloud"));
     }
@@ -67,12 +84,12 @@ class MultiProxyE2eTest {
         return UUID.nameUUIDFromBytes(("OfflinePlayer:" + name).getBytes(StandardCharsets.UTF_8)).toString();
     }
 
-    /** Raison de déconnexion du bot {@code name} entré par le Pod {@code pod}. */
+    /** Raison de déconnexion du bot {@code name} entré par le Pod {@code pod}, ou {@code "en jeu"}. */
     static String joinVia(String pod, String name) throws Exception {
         try (LocalPortForward fwd = CLIENT.pods().inNamespace(NAMESPACE).withName(pod).portForward(25565);
                 BotClient bot = BotClient.connect("127.0.0.1", fwd.getLocalPort(), name)) {
-            await(name + " déconnecté par " + pod, Duration.ofSeconds(30), () -> bot.disconnectReason() != null);
-            return bot.disconnectReason();
+            await(name + " via " + pod, Duration.ofSeconds(60), () -> bot.disconnectReason() != null || bot.playing());
+            return bot.playing() ? "en jeu" : bot.disconnectReason();
         }
     }
 
@@ -114,8 +131,26 @@ class MultiProxyE2eTest {
 
         assertThat(joinVia("e2em-proxy-2", "Bob")).contains("déjà connecté");
 
-        // Session libérée : la connexion passe le contrôle (puis échoue faute de lobby, ce qui est attendu ici).
+        // Session libérée : Bob entre.
         controller.keyValue(BridgeSubjects.PLAYERS_BUCKET).delete(held.uuid);
-        assertThat(joinVia("e2em-proxy-2", "Bob")).doesNotContain("déjà connecté");
+        assertThat(joinVia("e2em-proxy-2", "Bob")).isEqualTo("en jeu");
+    }
+
+    /** Dernier scénario : arrête e2em-proxy-2 (remplacé ensuite par la task). */
+    @Test
+    @org.junit.jupiter.api.Order(Integer.MAX_VALUE)
+    void stoppingProxyDisconnectsOldClientsWithFallbackMessage() throws Exception {
+        try (LocalPortForward fwd = CLIENT.pods().inNamespace(NAMESPACE).withName("e2em-proxy-2").portForward(25565);
+                BotClient bot = BotClient.connect("127.0.0.1", fwd.getLocalPort(), "Eve")) {
+            await("Eve en jeu via e2em-proxy-2", Duration.ofSeconds(60), () -> {
+                if (bot.disconnectReason() != null) {
+                    throw new AssertionError(bot + BridgeNetworkingE2eTest.diagnostics("e2em-proxy-2"));
+                }
+                return bot.playing();
+            });
+            CLIENT.resources(io.ksmc.api.model.CloudService.class).inNamespace(NAMESPACE).withName("e2em-proxy-2").delete();
+            await("Eve déconnectée", Duration.ofSeconds(60), () -> bot.disconnectReason() != null);
+            assertThat(bot.disconnectReason()).contains("e2e-reconnecte-toi");
+        }
     }
 }

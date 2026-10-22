@@ -203,6 +203,22 @@ Elles remplacent les `/glist` et `/send` de Velocity (qui ne voient que le proxy
 `ksmc.commands.replace-builtin: "false"`, les commandes de Velocity restent en place et celles de Ksmc s'utilisent
 sous la forme `/ksmc glist`, `/ksmc send …`.
 
+**Arrêt sans coupure.** Quand un proxy s'arrête (réduction de la task, mise à jour, `ksmc service stop`, suppression
+du Pod), ses joueurs sont envoyés vers un autre proxy `Running` de la même task avant la fermeture :
+
+- client **1.20.5 ou plus récent** : transfert automatique (paquet Transfer) vers l'adresse qu'il avait utilisée
+  pour se connecter, le joueur n'a rien à faire ;
+- client plus ancien, ou dernier proxy de la task : déconnexion avec `ksmc.transfer.fallback-message`.
+
+| Propriété | Défaut | Effet |
+|---|---|---|
+| `ksmc.transfer.enabled` | `true` | `false` : pas de transfert, tout le monde reçoit le message de repli |
+| `ksmc.transfer.address` | adresse utilisée par le joueur | `hôte[:port]` public du réseau (ex. derrière un DNS différent) |
+| `ksmc.transfer.delay-ms` | `1500` | attente avant transfert, le temps que le Pod quitte le Service |
+| `ksmc.transfer.fallback-message` | `Le proxy redémarre, reconnecte-toi.` | message des joueurs non transférés |
+
+Ksmc active `accepts-transfers` dans `velocity.toml` pour que les proxies acceptent les joueurs transférés.
+
 ### Bridges
 
 Ksmc ajoute automatiquement un bridge à chaque service (`spec.bridge.enabled: false` pour le désactiver) :
