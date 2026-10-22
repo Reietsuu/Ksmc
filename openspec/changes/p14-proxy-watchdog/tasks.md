@@ -10,7 +10,7 @@ Prérequis : p13-multiproxy mergé dans `main` (rebaser `feat/p14-proxy-watchdog
 
 ## 2. Réaction
 
-- [ ] 2.1 Fichier d'état `.ksmc/frozen` écrit par le bridge ; `HealthServer` : `/ready` 503 si présent, `/live` 503 après le délai ; suppression au démarrage du wrapper ; tests (`HealthServerTest`) ; vérifier `./gradlew :ksmc-wrapper:test -q`
+- [x] 2.1 Fichier d'état `.ksmc/frozen` écrit par le bridge ; `HealthServer` : `/ready` 503 si présent, `/live` 503 après le délai ; suppression au démarrage du wrapper ; tests (`HealthServerTest`) ; vérifier `./gradlew :ksmc-wrapper:test -q`
 - [ ] 2.2 Séquence après gel : attente de sortie du Service, `drain()` + exécution avec délai global, vidage des threads, `Runtime.halt(70)` (plateforme abstraite pour les tests) ; tests unitaires ; vérifier `./gradlew :ksmc-bridge-common:test -q`
 - [ ] 2.3 Commit + push (`feat(bridge): drain and restart a frozen proxy`)
 

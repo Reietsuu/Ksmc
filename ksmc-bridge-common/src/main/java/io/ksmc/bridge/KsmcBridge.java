@@ -451,6 +451,27 @@ public final class KsmcBridge implements AutoCloseable {
         });
     }
 
+    /** Signale au wrapper (fichier {@code .ksmc/frozen} du dossier du serveur) que ce proxy est figé. */
+    public void markFrozen(String reason) {
+        String dir = System.getenv("KSMC_SERVER_DIR");
+        markFrozen(new java.io.File(dir == null ? "." : dir), reason);
+    }
+
+    void markFrozen(java.io.File serverDir, String reason) {
+        java.io.File file = new java.io.File(serverDir, ".ksmc/frozen");
+        try {
+            file.getParentFile().mkdirs();
+            java.io.Writer w = new java.io.OutputStreamWriter(new java.io.FileOutputStream(file), UTF8);
+            try {
+                w.write(System.currentTimeMillis() + " " + reason + "\n");
+            } finally {
+                w.close();
+            }
+        } catch (java.io.IOException e) {
+            platform.log("[ksmc] état figé non écrit : " + e.getMessage());
+        }
+    }
+
     // ---- Arrêt : transfert des joueurs -----------------------------------------------------------
 
     /**
