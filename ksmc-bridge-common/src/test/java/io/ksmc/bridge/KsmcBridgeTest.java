@@ -256,6 +256,20 @@ class KsmcBridgeTest {
     }
 
     @Test
+    void frozenStateIsWrittenForTheWrapper(@org.junit.jupiter.api.io.TempDir java.nio.file.Path dir) throws Exception {
+        KsmcBridge b = bridge("proxy-1", "proxy", new FakePlatform());
+        b.markFrozen(dir.toFile(), "planificateur sans réponse depuis 31 s");
+        assertThat(java.nio.file.Files.readString(dir.resolve(".ksmc/frozen"))).endsWith("planificateur sans réponse depuis 31 s\n");
+    }
+
+    @Test
+    void watchdogOnlyOnManagedProxiesAndCanBeDisabled() throws Exception {
+        assertThat(bridge("proxy-1", "proxy", new FakePlatform()).watchdog()).isNotNull();
+        assertThat(bridge("game-1", "server", new FakePlatform()).watchdog()).isNull();
+        assertThat(bridge("proxy-2", "proxy", new FakePlatform(), "ksmc.watchdog.enabled", "false").watchdog()).isNull();
+    }
+
+    @Test
     void serverReportsStateAndExecutesActions() throws Exception {
         List<ServiceReport> reports = new CopyOnWriteArrayList<>();
         controller.connection().createDispatcher(m -> reports.add(

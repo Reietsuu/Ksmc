@@ -212,6 +212,11 @@ puis, connecté via le Service, `ksmc service stop <proxy où vous êtes>`.
 proxy) ; `/glist` sur un proxy compte les joueurs des deux ; une seconde connexion du même compte est refusée
 (« Tu es déjà connecté au réseau. »).
 
+Chien de garde (2 proxies, joueur connecté) : `kubectl -n ksmc patch mctask t-proxy --type merge -p
+'{"spec":{"properties":{"ksmc.watchdog.test":"true"}}}'`, puis `ksmc service cmd <proxy où vous êtes> ksmc freeze-test`.
+**Attendu** : environ 30 s plus tard, `proxy figé` dans les logs du proxy, événement `service.frozen`
+(`ksmc events -t 'service.*'`), client 1.20.5+ transféré sur l'autre proxy, puis le proxy figé est remplacé.
+
 ## 12. Modules (manuel)
 
 ```bash

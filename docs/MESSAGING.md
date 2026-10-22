@@ -67,6 +67,7 @@ Les champs inconnus sont ignorés : un composant plus ancien lit les messages d'
 | `service.ready` | le service atteint `Running` | instantané (adresse comprise) |
 | `service.stopped` | `Stopped` ou `Failed` | instantané |
 | `service.deleted` | service supprimé par sa task | instantané |
+| `service.frozen` | le chien de garde d'un proxy l'a déclaré figé (il va redémarrer) | instantané + `reason` |
 | `task.updated` | la configuration effective d'une task change | la task |
 | `task.degraded` | la task passe en crash-loop | la task |
 

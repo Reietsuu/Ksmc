@@ -17,6 +17,7 @@ final class HealthServer {
     private volatile long readyCheckedAt;
     private volatile boolean readyCached;
     private volatile String lastStatus;
+    private volatile FrozenFlag frozen;
 
     HealthServer(int port, final Callable<Boolean> alive, final int minecraftPort) throws IOException {
         this(port, alive, minecraftPort, null);
@@ -33,6 +34,11 @@ final class HealthServer {
                     ok = alive.call();
                 } catch (Exception e) {
                     ok = false;
+                }
+                FrozenFlag f = frozen;
+                if (ok && f != null && f.overdue(System.currentTimeMillis())) {
+                    respond(ex, 503, "frozen, process still running");
+                    return;
                 }
                 respond(ex, ok ? 200 : 503, ok ? "alive" : "process not running");
             }
@@ -52,6 +58,11 @@ final class HealthServer {
         }
         server.createContext("/ready", new com.sun.net.httpserver.HttpHandler() {
             public void handle(HttpExchange ex) throws IOException {
+                FrozenFlag f = frozen;
+                if (f != null && f.frozen()) {
+                    respond(ex, 503, "frozen");
+                    return;
+                }
                 boolean ok = ready(minecraftPort);
                 respond(ex, ok ? 200 : 503, ok ? lastStatus : "not ready");
             }
@@ -74,6 +85,11 @@ final class HealthServer {
         readyCached = ok;
         readyCheckedAt = now;
         return ok;
+    }
+
+    /** Sondes sensibles au fichier d'état du chien de garde du bridge. */
+    void watch(FrozenFlag flag) {
+        frozen = flag;
     }
 
     String lastStatus() {

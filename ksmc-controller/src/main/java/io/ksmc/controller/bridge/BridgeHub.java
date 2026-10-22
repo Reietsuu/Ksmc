@@ -115,6 +115,9 @@ public final class BridgeHub {
         if (svc == null) {
             return;
         }
+        if (r.frozen != null && (previous == null || previous.frozen == null)) {
+            onFrozen(svc, r.frozen);
+        }
         sync(svc);
         Instant now = clock.instant();
         Instant last = lastStatusPatch.get(r.service);
@@ -125,6 +128,29 @@ public final class BridgeHub {
             patchStatus(r, now);
             lastStatusPatch.put(r.service, now);
         }
+    }
+
+    /** Proxy figé (chien de garde) : événement {@code service.frozen} et métrique. */
+    private void onFrozen(CloudService svc, String reason) {
+        LOG.warn("service {} figé : {}", svc.getMetadata().getName(), reason);
+        io.ksmc.wire.messaging.CloudEvent e = io.ksmc.controller.messaging.Snapshots.service("service.frozen", svc);
+        e.data.getAsJsonObject().addProperty("reason", reason);
+        try {
+            events.publish(e);
+        } catch (RuntimeException ex) {
+            LOG.debug("événement service.frozen non publié : {}", ex.getMessage());
+        }
+        java.util.function.Consumer<String> l = frozenListener;
+        if (l != null) {
+            l.accept(svc.getSpec().task);
+        }
+    }
+
+    private volatile java.util.function.Consumer<String> frozenListener;
+
+    /** Appelé avec la task d'un service à chaque gel signalé (métriques). */
+    public void onFrozen(java.util.function.Consumer<String> listener) {
+        frozenListener = listener;
     }
 
     private void patchStatus(ServiceReport r, Instant now) {

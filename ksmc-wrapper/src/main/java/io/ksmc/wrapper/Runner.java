@@ -34,6 +34,16 @@ final class Runner {
         List<String> command = command(manifest);
         Log.info("lancement : " + command);
 
+        // Délai de grâce du chien de garde : sortie du Service (~12 s) + drainage + marge.
+        long drain = 10;
+        try {
+            String v = manifest.properties.get("ksmc.watchdog.drain-timeout-seconds");
+            drain = v == null ? 10 : Long.parseLong(v);
+        } catch (NumberFormatException ignored) {
+            // défaut
+        }
+        FrozenFlag frozen = new FrozenFlag(env.serverDir, (drain + 25) * 1000);
+        frozen.clear();
         ProcessBuilder pb = new ProcessBuilder(command).directory(env.serverDir);
         pb.redirectOutput(ProcessBuilder.Redirect.INHERIT).redirectError(ProcessBuilder.Redirect.INHERIT);
         process = pb.start();
@@ -46,6 +56,7 @@ final class Runner {
                 return process.isAlive();
             }
         }, manifest.network.port, metrics);
+        health.watch(frozen);
         health.start();
         startStdinRelay();
         final CloudLink link = new CloudLink(env, new CloudLink.CommandSink() {

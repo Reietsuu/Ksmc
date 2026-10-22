@@ -24,11 +24,13 @@ import com.velocitypowered.api.proxy.server.RegisteredServer;
 import com.velocitypowered.api.proxy.server.ServerInfo;
 import com.velocitypowered.api.proxy.server.ServerPing;
 import io.ksmc.bridge.BridgeEnv;
+import io.ksmc.bridge.FreezeResponse;
 import io.ksmc.bridge.KsmcBridge;
 import io.ksmc.bridge.NetworkCommands;
 import io.ksmc.bridge.Platform;
 import io.ksmc.bridge.Router;
 import io.ksmc.bridge.TransferPlan;
+import io.ksmc.bridge.Watchdog;
 import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -37,6 +39,9 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.Executor;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.kyori.adventure.title.Title;
@@ -51,6 +56,11 @@ public final class KsmcVelocityBridge implements Platform {
     private final ProxyServer proxy;
     private final Logger logger;
     private KsmcBridge bridge;
+    private Watchdog watchdog;
+    /** Commande console {@code ksmc freeze-test}, active seulement avec {@code ksmc.watchdog.test: true}. */
+    private static final String FREEZE_TEST = "freeze-test";
+    private volatile boolean freezeTest;
+    private ScheduledExecutorService heartbeats;
 
     @Inject
     public KsmcVelocityBridge(ProxyServer proxy, Logger logger) {
@@ -63,6 +73,57 @@ public final class KsmcVelocityBridge implements Platform {
         bridge = new KsmcBridge(BridgeEnv.fromSystem(), this);
         bridge.start();
         registerCommands();
+        startWatchdog();
+    }
+
+    /** Battements du planificateur (1 s) et du bus d'événements (5 s), surveillés par un thread du bridge. */
+    private void startWatchdog() {
+        Watchdog dog = bridge.watchdog();
+        if (dog == null) {
+            return;
+        }
+        watchdog = dog;
+        proxy.getScheduler().buildTask(this, dog::beatScheduler).repeat(1, TimeUnit.SECONDS).schedule();
+        heartbeats = Executors.newSingleThreadScheduledExecutor(r -> {
+            Thread t = new Thread(r, "ksmc-heartbeat");
+            t.setDaemon(true);
+            return t;
+        });
+        heartbeats.scheduleAtFixedRate(() -> proxy.getEventManager().fire(new KsmcHeartbeatEvent())
+                .thenRun(dog::beatEvents), 0, 5, TimeUnit.SECONDS);
+        dog.start(reason -> new FreezeResponse(bridge, new FreezeResponse.Actions() {
+            public List<TransferPlan.Candidate> candidates() {
+                return drainCandidates();
+            }
+
+            public void execute(TransferPlan.Step step) {
+                KsmcVelocityBridge.this.execute(step);
+            }
+
+            public void sleep(long millis) throws InterruptedException {
+                Thread.sleep(millis);
+            }
+
+            public void halt(int code) {
+                Runtime.getRuntime().halt(code);
+            }
+        }).run(reason));
+    }
+
+    /** Arrêt normal : plus de surveillance (un drainage long n'est pas un gel). */
+    private void stopWatchdog() {
+        if (watchdog != null) {
+            watchdog.stop();
+            heartbeats.shutdownNow();
+        }
+    }
+
+    @Subscribe
+    public void onHeartbeat(KsmcHeartbeatEvent event) throws InterruptedException {
+        // Traversée du bus : rien à faire, sauf en test du chien de garde (simule un plugin qui bloque).
+        while (freezeTest) {
+            Thread.sleep(1000);
+        }
     }
 
     /** Commandes réseau : {@code /ksmc <commande>} et, sauf {@code ksmc.commands.replace-builtin: false}, en direct. */
@@ -71,6 +132,12 @@ public final class KsmcVelocityBridge implements Platform {
         commands.register(commands.metaBuilder("ksmc").build(), (SimpleCommand) inv -> {
             String[] args = inv.arguments();
             String name = args.length == 0 ? "" : args[0];
+            if (FREEZE_TEST.equals(name) && inv.source() instanceof ConsoleCommandSource
+                    && "true".equals(bridge.env().property("ksmc.watchdog.test", "false"))) {
+                freezeTest = true;
+                logger.warn("[ksmc] test du chien de garde : le bus d'événements est bloqué");
+                return;
+            }
             run(inv.source(), name, Arrays.copyOfRange(args, Math.min(1, args.length), args.length));
         });
         if ("false".equals(bridge.env().property("ksmc.commands.replace-builtin", "true"))) {
@@ -92,36 +159,47 @@ public final class KsmcVelocityBridge implements Platform {
     /** Avant que Velocity ne déconnecte les joueurs : transfert vers un autre proxy de la task, sinon expulsion. */
     @Subscribe
     public void onPreShutdown(ProxyPreShutdownEvent event) {
+        stopWatchdog();
         if (bridge == null || !bridge.env().isManaged()) {
             return;
         }
+        List<TransferPlan.Candidate> candidates = drainCandidates();
+        if (candidates.isEmpty()) {
+            return;
+        }
+        int transferred = 0;
+        for (TransferPlan.Step step : bridge.drain(candidates)) {
+            execute(step);
+            transferred += step.isTransfer() ? 1 : 0;
+        }
+        logger.info("[ksmc] arrêt : {} joueur(s) transféré(s), {} déconnecté(s)", transferred, candidates.size() - transferred);
+    }
+
+    private List<TransferPlan.Candidate> drainCandidates() {
         List<TransferPlan.Candidate> candidates = new ArrayList<>();
         for (Player p : proxy.getAllPlayers()) {
             InetSocketAddress host = p.getVirtualHost().orElse(null);
             candidates.add(new TransferPlan.Candidate(p.getUniqueId().toString(), p.getProtocolVersion().getProtocol(),
                     host == null ? null : host.getHostString(), host == null ? 0 : host.getPort()));
         }
-        if (candidates.isEmpty()) {
+        return candidates;
+    }
+
+    private void execute(TransferPlan.Step step) {
+        Optional<Player> p = proxy.getPlayer(UUID.fromString(step.uuid));
+        if (p.isEmpty()) {
             return;
         }
-        int transferred = 0;
-        for (TransferPlan.Step step : bridge.drain(candidates)) {
-            Optional<Player> p = proxy.getPlayer(UUID.fromString(step.uuid));
-            if (p.isEmpty()) {
-                continue;
-            }
-            if (step.isTransfer()) {
-                p.get().transferToHost(InetSocketAddress.createUnresolved(step.host, step.port));
-                transferred++;
-            } else {
-                p.get().disconnect(text(step.message));
-            }
+        if (step.isTransfer()) {
+            p.get().transferToHost(InetSocketAddress.createUnresolved(step.host, step.port));
+        } else {
+            p.get().disconnect(text(step.message));
         }
-        logger.info("[ksmc] arrêt : {} joueur(s) transféré(s), {} déconnecté(s)", transferred, candidates.size() - transferred);
     }
 
     @Subscribe
     public void onShutdown(ProxyShutdownEvent event) {
+        stopWatchdog();
         if (bridge != null) {
             bridge.close();
         }

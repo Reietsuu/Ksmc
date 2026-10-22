@@ -52,6 +52,7 @@ public final class KsmcBridge implements AutoCloseable {
     private volatile String motdOverride;
     private volatile PluginApi pluginApi;
     private volatile boolean closed;
+    private volatile String frozenReason;
 
     public KsmcBridge(BridgeEnv env, Platform platform) {
         this.env = env;
@@ -421,10 +422,65 @@ public final class KsmcBridge implements AutoCloseable {
             r.tps = platform.tps();
             jvm(r);
             r.state = state;
+            r.frozen = frozenReason;
             r.properties = new LinkedHashMap<String, String>(customProperties);
             m.connection().publish(BridgeSubjects.report(env.namespace, env.service), Wire.toJson(r).getBytes(UTF8));
         } catch (RuntimeException e) {
             platform.log("[ksmc] rapport non envoyé : " + e.getMessage());
+        }
+    }
+
+    // ---- Chien de garde -------------------------------------------------------------------------
+
+    /**
+     * Chien de garde de ce proxy ({@code ksmc.watchdog.timeout-seconds}, défaut 30), ou {@code null} hors d'un
+     * proxy géré ou avec {@code ksmc.watchdog.enabled: false}.
+     */
+    public Watchdog watchdog() {
+        if (!env.isProxy() || !env.isManaged() || "false".equals(env.property("ksmc.watchdog.enabled", "true"))) {
+            return null;
+        }
+        long timeout = 30;
+        try {
+            timeout = Long.parseLong(env.property("ksmc.watchdog.timeout-seconds", "30"));
+        } catch (NumberFormatException ignored) {
+            // défaut
+        }
+        return new Watchdog(Math.max(5, timeout) * 1000, new Watchdog.Clock() {
+            public long millis() {
+                return System.currentTimeMillis();
+            }
+        });
+    }
+
+    void log(String message) {
+        platform.log(message);
+    }
+
+    /** Annonce le gel au cloud (rapport immédiat, champ {@code frozen}). */
+    public void reportFrozen(String reason) {
+        frozenReason = reason;
+        report();
+    }
+
+    /** Signale au wrapper (fichier {@code .ksmc/frozen} du dossier du serveur) que ce proxy est figé. */
+    public void markFrozen(String reason) {
+        String dir = System.getenv("KSMC_SERVER_DIR");
+        markFrozen(new java.io.File(dir == null ? "." : dir), reason);
+    }
+
+    void markFrozen(java.io.File serverDir, String reason) {
+        java.io.File file = new java.io.File(serverDir, ".ksmc/frozen");
+        try {
+            file.getParentFile().mkdirs();
+            java.io.Writer w = new java.io.OutputStreamWriter(new java.io.FileOutputStream(file), UTF8);
+            try {
+                w.write(System.currentTimeMillis() + " " + reason + "\n");
+            } finally {
+                w.close();
+            }
+        } catch (java.io.IOException e) {
+            platform.log("[ksmc] état figé non écrit : " + e.getMessage());
         }
     }
 
