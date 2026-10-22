@@ -39,7 +39,7 @@ en_ligne() { [ "$(phase "$1")" = Running ]; }
 contient() { grep "$@" >/dev/null; }
 # redirection en arrière-plan, relançable (arrête l'ancienne ; le sous-shell évite le message « [1] PID »)
 pkill -f 'port-forward svc/ksmc-controller 18080' || true
-(kubectl -n $NS port-forward svc/ksmc-controller 18080:8080 >/dev/null 2>&1 &)
+(kubectl -n $NS port-forward svc/ksmc-controller 18080:8080 --address 0.0.0.0 >/dev/null 2>&1 &)
 attendre 30 curl -sf $API/healthz
 ```
 
@@ -177,7 +177,7 @@ Paper) ; le niveau de log passe à `DEBUG` sans redémarrage. Voir [OBSERVABILIT
 
 ## 10. Dashboard (manuel)
 
-Ouvrir `http://localhost:18080`, se connecter avec `admin` / `$KSMC_PASSWORD`.
+Ouvrir `http://localhost:18080` (ou `http://<ip-de-la-machine>:18080` depuis un autre poste : la redirection écoute sur `0.0.0.0`), se connecter avec `admin` / `$KSMC_PASSWORD`.
 
 **Attendu** :
 - la vue d'ensemble affiche 3 services et les tasks `t-proxy`, `t-lobby`, `t-static` ;

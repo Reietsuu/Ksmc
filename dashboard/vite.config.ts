@@ -17,6 +17,7 @@ export default defineConfig({
     },
   },
   server: {
+    host: '0.0.0.0', // accessible depuis le réseau, pas seulement localhost
     proxy: {
       '/api': { target: api, ws: true, changeOrigin: true },
       '/modules': { target: api, changeOrigin: true },

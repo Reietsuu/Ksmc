@@ -9,8 +9,8 @@ utilise l'API REST ([API.md](API.md)) : mêmes comptes, mêmes permissions que l
 ## Accès
 
 ```bash
-kubectl -n ksmc port-forward svc/ksmc-controller 8080
-# puis http://localhost:8080
+kubectl -n ksmc port-forward svc/ksmc-controller 8080 --address 0.0.0.0
+# puis http://localhost:8080 (ou http://<ip-de-la-machine>:8080 depuis le réseau)
 ```
 
 En production, exposer le service `ksmc-controller` (port 8080) derrière un Ingress HTTPS. Le compte `admin` et son
