@@ -131,8 +131,9 @@ class MultiProxyE2eTest {
 
         assertThat(joinVia("e2em-proxy-2", "Bob")).contains("déjà connecté");
 
-        // Session libérée : Bob entre.
+        // Session libérée : Bob entre (après le délai anti-flood de Velocity, 3 s par IP).
         controller.keyValue(BridgeSubjects.PLAYERS_BUCKET).delete(held.uuid);
+        Thread.sleep(4000);
         assertThat(joinVia("e2em-proxy-2", "Bob")).isEqualTo("en jeu");
     }
 
