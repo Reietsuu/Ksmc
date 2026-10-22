@@ -1,6 +1,9 @@
 package io.ksmc.bridge.velocity;
 
 import com.google.inject.Inject;
+import com.velocitypowered.api.command.CommandManager;
+import com.velocitypowered.api.command.CommandSource;
+import com.velocitypowered.api.command.SimpleCommand;
 import com.velocitypowered.api.event.ResultedEvent;
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.connection.DisconnectEvent;
@@ -13,6 +16,7 @@ import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
 import com.velocitypowered.api.event.proxy.ProxyPingEvent;
 import com.velocitypowered.api.event.proxy.ProxyShutdownEvent;
 import com.velocitypowered.api.plugin.Plugin;
+import com.velocitypowered.api.proxy.ConsoleCommandSource;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
@@ -20,10 +24,13 @@ import com.velocitypowered.api.proxy.server.ServerInfo;
 import com.velocitypowered.api.proxy.server.ServerPing;
 import io.ksmc.bridge.BridgeEnv;
 import io.ksmc.bridge.KsmcBridge;
+import io.ksmc.bridge.NetworkCommands;
 import io.ksmc.bridge.Platform;
+import io.ksmc.bridge.Router;
 import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -53,6 +60,31 @@ public final class KsmcVelocityBridge implements Platform {
     public void onInitialize(ProxyInitializeEvent event) {
         bridge = new KsmcBridge(BridgeEnv.fromSystem(), this);
         bridge.start();
+        registerCommands();
+    }
+
+    /** Commandes réseau : {@code /ksmc <commande>} et, sauf {@code ksmc.commands.replace-builtin: false}, en direct. */
+    private void registerCommands() {
+        CommandManager commands = proxy.getCommandManager();
+        commands.register(commands.metaBuilder("ksmc").build(), (SimpleCommand) inv -> {
+            String[] args = inv.arguments();
+            String name = args.length == 0 ? "" : args[0];
+            run(inv.source(), name, Arrays.copyOfRange(args, Math.min(1, args.length), args.length));
+        });
+        if ("false".equals(bridge.env().property("ksmc.commands.replace-builtin", "true"))) {
+            return;
+        }
+        for (String name : NetworkCommands.NAMES) {
+            commands.unregister(name);
+            commands.register(commands.metaBuilder(name).build(), (SimpleCommand) inv -> run(inv.source(), name, inv.arguments()));
+        }
+    }
+
+    private void run(CommandSource source, String name, String[] args) {
+        Router.Permissions perms = p -> source instanceof ConsoleCommandSource || source.hasPermission(p);
+        for (String line : bridge.commands().execute(perms, name, args)) {
+            source.sendMessage(text(line));
+        }
     }
 
     @Subscribe
