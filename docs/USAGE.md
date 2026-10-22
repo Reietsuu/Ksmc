@@ -189,6 +189,20 @@ tasks proxy. Les proxies partagent les serveurs et le registre des joueurs ; les
 
 Une session restée sur un proxy qui ne tourne plus est ignorée. Si le cloud est injoignable, la connexion est acceptée.
 
+**Commandes réseau.** Elles agissent sur tout le réseau, quel que soit le proxy du joueur, et marchent aussi depuis
+la console du proxy (`ksmc service cmd proxy-1 glist`).
+
+| Commande | Permission | Effet |
+|---|---|---|
+| `/glist [task]` | `ksmc.command.glist` | nombre de joueurs du réseau et répartition par serveur |
+| `/find <joueur>` | `ksmc.command.find` | proxy et serveur actuels du joueur |
+| `/send <joueur> <service\|task>` | `ksmc.command.send` | envoie le joueur sur ce service, ou sur le moins rempli de la task |
+| `/alert <message>` | `ksmc.command.alert` | message à tous les joueurs de tous les proxies (préfixe `ksmc.alert.prefix`) |
+
+Elles remplacent les `/glist` et `/send` de Velocity (qui ne voient que le proxy local). Avec
+`ksmc.commands.replace-builtin: "false"`, les commandes de Velocity restent en place et celles de Ksmc s'utilisent
+sous la forme `/ksmc glist`, `/ksmc send …`.
+
 ### Bridges
 
 Ksmc ajoute automatiquement un bridge à chaque service (`spec.bridge.enabled: false` pour le désactiver) :

@@ -103,6 +103,15 @@ attendre 30 sh -c "ksmc service logs t-lobby-1 -n 50 | grep -q 'players online'"
 ```
 
 **Attendu** : `ok`, puis la réponse du serveur (`There are 0 of a max of 20 players online`) dans ses logs.
+
+Commande réseau sur le proxy :
+
+```bash test
+ksmc service cmd t-proxy-1 glist
+attendre 30 sh -c "ksmc service logs t-proxy-1 -n 50 | grep -q 'joueur(s) en ligne sur le réseau'"
+```
+
+**Attendu** : `0 joueur(s) en ligne sur le réseau` dans les logs du proxy (tous proxies confondus).
 En interactif : `ksmc service console t-lobby-1` (Ctrl+D pour quitter).
 
 ## 5. Montée en charge, maintenance

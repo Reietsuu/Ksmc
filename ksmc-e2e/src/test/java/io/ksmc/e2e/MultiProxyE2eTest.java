@@ -17,7 +17,9 @@ import io.ksmc.wire.bridge.BridgeSubjects;
 import io.ksmc.wire.bridge.PlayerInfo;
 import io.ksmc.wire.messaging.Identity;
 import java.nio.charset.StandardCharsets;
+import java.net.http.HttpResponse;
 import java.time.Duration;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeAll;
@@ -72,6 +74,32 @@ class MultiProxyE2eTest {
             await(name + " déconnecté par " + pod, Duration.ofSeconds(30), () -> bot.disconnectReason() != null);
             return bot.disconnectReason();
         }
+    }
+
+    static void hold(String name, String proxy, String server) {
+        PlayerInfo p = new PlayerInfo();
+        p.uuid = offlineUuid(name);
+        p.name = name;
+        p.proxy = proxy;
+        p.server = server;
+        p.connectedAt = System.currentTimeMillis();
+        controller.keyValue(BridgeSubjects.PLAYERS_BUCKET).put(p.uuid, Wire.toJson(p).getBytes(StandardCharsets.UTF_8));
+    }
+
+    @Test
+    void glistOnOneProxyCountsPlayersOfAllProxies() throws Exception {
+        hold("Carol", "e2em-proxy-1", "e2em-lobby-1");
+        hold("Dave", "e2em-proxy-2", "e2em-lobby-1");
+        try (ApiClient api = new ApiClient()) {
+            HttpResponse<String> r = api.call("POST", "/api/v1/services/e2em-proxy-1/command", api.admin(),
+                    Map.of("command", "glist"));
+            assertThat(r.statusCode()).as(r.body()).isLessThan(300);
+        }
+        await("réponse de /glist", Duration.ofSeconds(30),
+                () -> logs("e2em-proxy-1").contains("2 joueur(s) en ligne sur le réseau"));
+        assertThat(logs("e2em-proxy-1")).contains("e2em-lobby-1 (2) : Carol, Dave");
+        controller.keyValue(BridgeSubjects.PLAYERS_BUCKET).delete(offlineUuid("Carol"));
+        controller.keyValue(BridgeSubjects.PLAYERS_BUCKET).delete(offlineUuid("Dave"));
     }
 
     @Test
