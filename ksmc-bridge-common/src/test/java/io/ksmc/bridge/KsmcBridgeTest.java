@@ -54,8 +54,11 @@ class KsmcBridgeTest {
         controller.close();
     }
 
-    KsmcBridge bridge(String service, String env, FakePlatform platform) throws Exception {
+    KsmcBridge bridge(String service, String env, FakePlatform platform, String... properties) throws Exception {
         ServiceManifest m = new ServiceManifest();
+        for (int i = 0; i < properties.length; i += 2) {
+            m.properties.put(properties[i], properties[i + 1]);
+        }
         m.network.maxPlayers = 500;
         m.properties.put("ksmc.forced-host.bw.example.com", "bedwars");
         KsmcBridge b = new KsmcBridge(new BridgeEnv("prod", service, service.replaceAll("-\\d+$", ""), env, url, null, null, m),
@@ -150,6 +153,31 @@ class KsmcBridgeTest {
         assertThat(p2.admitPlayer("uuid-1", "Steve", 770)).isEqualTo("Tu es déjà connecté au réseau.");
         p1.playerDisconnect("uuid-1");
         assertThat(p2.admitPlayer("uuid-1", "Steve", 770)).isNull();
+    }
+
+    @Test
+    void replacePolicyKicksTheOldSession() throws Exception {
+        publishService(proxySvc("proxy-1"));
+        publishService(proxySvc("proxy-2"));
+        FakePlatform old = new FakePlatform();
+        KsmcBridge p1 = bridge("proxy-1", "proxy", old);
+        KsmcBridge p2 = bridge("proxy-2", "proxy", new FakePlatform(), "ksmc.duplicate-login", "replace");
+        await(() -> p2.registry().get("proxy-1") != null);
+        p1.admitPlayer("uuid-1", "Steve", 770);
+        p1.playerLogin("uuid-1", "Steve", 770);
+
+        assertThat(p2.admitPlayer("uuid-1", "Steve", 770)).isNull();
+        assertThat(old.calls).contains("kick uuid-1 Tu t'es connecté depuis un autre endroit.");
+        PlayerInfo p = Wire.fromJson(controller.keyValue(BridgeSubjects.PLAYERS_BUCKET).get("uuid-1").valueAsString(),
+                PlayerInfo.class);
+        assertThat(p.proxy).isEqualTo("proxy-2");
+
+        // l'ancien proxy n'a pas vu l'expulsion (FakePlatform ne déconnecte pas) : son rafraîchissement l'applique
+        // sans écraser la session reprise
+        p1.refreshPlayers();
+        assertThat(old.calls.stream().filter(c -> c.startsWith("kick uuid-1")).count()).isEqualTo(2);
+        p1.playerDisconnect("uuid-1");
+        assertThat(controller.keyValue(BridgeSubjects.PLAYERS_BUCKET).get("uuid-1")).isNotNull();
     }
 
     @Test

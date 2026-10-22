@@ -75,6 +75,10 @@ final class SessionLock {
         kv.put(p.uuid, Wire.toJson(p).getBytes(KsmcBridge.UTF8));
     }
 
+    boolean isLive(String proxy) {
+        return liveness.isRunning(proxy);
+    }
+
     /** Proxy qui tient actuellement la session de {@code uuid}, ou {@code null}. */
     String holder(String uuid) {
         KeyValueApi.Entry e = kv.get(uuid);

@@ -3,7 +3,7 @@
 ## 1. Session unique par joueur
 
 - [x] 1.1 `KsmcBridge` : verrou de session à la connexion (`create`/`update` CAS sur le bucket `players`, règle « session orpheline », politique `deny`), `playerLogin` réutilise l'entrée ; tests unitaires (KV en mémoire avec révisions, connexions concurrentes) ; vérifier `./gradlew :ksmc-bridge-common:test -q`
-- [ ] 1.2 Politique `replace` (RPC `KICK` vers l'ancien proxy, attente ≤ 3 s) et expulsion d'une session perdue dans `refreshPlayers` ; tests unitaires ; vérifier `./gradlew :ksmc-bridge-common:test -q`
+- [x] 1.2 Politique `replace` (RPC `KICK` vers l'ancien proxy, attente ≤ 3 s) et expulsion d'une session perdue dans `refreshPlayers` ; tests unitaires ; vérifier `./gradlew :ksmc-bridge-common:test -q`
 - [ ] 1.3 `KsmcVelocityBridge.onLogin` : appliquer le verrou (refus avec `ksmc.duplicate-login.message`) ; doc des propriétés dans `docs/` (page proxies) ; vérifier `./gradlew :ksmc-bridge-velocity:build -q`
 - [ ] 1.4 E2E : deux proxies Velocity, le même bot se connecte sur les deux, la seconde connexion est refusée ; vérifier en CI (`gh run watch`)
 - [ ] 1.5 Commit + push (`feat(bridge): single session per player across proxies`)

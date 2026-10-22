@@ -234,6 +234,11 @@ public final class KsmcBridge implements AutoCloseable {
             if (r.outcome == SessionLock.Outcome.ACCEPTED) {
                 return null;
             }
+            if (r.outcome == SessionLock.Outcome.REPLACE) {
+                kickRemote(m, r.holder, uuid);
+                sessionLock(m).takeOver(p);
+                return null;
+            }
             return duplicateLoginMessage();
         } catch (RuntimeException e) {
             platform.log("[ksmc] session de " + name + " non vérifiée : " + e.getMessage());
@@ -248,6 +253,23 @@ public final class KsmcBridge implements AutoCloseable {
                 return s != null && "proxy".equals(s.environment) && s.isRunning();
             }
         });
+    }
+
+    /** Expulse la session de {@code uuid} sur le proxy {@code holder} (attente de sa réponse, 3 s au plus). */
+    private void kickRemote(NatsMessaging m, String holder, String uuid) {
+        PlayerAction kick = PlayerAction.of(PlayerAction.Type.KICK, uuid);
+        kick.text = replacedSessionMessage();
+        try {
+            m.connection().request(BridgeSubjects.playerRpc(env.namespace, holder), Wire.toJson(kick).getBytes(UTF8),
+                    java.time.Duration.ofSeconds(3));
+        } catch (Exception e) {
+            // proxy muet : la session est reprise quand même, il expulsera le joueur à son prochain rafraîchissement
+            platform.log("[ksmc] " + holder + " n'a pas expulsé " + uuid + " : " + e.getMessage());
+        }
+    }
+
+    public String replacedSessionMessage() {
+        return env.property("ksmc.duplicate-login.replaced-message", "Tu t'es connecté depuis un autre endroit.");
     }
 
     public String duplicateLoginMessage() {
@@ -291,7 +313,10 @@ public final class KsmcBridge implements AutoCloseable {
             m.connection().publish(BridgeSubjects.playerEvent(env.namespace, type), Wire.toJson(p).getBytes(UTF8));
             KeyValueApi kv = m.keyValue(BridgeSubjects.PLAYERS_BUCKET);
             if ("disconnect".equals(type)) {
-                kv.delete(p.uuid);
+                // la session a pu être reprise par un autre proxy (politique replace) : ne pas l'effacer
+                if (env.service.equals(sessionLock(m).holder(p.uuid))) {
+                    kv.delete(p.uuid);
+                }
             } else {
                 kv.put(p.uuid, Wire.toJson(p).getBytes(UTF8));
             }
@@ -308,7 +333,15 @@ public final class KsmcBridge implements AutoCloseable {
         }
         try {
             KeyValueApi kv = m.keyValue(BridgeSubjects.PLAYERS_BUCKET);
+            SessionLock lock = sessionLock(m);
             for (PlayerInfo p : players.values()) {
+                String holder = lock.holder(p.uuid);
+                if (holder != null && !holder.equals(env.service) && lock.isLive(holder)) {
+                    // session reprise ailleurs sans que l'expulsion nous soit parvenue
+                    players.remove(p.uuid);
+                    platform.kickPlayer(p.uuid, replacedSessionMessage());
+                    continue;
+                }
                 kv.put(p.uuid, Wire.toJson(p).getBytes(UTF8));
             }
         } catch (RuntimeException e) {
