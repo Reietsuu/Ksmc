@@ -69,6 +69,11 @@ public final class KsmcVelocityBridge implements Platform {
         Player p = event.getPlayer();
         if (!bridge.allowedToJoin(p.getUsername(), p::hasPermission)) {
             event.setResult(ResultedEvent.ComponentResult.denied(text(bridge.maintenanceMessage())));
+            return;
+        }
+        String denied = bridge.admitPlayer(p.getUniqueId().toString(), p.getUsername(), p.getProtocolVersion().getProtocol());
+        if (denied != null) {
+            event.setResult(ResultedEvent.ComponentResult.denied(text(denied)));
         }
     }
 

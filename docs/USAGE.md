@@ -173,6 +173,22 @@ priorité, puis le **moins rempli**. Sans fallback disponible, le joueur est dé
 Pendant la maintenance (`maintenance: true` sur la task proxy), seuls les joueurs de la liste blanche ou ayant la
 permission `ksmc.maintenance.bypass` peuvent entrer.
 
+### Plusieurs proxies
+
+Une task proxy peut avoir plusieurs services (`minServices: 2`, autoscaling) et un namespace peut avoir plusieurs
+tasks proxy. Les proxies partagent les serveurs et le registre des joueurs ; les réglages ci-dessous sont des
+`properties` de la task proxy.
+
+**Session unique.** Un joueur ne peut être connecté qu'à un seul proxy du réseau, toutes tasks proxy confondues.
+
+| Propriété | Défaut | Effet |
+|---|---|---|
+| `ksmc.duplicate-login` | `deny` | `deny` : la nouvelle connexion est refusée ; `replace` : l'ancienne session est expulsée |
+| `ksmc.duplicate-login.message` | `Tu es déjà connecté au réseau.` | message de refus (`deny`) |
+| `ksmc.duplicate-login.replaced-message` | `Tu t'es connecté depuis un autre endroit.` | message de l'ancienne session (`replace`) |
+
+Une session restée sur un proxy qui ne tourne plus est ignorée. Si le cloud est injoignable, la connexion est acceptée.
+
 ### Bridges
 
 Ksmc ajoute automatiquement un bridge à chaque service (`spec.bridge.enabled: false` pour le désactiver) :
