@@ -33,6 +33,21 @@ describe('ApiClient', () => {
     expect(api.current()).toBeNull();
   });
 
+  it('garde la session si le mot de passe actuel est incorrect', async () => {
+    const { calls } = mockApi({
+      'POST /api/v1/auth/password': new Response(
+        JSON.stringify({ code: 'InvalidCredentials', message: 'mot de passe actuel incorrect' }),
+        { status: 401 },
+      ),
+    });
+    const api = new ApiClient();
+    api.setSession(SESSION);
+    const err = await api.json('/api/v1/auth/password', { method: 'POST', body: '{}' }).catch((e) => e);
+    expect(err).toMatchObject({ status: 401, message: 'mot de passe actuel incorrect' });
+    expect(calls.map((c) => c.path)).toEqual(['/api/v1/auth/password']);
+    expect(api.current()).not.toBeNull();
+  });
+
   it("convertit les erreurs de l'API", async () => {
     mockApi({
       'DELETE /api/v1/tasks/lobby': new Response(JSON.stringify({ code: 'Forbidden', message: 'non' }), { status: 403 }),

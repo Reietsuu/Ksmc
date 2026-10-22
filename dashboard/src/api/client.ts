@@ -9,6 +9,15 @@ export interface Session {
   mustChangePassword: boolean;
 }
 
+/** 401 « mot de passe actuel incorrect » (changement de mot de passe) : la session reste valable. */
+async function wrongPassword(res: Response): Promise<boolean> {
+  try {
+    return (await res.clone().json()).code === 'InvalidCredentials';
+  } catch {
+    return false;
+  }
+}
+
 /** Erreur uniforme de l'API ({"code","message","details"}). */
 export class ApiError extends Error {
   constructor(
@@ -84,10 +93,10 @@ export class ApiClient {
       return fetch(this.base + path, { ...rest, headers });
     };
     let res = await send();
-    if (res.status === 401 && auth && this.session && (await this.refresh())) {
+    if (res.status === 401 && auth && !(await wrongPassword(res)) && this.session && (await this.refresh())) {
       res = await send();
     }
-    if (res.status === 401 && auth) this.setSession(null);
+    if (res.status === 401 && auth && !(await wrongPassword(res))) this.setSession(null);
     return res;
   }
 
