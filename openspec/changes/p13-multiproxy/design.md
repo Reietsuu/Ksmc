@@ -36,8 +36,8 @@ adaptateur Velocity mince ; aucun changement de CRD, réglages par propriétés 
 3. **`/alert` : diffusion NATS.** Nouveau sujet `BridgeSubjects.broadcast(ns)` = `ksmc.<ns>.proxy.broadcast`
    (texte brut, codes `&`). Chaque proxy s'y abonne et l'envoie à ses joueurs. L'événement est aussi utilisable par
    les modules plus tard (pas d'API REST dans ce change).
-4. **Transfert à l'arrêt.** Dans `ProxyShutdownEvent` (Velocity attend la fin des écouteurs synchrones), et avant
-   `bridge.close()` :
+4. **Transfert à l'arrêt.** Dans `ProxyPreShutdownEvent` : Velocity l'attend *avant* de déconnecter les joueurs
+   (`ProxyShutdownEvent`, prévu au départ, arrive après la déconnexion de tous les joueurs, donc trop tard) :
    1. attendre `ksmc.transfer.delay-ms` (défaut 1500) : le Pod terminant est retiré des EndpointSlices, donc la
       reconnexion via le Service ne retombe pas sur lui ;
    2. `TransferPlan` (commun) décide pour chaque joueur : `TRANSFER(adresse)` si le protocole ≥ 766 (1.20.5), si un

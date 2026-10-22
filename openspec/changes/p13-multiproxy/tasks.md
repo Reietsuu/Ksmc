@@ -20,7 +20,7 @@
 
 - [x] 3.1 `TransferPlan` (commun) : transfert si protocole ≥ 766, autre proxy `Running` de la task et `ksmc.transfer.enabled` ≠ `false`, adresse = `ksmc.transfer.address` ou hôte virtuel ; sinon kick avec `ksmc.transfer.fallback-message` ; tests unitaires ; vérifier `./gradlew :ksmc-bridge-common:test -q`
 - [x] 3.2 `KsmcBridge` : mode drainage (délai `ksmc.transfer.delay-ms`, retrait local sans `disconnect` KV pour les transférés) ; tests ; vérifier `./gradlew :ksmc-bridge-common:test -q`
-- [ ] 3.3 Velocity : drainage dans `onShutdown` avant `bridge.close()` via `Player.transferToHost` ; `ConfigPatcher` écrit `accepts-transfers = true` (test dans `ConfigPatcherTest`) ; vérifier `./gradlew :ksmc-bridge-velocity:build :ksmc-wrapper:test -q`
+- [x] 3.3 Velocity : drainage dans `onShutdown` avant `bridge.close()` via `Player.transferToHost` ; `ConfigPatcher` écrit `accepts-transfers = true` (test dans `ConfigPatcherTest`) ; vérifier `./gradlew :ksmc-bridge-velocity:build :ksmc-wrapper:test -q`
 - [ ] 3.4 Docs (transfert, versions client, adresse, désactivation) + `docs/TESTING.md` ; E2E : réduction 2 → 1 de la task proxy, le bot 1.8 reçoit le message de repli ; vérifier en CI
 - [ ] 3.5 Commit + push (`feat(bridge): transfer players when a proxy stops`)
 

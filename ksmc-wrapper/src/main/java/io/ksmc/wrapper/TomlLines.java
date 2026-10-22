@@ -39,6 +39,28 @@ final class TomlLines {
     }
 
     /** Ajoute la section avec ces lignes si elle n'existe pas. */
+    /** Écrit {@code key = value} dans la section {@code [section]} (créée au besoin). */
+    TomlLines set(String section, String key, String value) {
+        ensureSection(section);
+        int start = -1;
+        for (int i = 0; i < lines.size(); i++) {
+            if (lines.get(i).trim().equals("[" + section + "]")) {
+                start = i;
+                break;
+            }
+        }
+        int i = start + 1;
+        for (; i < lines.size() && !lines.get(i).trim().startsWith("["); i++) {
+            String t = lines.get(i).trim();
+            if (t.startsWith(key + " ") || t.startsWith(key + "=")) {
+                lines.set(i, key + " = " + value);
+                return this;
+            }
+        }
+        lines.add(start + 1, key + " = " + value);
+        return this;
+    }
+
     TomlLines ensureSection(String name, String... body) {
         for (String l : lines) {
             if (l.trim().equals("[" + name + "]")) {

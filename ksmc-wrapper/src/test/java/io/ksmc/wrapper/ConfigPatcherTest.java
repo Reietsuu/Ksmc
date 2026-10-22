@@ -112,9 +112,14 @@ class ConfigPatcherTest {
         assertThat(read(s, "forwarding.secret")).isEqualTo("s3cr3t");
         assertThat(toml).contains("online-mode = true");
 
+        assertThat(toml).contains("accepts-transfers = true");
+        assertThat(toml.indexOf("accepts-transfers")).isGreaterThan(toml.indexOf("[advanced]"));
+
         m.properties.put("ksmc.online-mode", "false");
+        m.properties.put("ksmc.transfer.enabled", "false");
         new ConfigPatcher().apply(m, s.toFile());
-        assertThat(read(s, "velocity.toml")).contains("online-mode = false");
+        toml = read(s, "velocity.toml");
+        assertThat(toml).contains("online-mode = false", "accepts-transfers = false").doesNotContain("accepts-transfers = true");
     }
 
     @Test

@@ -102,6 +102,9 @@ final class ConfigPatcher {
         // Les serveurs sont ajoutés dynamiquement par le bridge Ksmc.
         toml.ensureSection("servers", "try = []").ensureSection("forced-hosts")
                 .ensureSection("advanced", "haproxy-protocol = " + m.network.proxyProtocol);
+        // Transfert des joueurs entre proxies (arrêt d'un proxy) : Velocity doit accepter les clients transférés.
+        boolean transfers = !"false".equals(m.properties.get("ksmc.transfer.enabled"));
+        toml.set("advanced", "accepts-transfers", String.valueOf(transfers));
         IoUtil.writeString(file, toml.toString());
         if (secret != null) {
             IoUtil.writeString(new File(dir, "forwarding.secret"), secret);

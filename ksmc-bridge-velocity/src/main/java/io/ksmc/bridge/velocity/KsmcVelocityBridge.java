@@ -14,6 +14,7 @@ import com.velocitypowered.api.event.player.PlayerChooseInitialServerEvent;
 import com.velocitypowered.api.event.player.ServerConnectedEvent;
 import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
 import com.velocitypowered.api.event.proxy.ProxyPingEvent;
+import com.velocitypowered.api.event.proxy.ProxyPreShutdownEvent;
 import com.velocitypowered.api.event.proxy.ProxyShutdownEvent;
 import com.velocitypowered.api.plugin.Plugin;
 import com.velocitypowered.api.proxy.ConsoleCommandSource;
@@ -27,6 +28,7 @@ import io.ksmc.bridge.KsmcBridge;
 import io.ksmc.bridge.NetworkCommands;
 import io.ksmc.bridge.Platform;
 import io.ksmc.bridge.Router;
+import io.ksmc.bridge.TransferPlan;
 import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.util.ArrayList;
@@ -85,6 +87,37 @@ public final class KsmcVelocityBridge implements Platform {
         for (String line : bridge.commands().execute(perms, name, args)) {
             source.sendMessage(text(line));
         }
+    }
+
+    /** Avant que Velocity ne déconnecte les joueurs : transfert vers un autre proxy de la task, sinon expulsion. */
+    @Subscribe
+    public void onPreShutdown(ProxyPreShutdownEvent event) {
+        if (bridge == null || !bridge.env().isManaged()) {
+            return;
+        }
+        List<TransferPlan.Candidate> candidates = new ArrayList<>();
+        for (Player p : proxy.getAllPlayers()) {
+            InetSocketAddress host = p.getVirtualHost().orElse(null);
+            candidates.add(new TransferPlan.Candidate(p.getUniqueId().toString(), p.getProtocolVersion().getProtocol(),
+                    host == null ? null : host.getHostString(), host == null ? 0 : host.getPort()));
+        }
+        if (candidates.isEmpty()) {
+            return;
+        }
+        int transferred = 0;
+        for (TransferPlan.Step step : bridge.drain(candidates)) {
+            Optional<Player> p = proxy.getPlayer(UUID.fromString(step.uuid));
+            if (p.isEmpty()) {
+                continue;
+            }
+            if (step.isTransfer()) {
+                p.get().transferToHost(InetSocketAddress.createUnresolved(step.host, step.port));
+                transferred++;
+            } else {
+                p.get().disconnect(text(step.message));
+            }
+        }
+        logger.info("[ksmc] arrêt : {} joueur(s) transféré(s), {} déconnecté(s)", transferred, candidates.size() - transferred);
     }
 
     @Subscribe
