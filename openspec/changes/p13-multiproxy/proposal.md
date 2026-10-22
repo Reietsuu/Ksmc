@@ -29,6 +29,8 @@ proxies se comporte comme un seul, il faut un vrai mode multi-proxy, Velocity d'
 proxies ; synchronisation de plugins tiers entre proxies ; transfert *entre* tasks proxy différentes.
 **Laissé ouvert** : bot e2e 1.20.5+ pour tester le paquet Transfer de bout en bout (le transfert est couvert par
 des tests unitaires et le repli par l'e2e) ; commandes réseau supplémentaires via la même mécanique.
+**Laissé ouvert (décidé)** : transfert *en jeu* d'un joueur vers une autre task proxy ou un proxy précis
+(`/transfer`, cookie signé pour garder le serveur cible, adresse par proxy) — réutilisera le transfert de ce change.
 
 ## Capabilities
 
