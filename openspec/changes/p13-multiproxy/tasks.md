@@ -10,7 +10,7 @@
 
 ## 2. Commandes réseau
 
-- [ ] 2.1 `ksmc-wire` : sujet `BridgeSubjects.broadcast(ns)` ; `KsmcBridge` s'y abonne et relaie aux joueurs via `Platform.messagePlayer`/nouvelle méthode `broadcast` ; tests ; vérifier `./gradlew :ksmc-wire:test :ksmc-bridge-common:test -q`
+- [x] 2.1 `ksmc-wire` : sujet `BridgeSubjects.broadcast(ns)` ; `KsmcBridge` s'y abonne et relaie aux joueurs via `Platform.messagePlayer`/nouvelle méthode `broadcast` ; tests ; vérifier `./gradlew :ksmc-wire:test :ksmc-bridge-common:test -q`
 - [ ] 2.2 `NetworkCommands` (commun) : `glist [task]`, `find`, `send <joueur> <service|task>`, `alert`, permissions `ksmc.command.<nom>`, messages d'erreur ; tests unitaires avec `FakePlatform` ; vérifier `./gradlew :ksmc-bridge-common:test -q`
 - [ ] 2.3 Velocity : enregistrement des commandes + `/ksmc <sous-commande>`, remplacement des intégrées `glist`/`send` selon `ksmc.commands.replace-builtin` ; vérifier `./gradlew :ksmc-bridge-velocity:build -q`
 - [ ] 2.4 Docs (commandes, permissions, option de remplacement) + scénario dans `docs/TESTING.md` ; E2E : `/glist` envoyé à la console d'un proxy compte les bots des deux proxies ; vérifier en CI

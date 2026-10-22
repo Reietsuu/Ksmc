@@ -118,6 +118,9 @@ public final class KsmcBridge implements AutoCloseable {
                     }
                 }));
         subscribePlayerActions();
+        if (env.isProxy()) {
+            subscribeBroadcasts();
+        }
         scheduler.scheduleAtFixedRate(new Runnable() {
             public void run() {
                 report();
@@ -415,6 +418,33 @@ public final class KsmcBridge implements AutoCloseable {
         } catch (RuntimeException e) {
             platform.log("[ksmc] rapport non envoyé : " + e.getMessage());
         }
+    }
+
+    // ---- Annonces réseau -------------------------------------------------------------------------
+
+    /** Annonce {@code text} à tous les joueurs de tous les proxies du namespace (ce proxy compris). */
+    public void broadcast(String text) {
+        NatsMessaging m = messaging;
+        if (m == null) {
+            throw new IllegalStateException("cloud injoignable");
+        }
+        m.connection().publish(BridgeSubjects.broadcast(env.namespace), text.getBytes(UTF8));
+    }
+
+    private void subscribeBroadcasts() {
+        final Connection c = messaging.connection();
+        final Dispatcher d = c.createDispatcher(msg -> {
+            String text = new String(msg.getData(), UTF8);
+            for (Platform.OnlinePlayer p : platform.onlinePlayers()) {
+                platform.messagePlayer(p.uuid, text);
+            }
+        });
+        d.subscribe(BridgeSubjects.broadcast(env.namespace));
+        subscriptions.add(new Subscription() {
+            public void close() {
+                c.closeDispatcher(d);
+            }
+        });
     }
 
     // ---- Actions sur les joueurs -----------------------------------------------------------------

@@ -181,6 +181,23 @@ class KsmcBridgeTest {
     }
 
     @Test
+    void broadcastReachesPlayersOfEveryProxy() throws Exception {
+        FakePlatform a = new FakePlatform();
+        FakePlatform b = new FakePlatform();
+        a.players.add(new Platform.OnlinePlayer("uuid-1", "Steve", "lobby-1", 770));
+        b.players.add(new Platform.OnlinePlayer("uuid-2", "Alex", "lobby-1", 770));
+        KsmcBridge p1 = bridge("proxy-1", "proxy", a);
+        bridge("proxy-2", "proxy", b);
+        FakePlatform server = new FakePlatform();
+        server.players.add(new Platform.OnlinePlayer("uuid-3", "Herobrine", null, 770));
+        bridge("game-1", "server", server);
+
+        p1.broadcast("&cRedémarrage");
+        await(() -> a.calls.contains("message uuid-1 &cRedémarrage") && b.calls.contains("message uuid-2 &cRedémarrage"));
+        assertThat(server.calls).noneMatch(c -> c.startsWith("message"));
+    }
+
+    @Test
     void serverReportsStateAndExecutesActions() throws Exception {
         List<ServiceReport> reports = new CopyOnWriteArrayList<>();
         controller.connection().createDispatcher(m -> reports.add(
