@@ -173,6 +173,59 @@ priorité, puis le **moins rempli**. Sans fallback disponible, le joueur est dé
 Pendant la maintenance (`maintenance: true` sur la task proxy), seuls les joueurs de la liste blanche ou ayant la
 permission `ksmc.maintenance.bypass` peuvent entrer.
 
+### Plusieurs proxies
+
+Une task proxy peut avoir plusieurs services (`minServices: 2`, autoscaling) et un namespace peut avoir plusieurs
+tasks proxy. Les proxies partagent les serveurs et le registre des joueurs ; les réglages ci-dessous sont des
+`properties` de la task proxy.
+
+**Session unique.** Un joueur ne peut être connecté qu'à un seul proxy du réseau, toutes tasks proxy confondues.
+
+| Propriété | Défaut | Effet |
+|---|---|---|
+| `ksmc.duplicate-login` | `deny` | `deny` : la nouvelle connexion est refusée ; `replace` : l'ancienne session est expulsée |
+| `ksmc.duplicate-login.message` | `Tu es déjà connecté au réseau.` | message de refus (`deny`) |
+| `ksmc.duplicate-login.replaced-message` | `Tu t'es connecté depuis un autre endroit.` | message de l'ancienne session (`replace`) |
+
+Le pseudo compte aussi, sans tenir compte de la casse (en mode hors ligne, `Steve` et `steve` ont des UUID
+différents mais restent une seule session). Une session restée sur un proxy qui ne tourne plus est ignorée. Si le cloud est injoignable, la connexion est acceptée.
+
+**Commandes réseau.** Elles agissent sur tout le réseau, quel que soit le proxy du joueur, et marchent aussi depuis
+la console du proxy (`ksmc service cmd proxy-1 glist`).
+
+| Commande | Permission | Effet |
+|---|---|---|
+| `/glist [task]` | `ksmc.command.glist` | nombre de joueurs du réseau et répartition par serveur |
+| `/find <joueur>` | `ksmc.command.find` | proxy et serveur actuels du joueur |
+| `/send <joueur> <service\|task>` | `ksmc.command.send` | envoie le joueur sur ce service, ou sur le moins rempli de la task |
+| `/alert <message>` | `ksmc.command.alert` | message à tous les joueurs de tous les proxies (préfixe `ksmc.alert.prefix`) |
+
+Elles remplacent les `/glist` et `/send` de Velocity (qui ne voient que le proxy local). Avec
+`ksmc.commands.replace-builtin: "false"`, les commandes de Velocity restent en place et celles de Ksmc s'utilisent
+sous la forme `/ksmc glist`, `/ksmc send …`.
+
+**Arrêt sans coupure.** Quand un proxy s'arrête (réduction de la task, mise à jour, `ksmc service stop`, suppression
+du Pod), ses joueurs sont envoyés vers un autre proxy `Running` de la même task avant la fermeture :
+
+- client **1.20.5 ou plus récent** : transfert automatique (paquet Transfer) vers l'adresse qu'il avait utilisée
+  pour se connecter, le joueur n'a rien à faire ;
+- client plus ancien, ou dernier proxy de la task : déconnexion avec `ksmc.transfer.fallback-message`.
+
+| Propriété | Défaut | Effet |
+|---|---|---|
+| `ksmc.transfer.enabled` | `true` | `false` : pas de transfert, tout le monde reçoit le message de repli |
+| `ksmc.transfer.address` | adresse utilisée par le joueur | `hôte[:port]` public du réseau (ex. derrière un DNS différent) |
+| `ksmc.transfer.delay-ms` | `1500` | attente avant transfert, le temps que le Pod quitte le Service |
+| `ksmc.transfer.fallback-message` | `Le proxy redémarre, reconnecte-toi.` | message des joueurs non transférés |
+
+Ksmc active `accepts-transfers` dans `velocity.toml` pour que les proxies acceptent les joueurs transférés.
+
+**Plusieurs tasks proxy.** Chaque task proxy a son propre Service (exposition), ses forced hosts, sa maintenance
+et son maximum de joueurs ; toutes partagent les serveurs et le registre des joueurs, et la session unique vaut
+pour tout le réseau. Le ping affiche les joueurs de tout le réseau, ou seulement ceux de la task avec
+`ksmc.player-count.scope: task`. Le transfert à l'arrêt reste à l'intérieur d'une task.
+Exemple : [`examples/07-multiproxy.yaml`](../examples/07-multiproxy.yaml).
+
 ### Bridges
 
 Ksmc ajoute automatiquement un bridge à chaque service (`spec.bridge.enabled: false` pour le désactiver) :

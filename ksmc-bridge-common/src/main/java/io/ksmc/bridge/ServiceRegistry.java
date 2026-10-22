@@ -70,9 +70,14 @@ public final class ServiceRegistry {
 
     /** Joueurs en ligne sur tout le réseau (somme des proxies). */
     public int networkPlayers() {
+        return proxyPlayers(null);
+    }
+
+    /** Joueurs des proxies {@code Running} de la task {@code task} ({@code null} : toutes). */
+    public int proxyPlayers(String task) {
         int total = 0;
         for (ServiceInfo s : services.values()) {
-            if ("proxy".equals(s.environment) && s.isRunning()) {
+            if ("proxy".equals(s.environment) && s.isRunning() && (task == null || task.equals(s.task))) {
                 total += s.onlinePlayers;
             }
         }

@@ -104,7 +104,11 @@ sleep 20
 wait_running
 POD=$(k get mcsvc keep-1 -o jsonpath='{.status.podName}')
 k exec "$POD" -c server -- cat /server/marker.txt | grep -q "données d avant" || fail "fichier du service statique perdu"
-# Fonctionnalité de la version courante : métriques du controller.
-k exec deploy/ksmc-controller -- bash -c 'exec 3<>/dev/tcp/127.0.0.1/8080; printf "GET /metrics HTTP/1.0\r\n\r\n" >&3; cat <&3' \
-  | grep -q '^ksmc_services{phase="Running",task="keep"} 1.0' || fail "métriques absentes après mise à jour"
+# Fonctionnalité de la version courante : métriques du controller (calculées peu après son démarrage).
+metrics_ok() {
+  k exec deploy/ksmc-controller -- bash -c 'exec 3<>/dev/tcp/127.0.0.1/8080; printf "GET /metrics HTTP/1.0\r\n\r\n" >&3; cat <&3' \
+    | grep '^ksmc_services{phase="Running",task="keep"} 1.0' >/dev/null
+}
+for _ in $(seq 1 12); do metrics_ok && break; sleep 5; done
+metrics_ok || fail "métriques absentes après mise à jour"
 echo "service statique conservé (uid, volume, fichier), controller à jour"

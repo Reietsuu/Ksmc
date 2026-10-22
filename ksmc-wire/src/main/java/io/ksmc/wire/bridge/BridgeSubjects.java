@@ -25,6 +25,11 @@ public final class BridgeSubjects {
         return "ksmc." + ns + ".pev.*";
     }
 
+    /** Annonce à tous les joueurs de tous les proxies (texte brut, codes {@code &}). */
+    public static String broadcast(String ns) {
+        return "ksmc." + ns + ".proxy.broadcast";
+    }
+
     /** Actions joueurs à destination d'un proxy ou d'un serveur. */
     public static String playerRpc(String ns, String component) {
         return "ksmc." + ns + ".rpc.player." + component;

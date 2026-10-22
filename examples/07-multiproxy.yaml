@@ -1,0 +1,37 @@
+# Réseau à plusieurs proxies : deux tasks proxy (une par région) devant les mêmes serveurs.
+# Chaque task a son exposition, sa maintenance et son compteur ; un joueur n'a qu'une session sur le réseau.
+apiVersion: ksmc.io/v1alpha1
+kind: ServiceTask
+metadata:
+  name: proxy-eu
+spec:
+  environment: proxy
+  software: {name: velocity, version: latest}
+  memoryMb: 512
+  minServiceCount: 2              # deux proxies : arrêt de l'un sans coupure (clients 1.20.5+)
+  maxServiceCount: 4
+  expose:
+    type: NodePort
+    nodePort: 30566
+    maxPlayers: 1000
+  properties:
+    ksmc.duplicate-login: replace          # la nouvelle connexion expulse l'ancienne
+    ksmc.transfer.address: eu.example.com:30566
+---
+apiVersion: ksmc.io/v1alpha1
+kind: ServiceTask
+metadata:
+  name: proxy-us
+spec:
+  environment: proxy
+  software: {name: velocity, version: latest}
+  memoryMb: 512
+  minServiceCount: 1
+  maintenance: false
+  expose:
+    type: NodePort
+    nodePort: 30567
+    maxPlayers: 500
+  properties:
+    ksmc.player-count.scope: task          # le ping n'affiche que les joueurs de proxy-us
+    ksmc.commands.replace-builtin: "false" # garder /glist et /send de Velocity ; Ksmc sous /ksmc …

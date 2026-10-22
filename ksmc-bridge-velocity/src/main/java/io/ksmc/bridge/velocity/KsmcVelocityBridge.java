@@ -1,6 +1,9 @@
 package io.ksmc.bridge.velocity;
 
 import com.google.inject.Inject;
+import com.velocitypowered.api.command.CommandManager;
+import com.velocitypowered.api.command.CommandSource;
+import com.velocitypowered.api.command.SimpleCommand;
 import com.velocitypowered.api.event.ResultedEvent;
 import com.velocitypowered.api.event.Subscribe;
 import com.velocitypowered.api.event.connection.DisconnectEvent;
@@ -11,8 +14,10 @@ import com.velocitypowered.api.event.player.PlayerChooseInitialServerEvent;
 import com.velocitypowered.api.event.player.ServerConnectedEvent;
 import com.velocitypowered.api.event.proxy.ProxyInitializeEvent;
 import com.velocitypowered.api.event.proxy.ProxyPingEvent;
+import com.velocitypowered.api.event.proxy.ProxyPreShutdownEvent;
 import com.velocitypowered.api.event.proxy.ProxyShutdownEvent;
 import com.velocitypowered.api.plugin.Plugin;
+import com.velocitypowered.api.proxy.ConsoleCommandSource;
 import com.velocitypowered.api.proxy.Player;
 import com.velocitypowered.api.proxy.ProxyServer;
 import com.velocitypowered.api.proxy.server.RegisteredServer;
@@ -20,10 +25,14 @@ import com.velocitypowered.api.proxy.server.ServerInfo;
 import com.velocitypowered.api.proxy.server.ServerPing;
 import io.ksmc.bridge.BridgeEnv;
 import io.ksmc.bridge.KsmcBridge;
+import io.ksmc.bridge.NetworkCommands;
 import io.ksmc.bridge.Platform;
+import io.ksmc.bridge.Router;
+import io.ksmc.bridge.TransferPlan;
 import java.net.InetSocketAddress;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -53,6 +62,62 @@ public final class KsmcVelocityBridge implements Platform {
     public void onInitialize(ProxyInitializeEvent event) {
         bridge = new KsmcBridge(BridgeEnv.fromSystem(), this);
         bridge.start();
+        registerCommands();
+    }
+
+    /** Commandes réseau : {@code /ksmc <commande>} et, sauf {@code ksmc.commands.replace-builtin: false}, en direct. */
+    private void registerCommands() {
+        CommandManager commands = proxy.getCommandManager();
+        commands.register(commands.metaBuilder("ksmc").build(), (SimpleCommand) inv -> {
+            String[] args = inv.arguments();
+            String name = args.length == 0 ? "" : args[0];
+            run(inv.source(), name, Arrays.copyOfRange(args, Math.min(1, args.length), args.length));
+        });
+        if ("false".equals(bridge.env().property("ksmc.commands.replace-builtin", "true"))) {
+            return;
+        }
+        for (String name : NetworkCommands.NAMES) {
+            commands.unregister(name);
+            commands.register(commands.metaBuilder(name).build(), (SimpleCommand) inv -> run(inv.source(), name, inv.arguments()));
+        }
+    }
+
+    private void run(CommandSource source, String name, String[] args) {
+        Router.Permissions perms = p -> source instanceof ConsoleCommandSource || source.hasPermission(p);
+        for (String line : bridge.commands().execute(perms, name, args)) {
+            source.sendMessage(text(line));
+        }
+    }
+
+    /** Avant que Velocity ne déconnecte les joueurs : transfert vers un autre proxy de la task, sinon expulsion. */
+    @Subscribe
+    public void onPreShutdown(ProxyPreShutdownEvent event) {
+        if (bridge == null || !bridge.env().isManaged()) {
+            return;
+        }
+        List<TransferPlan.Candidate> candidates = new ArrayList<>();
+        for (Player p : proxy.getAllPlayers()) {
+            InetSocketAddress host = p.getVirtualHost().orElse(null);
+            candidates.add(new TransferPlan.Candidate(p.getUniqueId().toString(), p.getProtocolVersion().getProtocol(),
+                    host == null ? null : host.getHostString(), host == null ? 0 : host.getPort()));
+        }
+        if (candidates.isEmpty()) {
+            return;
+        }
+        int transferred = 0;
+        for (TransferPlan.Step step : bridge.drain(candidates)) {
+            Optional<Player> p = proxy.getPlayer(UUID.fromString(step.uuid));
+            if (p.isEmpty()) {
+                continue;
+            }
+            if (step.isTransfer()) {
+                p.get().transferToHost(InetSocketAddress.createUnresolved(step.host, step.port));
+                transferred++;
+            } else {
+                p.get().disconnect(text(step.message));
+            }
+        }
+        logger.info("[ksmc] arrêt : {} joueur(s) transféré(s), {} déconnecté(s)", transferred, candidates.size() - transferred);
     }
 
     @Subscribe
@@ -69,6 +134,11 @@ public final class KsmcVelocityBridge implements Platform {
         Player p = event.getPlayer();
         if (!bridge.allowedToJoin(p.getUsername(), p::hasPermission)) {
             event.setResult(ResultedEvent.ComponentResult.denied(text(bridge.maintenanceMessage())));
+            return;
+        }
+        String denied = bridge.admitPlayer(p.getUniqueId().toString(), p.getUsername(), p.getProtocolVersion().getProtocol());
+        if (denied != null) {
+            event.setResult(ResultedEvent.ComponentResult.denied(text(denied)));
         }
     }
 

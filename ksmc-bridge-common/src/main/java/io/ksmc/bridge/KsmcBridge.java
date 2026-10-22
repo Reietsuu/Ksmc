@@ -118,6 +118,9 @@ public final class KsmcBridge implements AutoCloseable {
                     }
                 }));
         subscribePlayerActions();
+        if (env.isProxy()) {
+            subscribeBroadcasts();
+        }
         scheduler.scheduleAtFixedRate(new Runnable() {
             public void run() {
                 report();
@@ -202,9 +205,13 @@ public final class KsmcBridge implements AutoCloseable {
         return env.property("ksmc.no-fallback.message", "Aucun serveur disponible, réessaie dans un instant.");
     }
 
-    /** Joueurs affichés au ping : tout le réseau (au moins ceux de ce proxy). */
+    /**
+     * Joueurs affichés au ping : tout le réseau, ou les proxies de cette task avec
+     * {@code ksmc.player-count.scope: task} (au moins ceux de ce proxy).
+     */
     public int networkPlayers() {
-        return Math.max(registry.networkPlayers(), platform.onlinePlayers().size());
+        boolean task = "task".equals(ownProperties().get("ksmc.player-count.scope"));
+        return Math.max(task ? registry.proxyPlayers(env.task) : registry.networkPlayers(), platform.onlinePlayers().size());
     }
 
     public int networkMaxPlayers() {
@@ -213,6 +220,72 @@ public final class KsmcBridge implements AutoCloseable {
     }
 
     // ---- Proxies : joueurs -----------------------------------------------------------------------
+
+    /**
+     * Admission d'un joueur (avant {@link #playerLogin}) : prend sa session réseau unique. Renvoie {@code null} si
+     * la connexion est acceptée, sinon le message de refus. Cloud injoignable : acceptée (on ne bloque pas le jeu).
+     */
+    public String admitPlayer(String uuid, String name, int protocolVersion) {
+        NatsMessaging m = messaging;
+        if (m == null) {
+            return null;
+        }
+        PlayerInfo p = new PlayerInfo();
+        p.uuid = uuid;
+        p.name = name;
+        p.proxy = env.service;
+        p.connectedAt = System.currentTimeMillis();
+        p.protocolVersion = protocolVersion;
+        try {
+            SessionLock.Result r = sessionLock(m).acquire(p, ownProperties().get("ksmc.duplicate-login"));
+            if (r.outcome == SessionLock.Outcome.ACCEPTED) {
+                return null;
+            }
+            if (r.outcome == SessionLock.Outcome.REPLACE) {
+                kickRemote(m, r.holder, r.heldUuid);
+                sessionLock(m).takeOver(p);
+                return null;
+            }
+            return duplicateLoginMessage();
+        } catch (RuntimeException e) {
+            platform.log("[ksmc] session de " + name + " non vérifiée : " + e.getMessage());
+            return null;
+        }
+    }
+
+    private SessionLock sessionLock(NatsMessaging m) {
+        return new SessionLock(m.keyValue(BridgeSubjects.PLAYERS_BUCKET), new SessionLock.Liveness() {
+            public boolean isRunning(String name) {
+                ServiceInfo s = registry.get(name);
+                return s != null && "proxy".equals(s.environment) && s.isRunning();
+            }
+        }, new SessionLock.Directory() {
+            public List<PlayerInfo> players() {
+                return networkPlayerList();
+            }
+        });
+    }
+
+    /** Expulse la session de {@code uuid} sur le proxy {@code holder} (attente de sa réponse, 3 s au plus). */
+    private void kickRemote(NatsMessaging m, String holder, String uuid) {
+        PlayerAction kick = PlayerAction.of(PlayerAction.Type.KICK, uuid);
+        kick.text = replacedSessionMessage();
+        try {
+            m.connection().request(BridgeSubjects.playerRpc(env.namespace, holder), Wire.toJson(kick).getBytes(UTF8),
+                    java.time.Duration.ofSeconds(3));
+        } catch (Exception e) {
+            // proxy muet : la session est reprise quand même, il expulsera le joueur à son prochain rafraîchissement
+            platform.log("[ksmc] " + holder + " n'a pas expulsé " + uuid + " : " + e.getMessage());
+        }
+    }
+
+    public String replacedSessionMessage() {
+        return env.property("ksmc.duplicate-login.replaced-message", "Tu t'es connecté depuis un autre endroit.");
+    }
+
+    public String duplicateLoginMessage() {
+        return env.property("ksmc.duplicate-login.message", "Tu es déjà connecté au réseau.");
+    }
 
     public void playerLogin(String uuid, String name, int protocolVersion) {
         PlayerInfo p = new PlayerInfo();
@@ -251,7 +324,10 @@ public final class KsmcBridge implements AutoCloseable {
             m.connection().publish(BridgeSubjects.playerEvent(env.namespace, type), Wire.toJson(p).getBytes(UTF8));
             KeyValueApi kv = m.keyValue(BridgeSubjects.PLAYERS_BUCKET);
             if ("disconnect".equals(type)) {
-                kv.delete(p.uuid);
+                // la session a pu être reprise par un autre proxy (politique replace) : ne pas l'effacer
+                if (env.service.equals(sessionLock(m).holder(p.uuid))) {
+                    kv.delete(p.uuid);
+                }
             } else {
                 kv.put(p.uuid, Wire.toJson(p).getBytes(UTF8));
             }
@@ -268,7 +344,15 @@ public final class KsmcBridge implements AutoCloseable {
         }
         try {
             KeyValueApi kv = m.keyValue(BridgeSubjects.PLAYERS_BUCKET);
+            SessionLock lock = sessionLock(m);
             for (PlayerInfo p : players.values()) {
+                String holder = lock.holder(p.uuid);
+                if (holder != null && !holder.equals(env.service) && lock.isLive(holder)) {
+                    // session reprise ailleurs sans que l'expulsion nous soit parvenue
+                    players.remove(p.uuid);
+                    platform.kickPlayer(p.uuid, replacedSessionMessage());
+                    continue;
+                }
                 kv.put(p.uuid, Wire.toJson(p).getBytes(UTF8));
             }
         } catch (RuntimeException e) {
@@ -342,6 +426,147 @@ public final class KsmcBridge implements AutoCloseable {
         } catch (RuntimeException e) {
             platform.log("[ksmc] rapport non envoyé : " + e.getMessage());
         }
+    }
+
+    // ---- Arrêt : transfert des joueurs -----------------------------------------------------------
+
+    /**
+     * Prépare l'arrêt de ce proxy : attend que le Pod quitte le Service ({@code ksmc.transfer.delay-ms}), puis
+     * renvoie pour chaque joueur un transfert ou une expulsion, à exécuter par la plateforme. Les joueurs
+     * transférés quittent le registre local sans événement {@code disconnect} (ils restent sur le réseau) et leur
+     * session est libérée pour le proxy qui les reçoit.
+     */
+    public List<TransferPlan.Step> drain(List<TransferPlan.Candidate> candidates) {
+        Map<String, String> props = ownProperties();
+        boolean other = otherProxyRunning();
+        List<TransferPlan.Step> steps = TransferPlan.plan(candidates, other, props);
+        boolean transfers = false;
+        for (TransferPlan.Step s : steps) {
+            transfers |= s.isTransfer();
+        }
+        if (transfers) {
+            long delay = 1500;
+            try {
+                delay = Long.parseLong(env.property("ksmc.transfer.delay-ms", "1500"));
+            } catch (NumberFormatException ignored) {
+                // défaut
+            }
+            sleep(Math.max(0, delay));
+        }
+        NatsMessaging m = messaging;
+        for (TransferPlan.Step s : steps) {
+            if (!s.isTransfer()) {
+                continue;
+            }
+            players.remove(s.uuid);
+            if (m != null) {
+                try {
+                    if (env.service.equals(sessionLock(m).holder(s.uuid))) {
+                        m.keyValue(BridgeSubjects.PLAYERS_BUCKET).delete(s.uuid);
+                    }
+                } catch (RuntimeException e) {
+                    platform.log("[ksmc] session de " + s.uuid + " non libérée : " + e.getMessage());
+                }
+            }
+        }
+        return steps;
+    }
+
+    /** Vrai si un autre proxy {@code Running} de la même task peut recevoir les joueurs. */
+    boolean otherProxyRunning() {
+        for (ServiceInfo s : registry.byTask(env.task)) {
+            if (!env.service.equals(s.name) && "proxy".equals(s.environment) && s.isRunning()) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    // ---- Commandes réseau ------------------------------------------------------------------------
+
+    /** Commandes réseau de ce proxy ({@code /glist}, {@code /find}, {@code /send}, {@code /alert}). */
+    public NetworkCommands commands() {
+        return new NetworkCommands(new NetworkCommands.Network() {
+            public List<PlayerInfo> players() {
+                return networkPlayerList();
+            }
+
+            public java.util.Collection<ServiceInfo> services() {
+                return registry.all();
+            }
+
+            public String act(String proxy, PlayerAction action) {
+                if (env.service.equals(proxy)) {
+                    return execute(action);
+                }
+                try {
+                    io.nats.client.Message reply = connected().connection().request(
+                            BridgeSubjects.playerRpc(env.namespace, proxy), Wire.toJson(action).getBytes(UTF8),
+                            java.time.Duration.ofSeconds(5));
+                    return reply == null || reply.isStatusMessage() ? "error: proxy " + proxy + " did not answer"
+                            : new String(reply.getData(), UTF8);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    return "error: interrupted";
+                }
+            }
+
+            public void broadcast(String text) {
+                KsmcBridge.this.broadcast(text);
+            }
+        }, env.property("ksmc.alert.prefix", "&c[Annonce] &f"));
+    }
+
+    private NatsMessaging connected() {
+        NatsMessaging m = messaging;
+        if (m == null) {
+            throw new IllegalStateException("cloud injoignable");
+        }
+        return m;
+    }
+
+    /** Joueurs en ligne sur tout le réseau (bucket {@code players}). */
+    List<PlayerInfo> networkPlayerList() {
+        NatsMessaging m = connected();
+        List<PlayerInfo> out = new ArrayList<PlayerInfo>();
+        try {
+            io.nats.client.KeyValue kv = m.connection().keyValue(
+                    io.ksmc.messaging.nats.Subjects.bucket(env.namespace, BridgeSubjects.PLAYERS_BUCKET));
+            for (String key : kv.keys()) {
+                io.nats.client.api.KeyValueEntry e = kv.get(key);
+                if (e != null && e.getValue() != null) {
+                    out.add(Wire.fromJson(new String(e.getValue(), UTF8), PlayerInfo.class));
+                }
+            }
+        } catch (Exception e) {
+            if (e.getMessage() == null || !e.getMessage().contains("no keys")) {
+                throw new IllegalStateException("registre des joueurs indisponible : " + e.getMessage(), e);
+            }
+        }
+        return out;
+    }
+
+    // ---- Annonces réseau -------------------------------------------------------------------------
+
+    /** Annonce {@code text} à tous les joueurs de tous les proxies du namespace (ce proxy compris). */
+    public void broadcast(String text) {
+        connected().connection().publish(BridgeSubjects.broadcast(env.namespace), text.getBytes(UTF8));
+    }
+
+    private void subscribeBroadcasts() {
+        final Connection c = messaging.connection();
+        final Dispatcher d = c.createDispatcher(msg -> {
+            String text = new String(msg.getData(), UTF8);
+            for (Platform.OnlinePlayer p : platform.onlinePlayers()) {
+                platform.messagePlayer(p.uuid, text);
+            }
+        });
+        d.subscribe(BridgeSubjects.broadcast(env.namespace));
+        subscriptions.add(new Subscription() {
+            public void close() {
+                c.closeDispatcher(d);
+            }
+        });
     }
 
     // ---- Actions sur les joueurs -----------------------------------------------------------------

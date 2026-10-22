@@ -103,6 +103,15 @@ attendre 30 sh -c "ksmc service logs t-lobby-1 -n 50 | grep -q 'players online'"
 ```
 
 **Attendu** : `ok`, puis la réponse du serveur (`There are 0 of a max of 20 players online`) dans ses logs.
+
+Commande réseau sur le proxy :
+
+```bash test
+ksmc service cmd t-proxy-1 glist
+attendre 30 sh -c "ksmc service logs t-proxy-1 -n 50 | grep -q 'joueur(s) en ligne sur le réseau'"
+```
+
+**Attendu** : `0 joueur(s) en ligne sur le réseau` dans les logs du proxy (tous proxies confondus).
 En interactif : `ksmc service console t-lobby-1` (Ctrl+D pour quitter).
 
 ## 5. Montée en charge, maintenance
@@ -196,6 +205,12 @@ kubectl -n ksmc port-forward svc/t-proxy 25565
 Se connecter avec un client Minecraft (version du lobby) à `localhost:25565`.
 **Attendu** : arrivée sur `t-lobby-1` ; `ksmc player list` vous affiche ; `ksmc player send <pseudo> -s t-lobby-2`
 (après `ksmc task start t-lobby`) vous déplace ; `ksmc player kick <pseudo>` vous déconnecte.
+
+Plusieurs proxies (client 1.20.5+) : `kubectl -n ksmc patch mctask t-proxy --type merge -p '{"spec":{"minServiceCount":2}}'`,
+puis, connecté via le Service, `ksmc service stop <proxy où vous êtes>`.
+**Attendu** : bref écran de chargement puis retour en jeu via l'autre proxy (`ksmc player list` montre le nouveau
+proxy) ; `/glist` sur un proxy compte les joueurs des deux ; une seconde connexion du même compte est refusée
+(« Tu es déjà connecté au réseau. »).
 
 ## 12. Modules (manuel)
 

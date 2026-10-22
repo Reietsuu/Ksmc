@@ -54,8 +54,11 @@ class KsmcBridgeTest {
         controller.close();
     }
 
-    KsmcBridge bridge(String service, String env, FakePlatform platform) throws Exception {
+    KsmcBridge bridge(String service, String env, FakePlatform platform, String... properties) throws Exception {
         ServiceManifest m = new ServiceManifest();
+        for (int i = 0; i < properties.length; i += 2) {
+            m.properties.put(properties[i], properties[i + 1]);
+        }
         m.network.maxPlayers = 500;
         m.properties.put("ksmc.forced-host.bw.example.com", "bedwars");
         KsmcBridge b = new KsmcBridge(new BridgeEnv("prod", service, service.replaceAll("-\\d+$", ""), env, url, null, null, m),
@@ -124,11 +127,132 @@ class KsmcBridgeTest {
                 PlayerInfo.class);
         assertThat(p.server).isEqualTo("lobby-1");
         assertThat(p.proxy).isEqualTo("proxy-1");
+        assertThat(b.networkPlayerList()).extracting(i -> i.name).containsExactly("Steve");
+        assertThat(b.commands().execute(RouterTest.ALL, "find", new String[] {"steve"}))
+                .containsExactly("&eSteve &7est sur &flobby-1 &7(proxy proxy-1)");
 
         b.playerDisconnect("uuid-1");
         await(() -> events.size() == 3);
         assertThat(events).containsExactly("ksmc.prod.pev.login", "ksmc.prod.pev.switch", "ksmc.prod.pev.disconnect");
         assertThat(controller.keyValue(BridgeSubjects.PLAYERS_BUCKET).get("uuid-1")).isNull();
+    }
+
+    static ServiceInfo proxySvc(String name) {
+        ServiceInfo s = RouterTest.svc(name, "proxy", 0, false, 0);
+        s.environment = "proxy";
+        return s;
+    }
+
+    @Test
+    void playerHasASingleSessionAcrossProxies() throws Exception {
+        publishService(proxySvc("proxy-1"));
+        publishService(proxySvc("proxy-2"));
+        KsmcBridge p1 = bridge("proxy-1", "proxy", new FakePlatform());
+        KsmcBridge p2 = bridge("proxy-2", "proxy", new FakePlatform());
+        await(() -> p1.registry().get("proxy-2") != null && p2.registry().get("proxy-1") != null);
+
+        assertThat(p1.admitPlayer("uuid-1", "Steve", 770)).isNull();
+        p1.playerLogin("uuid-1", "Steve", 770);
+        assertThat(p2.admitPlayer("uuid-1", "Steve", 770)).isEqualTo("Tu es déjà connecté au réseau.");
+        p1.playerDisconnect("uuid-1");
+        assertThat(p2.admitPlayer("uuid-1", "Steve", 770)).isNull();
+    }
+
+    @Test
+    void replacePolicyKicksTheOldSession() throws Exception {
+        publishService(proxySvc("proxy-1"));
+        publishService(proxySvc("proxy-2"));
+        FakePlatform old = new FakePlatform();
+        KsmcBridge p1 = bridge("proxy-1", "proxy", old);
+        KsmcBridge p2 = bridge("proxy-2", "proxy", new FakePlatform(), "ksmc.duplicate-login", "replace");
+        await(() -> p2.registry().get("proxy-1") != null);
+        p1.admitPlayer("uuid-1", "Steve", 770);
+        p1.playerLogin("uuid-1", "Steve", 770);
+
+        assertThat(p2.admitPlayer("uuid-1", "Steve", 770)).isNull();
+        assertThat(old.calls).contains("kick uuid-1 Tu t'es connecté depuis un autre endroit.");
+        PlayerInfo p = Wire.fromJson(controller.keyValue(BridgeSubjects.PLAYERS_BUCKET).get("uuid-1").valueAsString(),
+                PlayerInfo.class);
+        assertThat(p.proxy).isEqualTo("proxy-2");
+
+        // l'ancien proxy n'a pas vu l'expulsion (FakePlatform ne déconnecte pas) : son rafraîchissement l'applique
+        // sans écraser la session reprise
+        p1.refreshPlayers();
+        assertThat(old.calls.stream().filter(c -> c.startsWith("kick uuid-1")).count()).isEqualTo(2);
+        p1.playerDisconnect("uuid-1");
+        assertThat(controller.keyValue(BridgeSubjects.PLAYERS_BUCKET).get("uuid-1")).isNotNull();
+    }
+
+    @Test
+    void broadcastReachesPlayersOfEveryProxy() throws Exception {
+        FakePlatform a = new FakePlatform();
+        FakePlatform b = new FakePlatform();
+        a.players.add(new Platform.OnlinePlayer("uuid-1", "Steve", "lobby-1", 770));
+        b.players.add(new Platform.OnlinePlayer("uuid-2", "Alex", "lobby-1", 770));
+        KsmcBridge p1 = bridge("proxy-1", "proxy", a);
+        bridge("proxy-2", "proxy", b);
+        FakePlatform server = new FakePlatform();
+        server.players.add(new Platform.OnlinePlayer("uuid-3", "Herobrine", null, 770));
+        bridge("game-1", "server", server);
+
+        p1.broadcast("&cRedémarrage");
+        await(() -> a.calls.contains("message uuid-1 &cRedémarrage") && b.calls.contains("message uuid-2 &cRedémarrage"));
+        assertThat(server.calls).noneMatch(c -> c.startsWith("message"));
+    }
+
+    @Test
+    void drainingTransfersModernPlayersAndReleasesTheirSession() throws Exception {
+        publishService(proxySvc("proxy-1"));
+        publishService(proxySvc("proxy-2"));
+        List<String> events = new CopyOnWriteArrayList<>();
+        controller.connection().createDispatcher(m -> events.add(m.getSubject())).subscribe(BridgeSubjects.playerEvents("prod"));
+        KsmcBridge p1 = bridge("proxy-1", "proxy", new FakePlatform(), "ksmc.transfer.delay-ms", "0");
+        await(() -> p1.registry().get("proxy-2") != null);
+        p1.admitPlayer("uuid-1", "Steve", 770);
+        p1.playerLogin("uuid-1", "Steve", 770);
+        p1.admitPlayer("uuid-2", "Old", 47);
+        p1.playerLogin("uuid-2", "Old", 47);
+        await(() -> events.size() == 2);
+
+        List<TransferPlan.Step> steps = p1.drain(List.of(new TransferPlan.Candidate("uuid-1", 770, "play.example.com", 25565),
+                new TransferPlan.Candidate("uuid-2", 47, "play.example.com", 25565)));
+        assertThat(steps).extracting(TransferPlan.Step::isTransfer).containsExactly(true, false);
+        assertThat(controller.keyValue(BridgeSubjects.PLAYERS_BUCKET).get("uuid-1")).isNull();
+        // la déconnexion qui suit le transfert ne publie rien ; celle du joueur expulsé, si
+        p1.playerDisconnect("uuid-1");
+        p1.playerDisconnect("uuid-2");
+        await(() -> events.size() == 3);
+        Thread.sleep(200);
+        assertThat(events).containsExactly("ksmc.prod.pev.login", "ksmc.prod.pev.login", "ksmc.prod.pev.disconnect");
+    }
+
+    @Test
+    void lastProxyKicksEveryone() throws Exception {
+        publishService(proxySvc("proxy-1"));
+        ServiceInfo stopped = proxySvc("proxy-2");
+        stopped.phase = "Stopped";
+        publishService(stopped);
+        KsmcBridge p1 = bridge("proxy-1", "proxy", new FakePlatform());
+        await(() -> p1.registry().get("proxy-2") != null && !p1.registry().get("proxy-2").isRunning());
+        assertThat(p1.drain(List.of(new TransferPlan.Candidate("uuid-1", 770, "play.example.com", 25565))))
+                .extracting(TransferPlan.Step::isTransfer).containsExactly(false);
+    }
+
+    @Test
+    void pingCountCanBeLimitedToTheTask() throws Exception {
+        ServiceInfo eu = proxySvc("proxy-eu-1");
+        eu.task = "proxy-eu";
+        eu.onlinePlayers = 10;
+        ServiceInfo us = proxySvc("proxy-us-1");
+        us.task = "proxy-us";
+        us.onlinePlayers = 5;
+        publishService(eu);
+        publishService(us);
+        KsmcBridge euBridge = bridge("proxy-eu-1", "proxy", new FakePlatform());
+        KsmcBridge usBridge = bridge("proxy-us-1", "proxy", new FakePlatform(), "ksmc.player-count.scope", "task");
+        await(() -> euBridge.registry().get("proxy-us-1") != null && usBridge.registry().get("proxy-eu-1") != null);
+        assertThat(euBridge.networkPlayers()).isGreaterThanOrEqualTo(15);
+        assertThat(usBridge.networkPlayers()).isEqualTo(5);
     }
 
     @Test
