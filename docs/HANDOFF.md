@@ -1,6 +1,12 @@
 # Handoff (état de reprise)
 
-Dernière mise à jour : 2026-10-20 (v0.1.0)
+Dernière mise à jour : 2026-10-22 (p13-multiproxy en cours)
+
+- **En cours : p13-multiproxy** sur `feat/p13-multiproxy` (PR #17, brouillon). Code des 4 groupes écrit et testé en
+  unitaire (session unique, commandes réseau, transfert à l'arrêt, tasks proxy multiples). Reste : faire passer
+  `MultiProxyE2eTest` en CI puis cocher 1.4/2.4/3.4/4.2 et les tâches commit+push, merger, archiver.
+  Le transfert passe par `ProxyPreShutdownEvent` (le `ProxyShutdownEvent` arrive après la déconnexion des joueurs).
+  L'e2e utilise un lobby Spigot 1.8.8 (bot protocole 1.8) ; le paquet Transfer n'est testé qu'en unitaire.
 
 - **Mergé dans `main`** : p01 → p09 (PR #1 à #9), CI verte, changes archivés.
 - **v0.1.0 publiée** (2026-10-20) : p01 → p12 mergés (PR #1 à #12), tous les changes archivés. Release GitHub
