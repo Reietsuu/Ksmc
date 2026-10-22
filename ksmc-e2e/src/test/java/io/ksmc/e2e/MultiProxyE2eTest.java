@@ -205,6 +205,7 @@ class MultiProxyE2eTest {
     @Test
     @org.junit.jupiter.api.Order(Integer.MAX_VALUE)
     void stoppingProxyDisconnectsOldClientsWithFallbackMessage() throws Exception {
+        Thread.sleep(4000); // délai anti-flood de Velocity (3 s par IP) après les connexions précédentes
         try (LocalPortForward fwd = CLIENT.pods().inNamespace(NAMESPACE).withName("e2em-proxy-2").portForward(25565);
                 BotClient bot = BotClient.connect("127.0.0.1", fwd.getLocalPort(), "Eve")) {
             await("Eve en jeu via e2em-proxy-2", Duration.ofSeconds(60), () -> {
