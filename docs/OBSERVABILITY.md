@@ -13,6 +13,7 @@ Ksmc expose des métriques Prometheus (controller et services), des alertes et u
 | `ksmc_players` | jauge | `task` | joueurs en ligne par task |
 | `ksmc_task_degraded` | jauge | `task` | 1 si la task est dégradée (crash en boucle) |
 | `ksmc_service_restarts` | jauge | `task`, `service` | redémarrages du conteneur d'un service |
+| `ksmc_service_frozen_total` | compteur | `task` | proxies déclarés figés par leur chien de garde |
 | `ksmc_modules` | jauge | `module`, `phase` | 1 pour la phase actuelle de chaque module |
 | `ksmc_service_start_seconds` | histogramme | `task` | durée conteneur lancé → service prêt |
 | `ksmc_reconciliations_seconds` | histogramme | `controller`, `operation`, `result` | réconciliations (`result` = `success` ou `error`) |

@@ -220,6 +220,23 @@ du Pod), ses joueurs sont envoyés vers un autre proxy `Running` de la même tas
 
 Ksmc active `accepts-transfers` dans `velocity.toml` pour que les proxies acceptent les joueurs transférés.
 
+**Proxy figé (chien de garde).** Le bridge vérifie, depuis son propre thread, que le planificateur et le bus
+d'événements de Velocity répondent. Sans réponse pendant `ksmc.watchdog.timeout-seconds`, le proxy est déclaré
+figé : il sort du Service (sonde `/ready` en échec), transfère ses joueurs comme lors d'un arrêt, écrit l'état de
+ses threads dans ses logs puis s'arrête (code 70) et la task le remplace. Événement `service.frozen` et métrique
+`ksmc_service_frozen_total`.
+
+| Propriété | Défaut | Effet |
+|---|---|---|
+| `ksmc.watchdog.enabled` | `true` | `false` : pas de chien de garde |
+| `ksmc.watchdog.timeout-seconds` | `30` | silence toléré avant de déclarer le proxy figé (minimum 5) |
+| `ksmc.watchdog.drain-timeout-seconds` | `10` | durée maximale du transfert des joueurs avant l'arrêt |
+| `ksmc.watchdog.test` | `false` | active la commande console `ksmc freeze-test` (tests uniquement) |
+
+Limite : un **crash net** (JVM tuée, mémoire épuisée) coupe forcément les joueurs, leur connexion se termine dans
+le process. Ils se reconnectent par le Service, qui les envoie sur un proxy sain ; leur ancienne session ne les
+bloque pas.
+
 **Plusieurs tasks proxy.** Chaque task proxy a son propre Service (exposition), ses forced hosts, sa maintenance
 et son maximum de joueurs ; toutes partagent les serveurs et le registre des joueurs, et la session unique vaut
 pour tout le réseau. Le ping affiche les joueurs de tout le réseau, ou seulement ceux de la task avec

@@ -57,6 +57,9 @@ public final class KsmcVelocityBridge implements Platform {
     private final Logger logger;
     private KsmcBridge bridge;
     private Watchdog watchdog;
+    /** Commande console {@code ksmc freeze-test}, active seulement avec {@code ksmc.watchdog.test: true}. */
+    private static final String FREEZE_TEST = "freeze-test";
+    private volatile boolean freezeTest;
     private ScheduledExecutorService heartbeats;
 
     @Inject
@@ -116,8 +119,11 @@ public final class KsmcVelocityBridge implements Platform {
     }
 
     @Subscribe
-    public void onHeartbeat(KsmcHeartbeatEvent event) {
-        // traversée du bus : rien à faire
+    public void onHeartbeat(KsmcHeartbeatEvent event) throws InterruptedException {
+        // Traversée du bus : rien à faire, sauf en test du chien de garde (simule un plugin qui bloque).
+        while (freezeTest) {
+            Thread.sleep(1000);
+        }
     }
 
     /** Commandes réseau : {@code /ksmc <commande>} et, sauf {@code ksmc.commands.replace-builtin: false}, en direct. */
@@ -126,6 +132,12 @@ public final class KsmcVelocityBridge implements Platform {
         commands.register(commands.metaBuilder("ksmc").build(), (SimpleCommand) inv -> {
             String[] args = inv.arguments();
             String name = args.length == 0 ? "" : args[0];
+            if (FREEZE_TEST.equals(name) && inv.source() instanceof ConsoleCommandSource
+                    && "true".equals(bridge.env().property("ksmc.watchdog.test", "false"))) {
+                freezeTest = true;
+                logger.warn("[ksmc] test du chien de garde : le bus d'événements est bloqué");
+                return;
+            }
             run(inv.source(), name, Arrays.copyOfRange(args, Math.min(1, args.length), args.length));
         });
         if ("false".equals(bridge.env().property("ksmc.commands.replace-builtin", "true"))) {

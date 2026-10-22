@@ -18,7 +18,7 @@ Prérequis : p13-multiproxy mergé dans `main` (rebaser `feat/p14-proxy-watchdog
 
 - [x] 3.1 `ServiceReport.frozen` (envoi immédiat) ; controller : événement `service.frozen` et métrique `ksmc_service_frozen_total{task}` ; tests ; vérifier `./gradlew :ksmc-wire:test :ksmc-controller:test -q`
 - [ ] 3.2 Commande de test `ksmc:freeze-test` (seulement avec `ksmc.watchdog.test: true`) ; E2E : gel provoqué, `service.frozen`, sortie du Service, repli du bot 1.8, redémarrage ; vérifier en CI (`gh run watch`)
-- [ ] 3.3 Docs : USAGE (propriétés `ksmc.watchdog.*`, limites : crash net), OBSERVABILITY (événement, métrique), TESTING ; vérifier les liens
+- [x] 3.3 Docs : USAGE (propriétés `ksmc.watchdog.*`, limites : crash net), OBSERVABILITY (événement, métrique), TESTING ; vérifier les liens
 - [ ] 3.4 Commit + push (`feat(observability): frozen proxy event and metric`)
 
 ## Workflow follow-up
