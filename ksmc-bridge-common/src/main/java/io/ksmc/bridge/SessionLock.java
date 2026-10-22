@@ -19,6 +19,11 @@ final class SessionLock {
         boolean isRunning(String name);
     }
 
+    /** Joueurs du registre (recherche par pseudo). */
+    interface Directory {
+        java.util.List<PlayerInfo> players();
+    }
+
     enum Outcome {
         /** Verrou pris : la connexion est acceptée. */
         ACCEPTED,
@@ -32,42 +37,55 @@ final class SessionLock {
         final Outcome outcome;
         /** Proxy qui tient la session (DENIED, REPLACE). */
         final String holder;
+        /** UUID de la session à expulser (REPLACE) : celui du joueur, ou d'un homonyme à la casse près. */
+        final String heldUuid;
 
-        Result(Outcome outcome, String holder) {
+        Result(Outcome outcome, String holder, String heldUuid) {
             this.outcome = outcome;
             this.holder = holder;
+            this.heldUuid = heldUuid;
         }
     }
 
     private final KeyValueApi kv;
     private final Liveness liveness;
+    private final Directory directory;
 
-    SessionLock(KeyValueApi kv, Liveness liveness) {
+    SessionLock(KeyValueApi kv, Liveness liveness, Directory directory) {
         this.kv = kv;
         this.liveness = liveness;
+        this.directory = directory;
     }
 
     /** Tente de prendre la session de {@code p} pour {@code p.proxy}. */
     Result acquire(PlayerInfo p, String policy) {
+        Outcome conflict = REPLACE.equals(policy) ? Outcome.REPLACE : Outcome.DENIED;
+        // Pseudo déjà en ligne sous un autre UUID (mode hors ligne : l'UUID dépend de la casse).
+        for (PlayerInfo other : directory.players()) {
+            if (other.name != null && other.name.equalsIgnoreCase(p.name) && !p.uuid.equals(other.uuid)
+                    && other.proxy != null && liveness.isRunning(other.proxy)) {
+                return new Result(conflict, other.proxy, other.uuid);
+            }
+        }
         byte[] value = Wire.toJson(p).getBytes(KsmcBridge.UTF8);
         String holder = null;
         for (int i = 0; i < ATTEMPTS; i++) {
             KeyValueApi.Entry e = kv.get(p.uuid);
             holder = e == null ? null : holderOf(e);
             if (e != null && holder != null && !holder.equals(p.proxy) && liveness.isRunning(holder)) {
-                return new Result(REPLACE.equals(policy) ? Outcome.REPLACE : Outcome.DENIED, holder);
+                return new Result(conflict, holder, p.uuid);
             }
             try {
                 kv.update(p.uuid, value, e == null ? 0 : e.revision);
-                return new Result(Outcome.ACCEPTED, null);
-            } catch (MessagingException conflict) {
-                if (!"Conflict".equals(conflict.code())) {
-                    throw conflict;
+                return new Result(Outcome.ACCEPTED, null, null);
+            } catch (MessagingException race) {
+                if (!"Conflict".equals(race.code())) {
+                    throw race;
                 }
                 // un autre proxy vient d'écrire : relire
             }
         }
-        return new Result(Outcome.DENIED, holder);
+        return new Result(Outcome.DENIED, holder, p.uuid);
     }
 
     /** Prend la session sans condition (après expulsion de l'ancienne, politique {@code replace}). */

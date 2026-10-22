@@ -12,6 +12,15 @@ Deux connexions simultanées du même UUID sur deux proxies SHALL aboutir à une
 - **WHEN** deux connexions de Steve arrivent en même temps sur `proxy-1` et `proxy-2` (politique `deny`)
 - **THEN** exactement une est acceptée
 
+### Requirement: Pseudo unique sur le réseau
+Un pseudo SHALL n'être connecté qu'une fois sur le réseau, sans tenir compte de la casse, même si les UUID diffèrent
+(mode hors ligne, où l'UUID dépend de la casse exacte du pseudo). La politique de double connexion s'applique.
+Cette garantie est séquentielle : seule l'unicité par UUID est garantie pour des connexions strictement simultanées.
+
+#### Scenario: Casse différente en mode hors ligne
+- **WHEN** `Steve` est en jeu via `proxy-1` et que `steve` se connecte via `proxy-2` (politique `deny`)
+- **THEN** la connexion de `steve` est refusée avec le message de double connexion
+
 ### Requirement: Politique de double connexion
 La politique SHALL être choisie par task proxy via la propriété `ksmc.duplicate-login` : `deny` (défaut) refuse la
 nouvelle connexion avec le message `ksmc.duplicate-login.message` ; `replace` expulse l'ancienne session puis

@@ -17,7 +17,8 @@ import org.junit.jupiter.api.Test;
 class SessionLockTest {
     final MemoryKeyValue kv = new MemoryKeyValue();
     Set<String> running = Set.of("proxy-1", "proxy-2");
-    final SessionLock lock = new SessionLock(kv, name -> running.contains(name));
+    final SessionLock lock = new SessionLock(kv, name -> running.contains(name), () -> kv.entries.values().stream()
+            .map(e -> Wire.fromJson(new String(e.value, StandardCharsets.UTF_8), PlayerInfo.class)).toList());
 
     static PlayerInfo steve(String proxy) {
         PlayerInfo p = new PlayerInfo();
@@ -62,6 +63,21 @@ class SessionLockTest {
         running = Set.of("proxy-2");
         assertThat(lock.acquire(steve("proxy-2"), null).outcome).isEqualTo(SessionLock.Outcome.ACCEPTED);
         assertThat(holder()).isEqualTo("proxy-2");
+    }
+
+    @Test
+    void sameNameWithAnotherCaseIsAnotherSessionOfTheSamePlayer() {
+        lock.acquire(steve("proxy-1"), null);
+        PlayerInfo lower = steve("proxy-2");
+        lower.uuid = "uuid-lower";
+        lower.name = "steve";
+        SessionLock.Result r = lock.acquire(lower, null);
+        assertThat(r.outcome).isEqualTo(SessionLock.Outcome.DENIED);
+        r = lock.acquire(lower, SessionLock.REPLACE);
+        assertThat(r.outcome).isEqualTo(SessionLock.Outcome.REPLACE);
+        assertThat(r.heldUuid).isEqualTo("uuid-steve");
+        running = Set.of("proxy-2");
+        assertThat(lock.acquire(lower, null).outcome).isEqualTo(SessionLock.Outcome.ACCEPTED);
     }
 
     @Test

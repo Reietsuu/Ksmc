@@ -187,7 +187,8 @@ tasks proxy. Les proxies partagent les serveurs et le registre des joueurs ; les
 | `ksmc.duplicate-login.message` | `Tu es déjà connecté au réseau.` | message de refus (`deny`) |
 | `ksmc.duplicate-login.replaced-message` | `Tu t'es connecté depuis un autre endroit.` | message de l'ancienne session (`replace`) |
 
-Une session restée sur un proxy qui ne tourne plus est ignorée. Si le cloud est injoignable, la connexion est acceptée.
+Le pseudo compte aussi, sans tenir compte de la casse (en mode hors ligne, `Steve` et `steve` ont des UUID
+différents mais restent une seule session). Une session restée sur un proxy qui ne tourne plus est ignorée. Si le cloud est injoignable, la connexion est acceptée.
 
 **Commandes réseau.** Elles agissent sur tout le réseau, quel que soit le proxy du joueur, et marchent aussi depuis
 la console du proxy (`ksmc service cmd proxy-1 glist`).

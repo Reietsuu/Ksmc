@@ -130,6 +130,9 @@ class MultiProxyE2eTest {
         controller.keyValue(BridgeSubjects.PLAYERS_BUCKET).put(held.uuid, Wire.toJson(held).getBytes(StandardCharsets.UTF_8));
 
         assertThat(joinVia("e2em-proxy-2", "Bob")).contains("déjà connecté");
+        // Même pseudo à la casse près (mode hors ligne : autre UUID) : refusé aussi.
+        Thread.sleep(4000);
+        assertThat(joinVia("e2em-proxy-2", "bob")).contains("déjà connecté");
 
         // Session libérée : Bob entre (après le délai anti-flood de Velocity, 3 s par IP).
         controller.keyValue(BridgeSubjects.PLAYERS_BUCKET).delete(held.uuid);

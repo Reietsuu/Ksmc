@@ -242,7 +242,7 @@ public final class KsmcBridge implements AutoCloseable {
                 return null;
             }
             if (r.outcome == SessionLock.Outcome.REPLACE) {
-                kickRemote(m, r.holder, uuid);
+                kickRemote(m, r.holder, r.heldUuid);
                 sessionLock(m).takeOver(p);
                 return null;
             }
@@ -258,6 +258,10 @@ public final class KsmcBridge implements AutoCloseable {
             public boolean isRunning(String name) {
                 ServiceInfo s = registry.get(name);
                 return s != null && "proxy".equals(s.environment) && s.isRunning();
+            }
+        }, new SessionLock.Directory() {
+            public List<PlayerInfo> players() {
+                return networkPlayerList();
             }
         });
     }

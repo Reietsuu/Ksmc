@@ -28,6 +28,11 @@ adaptateur Velocity mince ; aucun changement de CRD, réglages par propriétés 
    une mise à jour et non plus un `put` aveugle. Le TTL actuel (30 s) reste le filet de sécurité.
    *Alternative écartée* : un bucket `sessions` séparé, qui ferait double emploi avec `players` et pourrait diverger de lui.
    *Défaut si NATS indisponible* : la connexion est acceptée (on n'empêche pas de jouer à cause du cloud), avec un log d'avertissement.
+1bis. **Pseudo unique (sans casse).** Avant la prise du verrou par UUID, le bridge cherche dans le bucket `players`
+   un joueur `Running` d'un autre UUID au même pseudo (insensible à la casse) ; s'il existe, la politique s'applique
+   (`replace` expulse cet UUID-là). Lecture de tout le bucket à chaque connexion : acceptable (quelques milliers
+   d'entrées au plus). Pas de verrou atomique par pseudo (il faudrait une seconde clé que le controller listerait
+   comme un joueur) : deux connexions *simultanées* `Steve`/`steve` peuvent passer, cas marginal assumé.
 2. **Commandes : cœur commun + enregistrement par plateforme.** `NetworkCommands` (commun) prend
    `(expéditeur, nom, arguments)` et renvoie des lignes de texte ; il lit `players` (KV) et le registre des services,
    et réutilise les RPC existants pour `/send`. L'adaptateur Velocity enregistre `glist`, `find`, `send`, `alert`
